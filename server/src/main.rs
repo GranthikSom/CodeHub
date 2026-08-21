@@ -96,6 +96,7 @@ async fn main() {
         .route("/api/v1/repositories/:id/announce", post(announce_peer))
         .route("/api/v1/repositories/:id/peers", get(get_repository_peers))
         .route("/api/v1/repositories/:id/replicas", post(update_replication_factor))
+        .route("/api/v1/repositories/:id/replication-status", get(get_replication_status))
         
         // 5. Search routes
         .route("/api/v1/search/repositories", get(search_repositories))
@@ -328,6 +329,20 @@ async fn update_replication_factor(
             id, payload.min_replicas
         ),
         data: Some(format!("min_replicas={}", payload.min_replicas)),
+    })
+}
+
+async fn get_replication_status(
+    Path(id): Path<String>,
+) -> Json<ApiResponse<repository::ReplicationHealthStatus>> {
+    let engine = repository::ReplicationPolicyEngine::new(3);
+    let active_seeders = 8; // Simulating active seeders count from tracker
+    let status = engine.evaluate_health(&id, active_seeders);
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Replication health status evaluated for repository '{}'", id),
+        data: Some(status),
     })
 }
 
