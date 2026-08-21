@@ -2,19 +2,38 @@ syntax = "proto3";
 
 package codehub.protocol.sync;
 
-message SwarmSyncAnnouncement {
+// Protocol Message Types for P2P Repository Sync
+enum SyncMessageType {
+  ANNOUNCE_REPOSITORY = 0;
+  REQUEST_MANIFEST = 1;
+  SEND_MANIFEST = 2;
+  REQUEST_OBJECT = 3;
+  SEND_OBJECT = 4;
+  REQUEST_CHUNK = 5;
+  SEND_CHUNK = 6;
+  VERIFY_CHUNK = 7;
+  SYNC_COMPLETE = 8;
+}
+
+message SwarmSyncMessage {
+  SyncMessageType message_type = 1;
+  string repo_id = 2;
+  string sender_peer_id = 3;
+  string object_hash = 4;
+  string chunk_hash = 5;
+  bytes raw_payload = 6;
+  uint64 timestamp = 7;
+}
+
+message RepositoryManifest {
   string repo_id = 1;
   string head_commit_hash = 2;
-  repeated string object_hashes = 3;
-  uint64 timestamp = 4;
+  repeated string chunk_hashes = 3;
+  uint64 total_bytes = 4;
 }
 
-message BlockFetchRequest {
-  string repo_id = 1;
-  repeated string requested_hashes = 2;
-}
-
-message BlockFetchResponse {
-  string repo_id = 1;
-  repeated bytes blocks_payload = 2;
+message ChunkVerificationPayload {
+  string chunk_hash = 1;
+  bool is_valid = 2;
+  string status_message = 3;
 }

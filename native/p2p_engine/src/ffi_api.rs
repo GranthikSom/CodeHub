@@ -378,6 +378,52 @@ pub extern "C" fn codehub_confirm_push_replication(repo_id_ptr: *const c_char) -
     CString::new(json_str).unwrap().into_raw()
 }
 
+/// Zero-trust verification of incoming sync chunk payload against expected SHA-256 hash
+#[no_mangle]
+pub extern "C" fn codehub_verify_sync_chunk(
+    repo_id_ptr: *const c_char,
+    chunk_hash_ptr: *const c_char,
+    payload_ptr: *const c_char,
+) -> *mut c_char {
+    let repo_id = if repo_id_ptr.is_null() {
+        "repo_123".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(repo_id_ptr)
+                .to_str()
+                .unwrap_or("repo_123")
+                .to_string()
+        }
+    };
+
+    let expected_hash = if chunk_hash_ptr.is_null() {
+        "8f91ab".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(chunk_hash_ptr)
+                .to_str()
+                .unwrap_or("8f91ab")
+                .to_string()
+        }
+    };
+
+    let payload_bytes = if payload_ptr.is_null() {
+        b"Hello CodeHub Sync Engine".to_vec()
+    } else {
+        unsafe {
+            CStr::from_ptr(payload_ptr)
+                .to_bytes()
+                .to_vec()
+        }
+    };
+
+    let engine = crate::sync_protocol::RepositorySyncEngine::new();
+    let result = engine.verify_and_store_chunk(&repo_id, &expected_hash, &payload_bytes);
+
+    let json_str = serde_json::to_string(&result).unwrap_or_default();
+    CString::new(json_str).unwrap().into_raw()
+}
+
 /// Frees C string memory allocated by Rust
 #[no_mangle]
 pub extern "C" fn codehub_free_string(ptr: *mut c_char) {

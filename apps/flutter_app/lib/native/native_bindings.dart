@@ -45,6 +45,11 @@ typedef DartGetConnectedPeers = Pointer<Utf8> Function();
 typedef NativeConfirmPushReplication = Pointer<Utf8> Function(Pointer<Utf8> repoId);
 typedef DartConfirmPushReplication = Pointer<Utf8> Function(Pointer<Utf8> repoId);
 
+typedef NativeVerifySyncChunk = Pointer<Utf8> Function(
+    Pointer<Utf8> repoId, Pointer<Utf8> chunkHash, Pointer<Utf8> payload);
+typedef DartVerifySyncChunk = Pointer<Utf8> Function(
+    Pointer<Utf8> repoId, Pointer<Utf8> chunkHash, Pointer<Utf8> payload);
+
 /// Native Rust P2P Engine Dart FFI Interface
 class NativeP2PEngine {
   static DynamicLibrary? _lib;
@@ -64,6 +69,7 @@ class NativeP2PEngine {
   static DartGetPeerIdentity? _getPeerIdentity;
   static DartGetConnectedPeers? _getConnectedPeers;
   static DartConfirmPushReplication? _confirmPushReplication;
+  static DartVerifySyncChunk? _verifySyncChunk;
 
   static bool get isNativeLoaded => _isLoaded;
 
@@ -107,6 +113,7 @@ class NativeP2PEngine {
         _getPeerIdentity = _lib!.lookupFunction<NativeGetPeerIdentity, DartGetPeerIdentity>('codehub_get_or_create_peer_identity');
         _getConnectedPeers = _lib!.lookupFunction<NativeGetConnectedPeers, DartGetConnectedPeers>('codehub_get_connected_peers');
         _confirmPushReplication = _lib!.lookupFunction<NativeConfirmPushReplication, DartConfirmPushReplication>('codehub_confirm_push_replication');
+        _verifySyncChunk = _lib!.lookupFunction<NativeVerifySyncChunk, DartVerifySyncChunk>('codehub_verify_sync_chunk');
 
         _isLoaded = true;
       }
@@ -280,6 +287,25 @@ class NativeP2PEngine {
       return resultStr;
     } finally {
       calloc.free(repoIdPtr);
+    }
+  }
+
+  /// Zero-trust verification of incoming sync chunk payload against expected SHA-256 hash
+  static String? verifySyncChunk(String repoId, String chunkHash, String payload) {
+    if (!_isLoaded || _verifySyncChunk == null || _freeString == null) return null;
+    final repoIdPtr = repoId.toNativeUtf8();
+    final hashPtr = chunkHash.toNativeUtf8();
+    final payloadPtr = payload.toNativeUtf8();
+    try {
+      final resPtr = _verifySyncChunk!(repoIdPtr, hashPtr, payloadPtr);
+      if (resPtr == nullptr) return null;
+      final resultStr = resPtr.toDartString();
+      _freeString!(resPtr);
+      return resultStr;
+    } finally {
+      calloc.free(repoIdPtr);
+      calloc.free(hashPtr);
+      calloc.free(payloadPtr);
     }
   }
 }
