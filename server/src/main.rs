@@ -14,6 +14,7 @@ pub mod db;
 pub mod discovery;
 pub mod repository;
 pub mod search;
+pub mod p2p_node;
 
 use api::{ApiResponse, HealthStatus};
 use auth::{generate_jwt_token, AuthRequest, AuthResponse};
@@ -154,6 +155,8 @@ async fn main() {
         .route("/api/v1/system/security-hardening", get(get_security_hardening_status))
         .route("/api/v1/storage-nodes/status", get(get_storage_nodes_status))
         .route("/api/v1/storage-nodes/pin/:id", post(pin_repository_on_storage_nodes))
+        // 12. Dual-Role Server Embedded P2P Storage Peer
+        .route("/api/v1/system/peer-node", get(get_server_peer_node_status))
         
         .layer(cors);
 
@@ -1476,5 +1479,16 @@ async fn pin_repository_on_storage_nodes(
         success: true,
         message: format!("Repository '{}' pinned across 3 dedicated 24/7 storage nodes. Uptime guaranteed even if user laptop shuts down.", repo_id),
         data: Some(pin_resp),
+    })
+}
+
+async fn get_server_peer_node_status() -> Json<ApiResponse<p2p_node::ServerPeerNodeStatus>> {
+    let peer_service = p2p_node::ServerP2pStoragePeer::new();
+    let status = peer_service.get_status();
+
+    Json(ApiResponse {
+        success: true,
+        message: "Dual-Role Control Server & Embedded P2P Storage Peer Status Retrieved".to_string(),
+        data: Some(status),
     })
 }
