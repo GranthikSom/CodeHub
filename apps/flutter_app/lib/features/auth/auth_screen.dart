@@ -11,7 +11,17 @@ class AuthScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.security, size: 64, color: Colors.blue),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'assets/logo.png',
+                width: 96,
+                height: 96,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.security, size: 64, color: Colors.blue),
+              ),
+            ),
             const SizedBox(height: 16),
             const Text(
               'CodeHub Authentication & Key Grant',

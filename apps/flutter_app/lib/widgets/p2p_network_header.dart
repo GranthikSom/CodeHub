@@ -31,18 +31,27 @@ class P2PNetworkHeader extends StatelessWidget {
               // Logo & Platform Title
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF58A6FF), Color(0xFFBC8CFF)],
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/logo.png',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF58A6FF), Color(0xFFBC8CFF)],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.hub_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.hub_rounded,
-                      color: Colors.white,
-                      size: 24,
                     ),
                   ),
                   const SizedBox(width: 12),
