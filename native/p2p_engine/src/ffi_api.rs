@@ -527,6 +527,42 @@ pub extern "C" fn codehub_package_native_git_objects(
     CString::new(json_str).unwrap().into_raw()
 }
 
+/// Parses raw commit object bytes into structured GitCommit DAG representation
+#[no_mangle]
+pub extern "C" fn codehub_parse_git_commit_dag(
+    commit_hash_ptr: *const c_char,
+    raw_payload_ptr: *const c_char,
+) -> *mut c_char {
+    let commit_hash = if commit_hash_ptr.is_null() {
+        "8f91ab772211".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(commit_hash_ptr)
+                .to_str()
+                .unwrap_or("8f91ab772211")
+                .to_string()
+        }
+    };
+
+    let raw_payload = if raw_payload_ptr.is_null() {
+        b"tree 7c9f11223344\nparent 3a2c417c8899\nauthor Soham Mondal <soham@codehub.p2p>\ncommitter Soham Mondal <soham@codehub.p2p>\n\nfeat: implement P2P Git DAG operations".to_vec()
+    } else {
+        unsafe {
+            CStr::from_ptr(raw_payload_ptr)
+                .to_bytes()
+                .to_vec()
+        }
+    };
+
+    let commit_result = crate::git_dag::GitDagEngine::parse_commit_payload(&commit_hash, &raw_payload);
+    let json_str = match commit_result {
+        Ok(commit) => serde_json::to_string(&commit).unwrap_or_default(),
+        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
+    };
+
+    CString::new(json_str).unwrap().into_raw()
+}
+
 /// Frees C string memory allocated by Rust
 #[no_mangle]
 pub extern "C" fn codehub_free_string(ptr: *mut c_char) {

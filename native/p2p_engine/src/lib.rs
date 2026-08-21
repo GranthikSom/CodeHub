@@ -13,6 +13,7 @@ pub mod replication_guarantee;
 pub mod sync_protocol;
 pub mod repository_encryption;
 pub mod git_interop;
+pub mod git_dag;
 pub mod ffi_api;
 
 pub use blockstore::Blockstore;
@@ -26,4 +27,5 @@ pub use replication_guarantee::*;
 pub use sync_protocol::*;
 pub use repository_encryption::*;
 pub use git_interop::*;
+pub use git_dag::*;
 pub use ffi_api::*;
