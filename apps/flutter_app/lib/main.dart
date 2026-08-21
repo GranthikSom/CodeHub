@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dashboard/landing_page.dart';
+import 'screens/splash_screen.dart';
 import 'services/codehub_state.dart';
 
 void main() {
@@ -62,7 +62,7 @@ class _CodeHubAppState extends State<CodeHubApp> {
             ),
             useMaterial3: true,
           ),
-          home: Landingpage(state: _state),
+          home: const SplashScreen(),
         );
       },
     );

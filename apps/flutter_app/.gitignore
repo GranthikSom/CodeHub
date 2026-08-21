@@ -1,0 +1,8 @@
+# Flutter gitignore
+.dart_tool/
+.fvm/
+.idea/
+.packages
+.pub-cache/
+.pub/
+build/

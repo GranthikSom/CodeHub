@@ -4,14 +4,15 @@ import '../models/p2p_node.dart';
 import '../services/codehub_state.dart';
 
 class GitObjectDagView extends StatelessWidget {
-  final CodeHubState state;
+  final CodeHubState? state;
 
-  const GitObjectDagView({super.key, required this.state});
+  const GitObjectDagView({super.key, this.state});
 
   @override
   Widget build(BuildContext context) {
+    final activeState = state ?? CodeHubState();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final repo = state.selectedRepo;
+    final repo = activeState.selectedRepo;
 
     if (repo == null) {
       return Center(
@@ -22,7 +23,7 @@ class GitObjectDagView extends StatelessWidget {
       );
     }
 
-    final selectedObj = state.selectedGitObject ?? repo.rootCommit;
+    final selectedObj = activeState.selectedGitObject ?? repo.rootCommit;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +87,7 @@ class GitObjectDagView extends StatelessWidget {
                       value: repo.id,
                       isExpanded: true,
                       dropdownColor: isDark ? const Color(0xFF161B22) : Colors.white,
-                      items: state.repositories.map((r) {
+                      items: activeState.repositories.map((r) {
                         return DropdownMenuItem<String>(
                           value: r.id,
                           child: Text(
@@ -100,7 +101,7 @@ class GitObjectDagView extends StatelessWidget {
                         );
                       }).toList(),
                       onChanged: (id) {
-                        if (id != null) state.selectRepository(id);
+                        if (id != null) activeState.selectRepository(id);
                       },
                     ),
                   ),
@@ -227,7 +228,7 @@ class GitObjectDagView extends StatelessWidget {
                     ),
                   ),
                   child: Column(
-                    children: state.nodes.where((n) => n.type != NodeType.controlRelay).map((node) {
+                    children: activeState.nodes.where((n) => n.type != NodeType.controlRelay).map((node) {
                       final hasReplica = selectedObj.replicaNodeIds.contains(node.id);
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -319,14 +320,15 @@ class GitObjectDagView extends StatelessWidget {
     required GitObject object,
     required int depth,
   }) {
+    final activeState = state ?? CodeHubState();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isSelected = state.selectedGitObject?.hash == object.hash;
+    final isSelected = activeState.selectedGitObject?.hash == object.hash;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         InkWell(
-          onTap: () => state.selectGitObject(object),
+          onTap: () => activeState.selectGitObject(object),
           borderRadius: BorderRadius.circular(6),
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 2),

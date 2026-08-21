@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import '../services/codehub_state.dart';
 
 class LocalStoragePanel extends StatelessWidget {
-  final CodeHubState state;
+  final CodeHubState? state;
 
-  const LocalStoragePanel({super.key, required this.state});
+  const LocalStoragePanel({super.key, this.state});
 
   @override
   Widget build(BuildContext context) {
+    final activeState = state ?? CodeHubState();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final localNode = state.localNode;
-    final pinnedRepos = state.repositories.where((r) => r.isPinnedLocally).toList();
+    final localNode = activeState.localNode;
+    final pinnedRepos = activeState.repositories.where((r) => r.isPinnedLocally).toList();
 
     return SingleChildScrollView(
       child: Column(
@@ -121,7 +122,7 @@ class LocalStoragePanel extends StatelessWidget {
                         divisions: 19,
                         label: '${localNode.storageAllocatedGb.toStringAsFixed(0)} GB',
                         activeColor: const Color(0xFF58A6FF),
-                        onChanged: (val) => state.updateLocalStorageQuota(val),
+                        onChanged: (val) => activeState.updateLocalStorageQuota(val),
                       ),
                     ),
                     Text(
@@ -229,7 +230,7 @@ class LocalStoragePanel extends StatelessWidget {
                             ),
                           ),
                           OutlinedButton(
-                            onPressed: () => state.togglePinRepository(repo.id),
+                            onPressed: () => activeState.togglePinRepository(repo.id),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: isDark ? const Color(0xFFF85149) : Colors.red,
                               side: BorderSide(color: isDark ? const Color(0xFFF85149) : Colors.red),

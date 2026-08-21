@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/repository_model.dart';
 import '../services/codehub_state.dart';
+import '../screens/repository_detail_screen.dart';
 
 class RepoCard extends StatelessWidget {
   final CodeRepository repo;
@@ -17,7 +18,19 @@ class RepoCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isPinned = repo.isPinnedLocally;
 
-    return Container(
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => RepositoryDetailScreen(
+              repoName: repo.name,
+              owner: repo.owner,
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -247,6 +260,7 @@ class RepoCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
