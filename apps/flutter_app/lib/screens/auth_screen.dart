@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../services/api_service.dart';
 import 'dashboard_screen.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -11,12 +11,35 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool _isLoginMode = true;
+  bool _isLoading = false;
   final _usernameController = TextEditingController(text: 'GranthikSom');
   final _emailController = TextEditingController(text: 'soham@codehub.p2p');
   final _passwordController = TextEditingController(text: 'password123');
 
-  void _submitAuth() {
-    // Navigate to Main Dashboard Screen
+  final ApiService _api = ApiService();
+
+  Future<void> _submitAuth() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+    final email = _emailController.text.trim();
+
+    if (_isLoginMode) {
+      await _api.login(username: username, password: password);
+    } else {
+      await _api.register(username: username, email: email, password: password);
+      await _api.login(username: username, password: password);
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const DashboardScreen()),
     );
@@ -142,11 +165,17 @@ class _AuthScreenState extends State<AuthScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        onPressed: _submitAuth,
-                        child: Text(
-                          _isLoginMode ? 'Sign In' : 'Register Identity',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
+                        onPressed: _isLoading ? null : _submitAuth,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : Text(
+                                _isLoginMode ? 'Sign In' : 'Register Identity',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),

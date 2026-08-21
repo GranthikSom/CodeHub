@@ -124,8 +124,9 @@ async fn main() {
             post(add_issue_comment),
         )
         
-        // 8. Fork & Pull requests routes
+        // 8. Fork & Pull requests & Branches routes
         .route("/api/v1/repositories/:id/fork", post(fork_repository))
+        .route("/api/v1/repositories/:id/branches", get(list_branches).post(create_branch))
         .route("/api/v1/repositories/:id/pulls", get(list_pulls).post(create_pull_request))
         .route("/api/v1/repositories/:id/pulls/:pr_id", get(get_pull_request_by_id))
         .route("/api/v1/repositories/:id/pulls/:pr_id/merge", post(merge_pull_request_handler))
@@ -926,5 +927,66 @@ async fn mark_notification_read(Path(id): Path<String>) -> Json<ApiResponse<Stri
         success: true,
         message: format!("Notification '{}' marked as read", id),
         data: Some("is_read=true".to_string()),
+    })
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BranchItem {
+    pub name: String,
+    pub is_default: bool,
+    pub commit_sha: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateBranchPayload {
+    pub name: String,
+    pub target_sha: Option<String>,
+}
+
+async fn list_branches(Path(id): Path<String>) -> Json<ApiResponse<Vec<BranchItem>>> {
+    let branches = vec![
+        BranchItem {
+            name: "main".to_string(),
+            is_default: true,
+            commit_sha: "8f2a1b9c4e21a3b5".to_string(),
+            updated_at: "2026-08-21T12:00:00Z".to_string(),
+        },
+        BranchItem {
+            name: "feature/dht-routing".to_string(),
+            is_default: false,
+            commit_sha: "3c19d4f2a1887e12".to_string(),
+            updated_at: "2026-08-21T10:30:00Z".to_string(),
+        },
+        BranchItem {
+            name: "release/v1.0".to_string(),
+            is_default: false,
+            commit_sha: "1a72e8b99c0142de".to_string(),
+            updated_at: "2026-08-20T18:00:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Branches retrieved for repository '{}'", id),
+        data: Some(branches),
+    })
+}
+
+async fn create_branch(
+    Path(id): Path<String>,
+    Json(payload): Json<CreateBranchPayload>,
+) -> Json<ApiResponse<BranchItem>> {
+    let new_branch = BranchItem {
+        name: payload.name.clone(),
+        is_default: false,
+        commit_sha: payload.target_sha.unwrap_or_else(|| "8f2a1b9c4e21a3b5".to_string()),
+        updated_at: "2026-08-21T12:15:00Z".to_string(),
+    };
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Branch '{}' created for repository '{}'", payload.name, id),
+        data: Some(new_branch),
     })
 }

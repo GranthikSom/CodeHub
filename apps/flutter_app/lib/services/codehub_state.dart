@@ -4,12 +4,14 @@ import '../models/p2p_node.dart';
 import '../models/git_object.dart';
 import '../models/repository_model.dart';
 import '../native/native_bindings.dart';
+import 'api_service.dart';
 
 enum ActiveTab { overview, repos, dagExplorer, networkTopology, storageSettings }
 
 enum StoragePreset { zero, gb5, gb20, gb50, gb100, custom }
 
 class CodeHubState extends ChangeNotifier {
+  final ApiService _apiService = ApiService();
   ActiveTab _activeTab = ActiveTab.overview;
   String _searchQuery = '';
   String? _selectedRepoId;
@@ -47,6 +49,7 @@ class CodeHubState extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
   bool get isNativeEngineActive => NativeP2PEngine.isNativeLoaded;
+  ApiService get api => _apiService;
 
   StoragePreset get selectedStoragePreset => _selectedStoragePreset;
   double get storageContributedGb => _storageContributedGb;
