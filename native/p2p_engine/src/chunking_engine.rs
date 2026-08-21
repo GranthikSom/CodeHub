@@ -72,6 +72,21 @@ impl RepositoryChunker {
         Ok(chunks_metadata)
     }
 
+    /// Verifies a single chunk payload against its expected SHA-256 hash
+    pub fn verify_chunk(expected_hash: &str, chunk_data: &[u8]) -> io::Result<()> {
+        let computed_hash = Self::compute_hash(chunk_data);
+        if computed_hash != expected_hash {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "Corruption detected! Hash mismatch. Expected: {}, Computed: {}",
+                    expected_hash, computed_hash
+                ),
+            ));
+        }
+        Ok(())
+    }
+
     /// Reassembles a repository payload from its chunks in strict sequence, checking SHA-256 integrity
     pub fn reassemble_chunks(
         chunks: &[RepositoryChunk],
@@ -96,14 +111,8 @@ impl RepositoryChunker {
             let mut file = fs::File::open(&chunk_file_path)?;
             file.read_to_end(&mut chunk_data)?;
 
-            // Verify checksum
-            let computed_hash = Self::compute_hash(&chunk_data);
-            if computed_hash != chunk_meta.hash {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("Chunk {} corrupted! Hash mismatch.", chunk_meta.chunk_id),
-                ));
-            }
+            // Verify checksum & reject corrupted chunks
+            Self::verify_chunk(&chunk_meta.hash, &chunk_data)?;
 
             reassembled.extend_from_slice(&chunk_data);
         }
@@ -158,5 +167,49 @@ mod tests {
         // Test missing chunk detection
         let missing = RepositoryChunker::get_missing_chunk_indices(3, &[0, 2]);
         assert_eq!(missing, vec![1]);
+    }
+
+    #[test]
+    fn test_phase5_chunk_engine_and_corruption_rejection() {
+        let tmp = tempdir().unwrap();
+        let chunks_dir = tmp.path().join("chunks");
+
+        // 1. Original object: ABCDEF
+        let original_object = b"ABCDEF";
+
+        // 2. Chunk -> Hash -> Store
+        let chunks_meta = RepositoryChunker::chunk_payload(
+            "phase5_repo",
+            original_object,
+            64,
+            &chunks_dir,
+        )
+        .unwrap();
+
+        assert_eq!(chunks_meta.len(), 1);
+        let original_hash = &chunks_meta[0].hash;
+
+        // 3. Chunk -> Verify -> Restore (Original MUST succeed)
+        let chunk_file_path = chunks_dir.join(format!("{}.chunk", chunks_meta[0].chunk_id));
+        let chunk_bytes = fs::read(&chunk_file_path).unwrap();
+
+        assert!(RepositoryChunker::verify_chunk(original_hash, &chunk_bytes).is_ok());
+
+        let restored_original = RepositoryChunker::reassemble_chunks(&chunks_meta, &chunks_dir).unwrap();
+        assert_eq!(restored_original, b"ABCDEF");
+
+        // 4. Test Corruption Rejection: Modify chunk on disk to ABCDEZ
+        let corrupted_payload = b"ABCDEZ";
+        fs::write(&chunk_file_path, corrupted_payload).unwrap();
+
+        // 5. Verify & Restore MUST REJECT corrupted payload (Hash mismatch)
+        let verify_result = RepositoryChunker::verify_chunk(original_hash, corrupted_payload);
+        assert!(verify_result.is_err(), "Engine MUST reject corrupted ABCDEZ chunk!");
+
+        let restore_result = RepositoryChunker::reassemble_chunks(&chunks_meta, &chunks_dir);
+        assert!(restore_result.is_err(), "Engine MUST refuse to reassemble corrupted chunks!");
+
+        let err_msg = restore_result.unwrap_err().to_string();
+        assert!(err_msg.contains("Corruption detected") || err_msg.contains("Hash mismatch"));
     }
 }
