@@ -110,6 +110,14 @@ async fn main() {
         
         // 7. Issues routes
         .route("/api/v1/repositories/:id/issues", get(list_issues).post(create_issue))
+        .route(
+            "/api/v1/repositories/:id/issues/:issue_id",
+            get(get_issue_by_id).patch(update_issue),
+        )
+        .route(
+            "/api/v1/repositories/:id/issues/:issue_id/comments",
+            post(add_issue_comment),
+        )
         
         // 8. Fork & Pull requests routes
         .route("/api/v1/repositories/:id/fork", post(fork_repository))
@@ -486,8 +494,26 @@ async fn list_issues(Path(repo_id): Path<String>) -> Json<ApiResponse<Vec<IssueI
             repo_id: repo_id.clone(),
             issue_number: 1,
             title: "Support QUIC multiplexing over libp2p".to_string(),
+            body: Some("Enable QUIC transport alongside TCP for low-latency P2P chunk transfers.".to_string()),
             author: "GranthikSom".to_string(),
-            status: "open".to_string(),
+            status: "OPEN".to_string(),
+            milestone: Some("v1.0 Core Release".to_string()),
+            labels: vec!["enhancement".to_string(), "p2p".to_string(), "networking".to_string()],
+            assignees: vec!["soham_dev".to_string()],
+            comments_count: 3,
+        },
+        IssueItem {
+            id: "issue-102".to_string(),
+            repo_id: repo_id.clone(),
+            issue_number: 2,
+            title: "Fix minor UI flex overflow in network header".to_string(),
+            body: Some("RenderFlex overflowed by 3.9 pixels on small desktop screens.".to_string()),
+            author: "user-a".to_string(),
+            status: "CLOSED".to_string(),
+            milestone: Some("v1.0 UI Polish".to_string()),
+            labels: vec!["bug".to_string(), "ui".to_string()],
+            assignees: vec!["flutter_dev".to_string()],
+            comments_count: 1,
         },
     ];
     Json(ApiResponse {
@@ -503,6 +529,9 @@ async fn create_issue(
 ) -> (StatusCode, Json<ApiResponse<IssueItem>>) {
     let mut issue = payload;
     issue.repo_id = repo_id;
+    if issue.status.is_empty() {
+        issue.status = "OPEN".to_string();
+    }
 
     (
         StatusCode::CREATED,
@@ -510,6 +539,78 @@ async fn create_issue(
             success: true,
             message: format!("Issue #{} opened", issue.issue_number),
             data: Some(issue),
+        }),
+    )
+}
+
+#[derive(serde::Deserialize)]
+struct UpdateIssuePayload {
+    status: Option<String>,
+    milestone: Option<String>,
+    labels: Option<Vec<String>>,
+    assignees: Option<Vec<String>>,
+}
+
+async fn get_issue_by_id(
+    Path((repo_id, issue_id)): Path<(String, String)>,
+) -> Json<ApiResponse<repository::IssueItem>> {
+    let issue = IssueItem {
+        id: issue_id.clone(),
+        repo_id,
+        issue_number: issue_id.parse().unwrap_or(101),
+        title: "Support QUIC multiplexing over libp2p".to_string(),
+        body: Some("Detailed discussion on QUIC socket multiplexing.".to_string()),
+        author: "GranthikSom".to_string(),
+        status: "OPEN".to_string(),
+        milestone: Some("v1.0 Core Release".to_string()),
+        labels: vec!["enhancement".to_string(), "p2p".to_string()],
+        assignees: vec!["soham_dev".to_string()],
+        comments_count: 2,
+    };
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Issue '{}' details retrieved", issue_id),
+        data: Some(issue),
+    })
+}
+
+async fn update_issue(
+    Path((repo_id, issue_id)): Path<(String, String)>,
+    Json(payload): Json<UpdateIssuePayload>,
+) -> Json<ApiResponse<String>> {
+    let status_str = payload.status.unwrap_or_else(|| "OPEN".to_string());
+    Json(ApiResponse {
+        success: true,
+        message: format!("Issue '{}' in repo '{}' updated to status '{}'", issue_id, repo_id, status_str),
+        data: Some(format!("updated_status={}", status_str)),
+    })
+}
+
+#[derive(serde::Deserialize)]
+struct CreateCommentPayload {
+    author: String,
+    body: String,
+}
+
+async fn add_issue_comment(
+    Path((repo_id, issue_id)): Path<(String, String)>,
+    Json(payload): Json<CreateCommentPayload>,
+) -> (StatusCode, Json<ApiResponse<repository::IssueCommentItem>>) {
+    let comment = repository::IssueCommentItem {
+        id: format!("comment_{}", issue_id),
+        issue_id: issue_id.clone(),
+        author: payload.author,
+        body: payload.body,
+        created_at: "2026-08-21T11:18:00Z".to_string(),
+    };
+
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("Comment added to Issue '{}' in repo '{}'", issue_id, repo_id),
+            data: Some(comment),
         }),
     )
 }

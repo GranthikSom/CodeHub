@@ -11,14 +11,28 @@ pub struct RepoIndexItem {
     pub is_private: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IssueItem {
     pub id: String,
     pub repo_id: String,
     pub issue_number: usize,
     pub title: String,
+    pub body: Option<String>,
     pub author: String,
-    pub status: String,
+    pub status: String, // "OPEN", "CLOSED"
+    pub milestone: Option<String>,
+    pub labels: Vec<String>,
+    pub assignees: Vec<String>,
+    pub comments_count: usize,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct IssueCommentItem {
+    pub id: String,
+    pub issue_id: String,
+    pub author: String,
+    pub body: String,
+    pub created_at: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
