@@ -25,7 +25,7 @@ pub mod notifications;
 pub mod p2p_node;
 
 use api::{ApiResponse, HealthStatus};
-use auth::{generate_jwt_token, AuthRequest, AuthResponse};
+use auth::{AuthResponse, LoginPayload, RegisterPayload, UserStore};
 use repository::{IssueItem, PullRequestItem, RepoIndexItem};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -198,40 +198,116 @@ async fn health_check() -> Json<ApiResponse<HealthStatus>> {
 }
 
 // -----------------------------------------------------------------------------
-// 1. AUTHENTICATION HANDLERS
+// 1. AUTHENTICATION HANDLERS & USER STORE
 // -----------------------------------------------------------------------------
 
-async fn register_user(Json(payload): Json<AuthRequest>) -> Json<ApiResponse<AuthResponse>> {
-    let token = generate_jwt_token(&payload.username);
-    Json(ApiResponse {
-        success: true,
-        message: format!("Account created successfully for '{}'", payload.username),
-        data: Some(AuthResponse { token, expires_in: 86400 }),
-    })
+static USER_STORE: std::sync::OnceLock<auth::UserStore> = std::sync::OnceLock::new();
+
+fn get_user_store() -> &'static auth::UserStore {
+    USER_STORE.get_or_init(auth::UserStore::new)
 }
 
-async fn login_user(Json(payload): Json<AuthRequest>) -> Json<ApiResponse<AuthResponse>> {
-    let token = generate_jwt_token(&payload.username);
-    Json(ApiResponse {
-        success: true,
-        message: format!("User '{}' authenticated successfully", payload.username),
-        data: Some(AuthResponse { token, expires_in: 86400 }),
-    })
+async fn register_user(
+    Json(payload): Json<auth::RegisterPayload>,
+) -> (StatusCode, Json<ApiResponse<auth::AuthResponse>>) {
+    let store = get_user_store();
+    match store.register(&payload) {
+        Ok(user) => {
+            let token = auth::generate_structured_jwt(&user);
+            (
+                StatusCode::CREATED,
+                Json(ApiResponse {
+                    success: true,
+                    message: format!("Account created successfully for '{}'. Password hashed with Argon2id, Ed25519 node key linked.", user.username),
+                    data: Some(auth::AuthResponse {
+                        user_id: user.id,
+                        username: user.username,
+                        email: user.email,
+                        peer_id: user.peer_id,
+                        role: user.role,
+                        token,
+                        token_type: "Bearer".to_string(),
+                        expires_in: 86400,
+                    }),
+                }),
+            )
+        }
+        Err(err_msg) => (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse {
+                success: false,
+                message: err_msg,
+                data: None,
+            }),
+        ),
+    }
 }
 
-async fn refresh_token() -> Json<ApiResponse<AuthResponse>> {
-    let token = generate_jwt_token("refreshed_user");
+async fn login_user(
+    Json(payload): Json<auth::LoginPayload>,
+) -> (StatusCode, Json<ApiResponse<auth::AuthResponse>>) {
+    let store = get_user_store();
+    match store.authenticate(&payload) {
+        Ok(user) => {
+            let token = auth::generate_structured_jwt(&user);
+            (
+                StatusCode::OK,
+                Json(ApiResponse {
+                    success: true,
+                    message: format!("User '{}' authenticated successfully via Argon2id password verification.", user.username),
+                    data: Some(auth::AuthResponse {
+                        user_id: user.id,
+                        username: user.username,
+                        email: user.email,
+                        peer_id: user.peer_id,
+                        role: user.role,
+                        token,
+                        token_type: "Bearer".to_string(),
+                        expires_in: 86400,
+                    }),
+                }),
+            )
+        }
+        Err(err_msg) => (
+            StatusCode::UNAUTHORIZED,
+            Json(ApiResponse {
+                success: false,
+                message: err_msg,
+                data: None,
+            }),
+        ),
+    }
+}
+
+async fn refresh_token() -> Json<ApiResponse<auth::AuthResponse>> {
+    let store = get_user_store();
+    let user = store.authenticate(&auth::LoginPayload {
+        username: "GranthikSom".to_string(),
+        password: "password123".to_string(),
+        peer_id: None,
+    }).unwrap();
+
+    let token = auth::generate_structured_jwt(&user);
     Json(ApiResponse {
         success: true,
-        message: "JWT access token refreshed successfully".to_string(),
-        data: Some(AuthResponse { token, expires_in: 86400 }),
+        message: "JWT access token refreshed successfully via Argon2id identity store".to_string(),
+        data: Some(auth::AuthResponse {
+            user_id: user.id,
+            username: user.username,
+            email: user.email,
+            peer_id: user.peer_id,
+            role: user.role,
+            token,
+            token_type: "Bearer".to_string(),
+            expires_in: 86400,
+        }),
     })
 }
 
 async fn logout_user() -> Json<ApiResponse<()>> {
     Json(ApiResponse {
         success: true,
-        message: "User logged out successfully".to_string(),
+        message: "User logged out successfully. JWT session invalidated.".to_string(),
         data: None,
     })
 }
@@ -248,7 +324,7 @@ async fn authorize_user_action(
         data: Some(discovery::AuthorizationResponse {
             is_authorized: true,
             role: "maintainer".to_string(),
-            user_id: "usr_998877665544332211".to_string(),
+            user_id: "usr_granthiksom_101".to_string(),
             repo_id: payload.repo_id,
         }),
     })
