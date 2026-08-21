@@ -693,6 +693,14 @@ pub extern "C" fn codehub_set_power_policy(seed_idle: i32, seed_battery: i32) ->
     0
 }
 
+/// Returns peer reputation and health metrics JSON for Flutter UI consumption
+#[no_mangle]
+pub extern "C" fn codehub_get_peer_reputations() -> *mut c_char {
+    let reps = crate::peer_identity::PeerReputationManager::get_sample_peer_reputations();
+    let json_str = serde_json::to_string(&reps).unwrap_or_default();
+    CString::new(json_str).unwrap().into_raw()
+}
+
 /// Frees C string memory allocated by Rust
 #[no_mangle]
 pub extern "C" fn codehub_free_string(ptr: *mut c_char) {

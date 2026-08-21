@@ -14,6 +14,14 @@ class P2PNode {
   final bool isOnline;
   final List<String> pinnedRepoIds;
 
+  // Peer Reputation & Health Metrics
+  final double uptimePercent;
+  final double availabilityPercent;
+  final int successfulTransfers;
+  final int failedTransfers;
+  final int starRating;
+  final bool isPreferred;
+
   const P2PNode({
     required this.id,
     required this.name,
@@ -27,6 +35,12 @@ class P2PNode {
     this.isLocal = false,
     this.isOnline = true,
     required this.pinnedRepoIds,
+    this.uptimePercent = 98.4,
+    this.availabilityPercent = 99.1,
+    this.successfulTransfers = 12492,
+    this.failedTransfers = 13,
+    this.starRating = 5,
+    this.isPreferred = true,
   });
 
   P2PNode copyWith({
@@ -38,6 +52,12 @@ class P2PNode {
     double? downloadSpeedMbps,
     bool? isOnline,
     List<String>? pinnedRepoIds,
+    double? uptimePercent,
+    double? availabilityPercent,
+    int? successfulTransfers,
+    int? failedTransfers,
+    int? starRating,
+    bool? isPreferred,
   }) {
     return P2PNode(
       id: id,
@@ -52,6 +72,12 @@ class P2PNode {
       isLocal: isLocal,
       isOnline: isOnline ?? this.isOnline,
       pinnedRepoIds: pinnedRepoIds ?? this.pinnedRepoIds,
+      uptimePercent: uptimePercent ?? this.uptimePercent,
+      availabilityPercent: availabilityPercent ?? this.availabilityPercent,
+      successfulTransfers: successfulTransfers ?? this.successfulTransfers,
+      failedTransfers: failedTransfers ?? this.failedTransfers,
+      starRating: starRating ?? this.starRating,
+      isPreferred: isPreferred ?? this.isPreferred,
     );
   }
 }

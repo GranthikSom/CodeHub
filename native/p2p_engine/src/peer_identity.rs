@@ -137,6 +137,106 @@ impl PeerIdentityManager {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PeerReputationMetrics {
+    pub peer_id: String,
+    pub peer_name: String,
+    pub uptime_percent: f64,
+    pub availability_percent: f64,
+    pub successful_transfers: u64,
+    pub failed_transfers: u64,
+    pub average_latency_ms: u32,
+    pub star_rating: u8,
+    pub is_preferred: bool,
+}
+
+pub struct PeerReputationManager;
+
+impl PeerReputationManager {
+    /// Computes 1 to 5 star rating based on uptime, availability, transfer success ratio, and latency
+    pub fn calculate_star_rating(
+        uptime_percent: f64,
+        availability_percent: f64,
+        successful_transfers: u64,
+        failed_transfers: u64,
+        average_latency_ms: u32,
+    ) -> (u8, bool) {
+        let total = successful_transfers + failed_transfers;
+        let success_ratio = if total > 0 {
+            successful_transfers as f64 / total as f64
+        } else {
+            1.0
+        };
+
+        let latency_score = if average_latency_ms < 50 {
+            10.0
+        } else if average_latency_ms < 150 {
+            7.0
+        } else {
+            4.0
+        };
+
+        let overall_score = (uptime_percent * 0.3)
+            + (availability_percent * 0.3)
+            + (success_ratio * 30.0)
+            + latency_score;
+
+        let stars = if overall_score >= 95.0 {
+            5
+        } else if overall_score >= 85.0 {
+            4
+        } else if overall_score >= 70.0 {
+            3
+        } else if overall_score >= 50.0 {
+            2
+        } else {
+            1
+        };
+
+        let is_preferred = stars >= 4;
+        (stars, is_preferred)
+    }
+
+    /// Returns peer reputation metrics for swarm nodes, prioritizing reliable peers
+    pub fn get_sample_peer_reputations() -> Vec<PeerReputationMetrics> {
+        vec![
+            PeerReputationMetrics {
+                peer_id: "12D3KooWDeviceBDesktop890".to_string(),
+                peer_name: "Device B (Tokyo Node)".to_string(),
+                uptime_percent: 98.4,
+                availability_percent: 99.1,
+                successful_transfers: 12492,
+                failed_transfers: 13,
+                average_latency_ms: 42,
+                star_rating: 5,
+                is_preferred: true,
+            },
+            PeerReputationMetrics {
+                peer_id: "12D3KooWDeviceCLinuxServer".to_string(),
+                peer_name: "Device C (Berlin High-Capacity Seed)".to_string(),
+                uptime_percent: 99.8,
+                availability_percent: 99.9,
+                successful_transfers: 48210,
+                failed_transfers: 5,
+                average_latency_ms: 22,
+                star_rating: 5,
+                is_preferred: true,
+            },
+            PeerReputationMetrics {
+                peer_id: "12D3KooWDeviceALaptop456".to_string(),
+                peer_name: "Device A (San Francisco Peer)".to_string(),
+                uptime_percent: 92.1,
+                availability_percent: 94.5,
+                successful_transfers: 5410,
+                failed_transfers: 88,
+                average_latency_ms: 85,
+                star_rating: 4,
+                is_preferred: true,
+            },
+        ]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

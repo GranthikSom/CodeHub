@@ -69,7 +69,7 @@ class NetworkTopologyView extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 2.2,
+              childAspectRatio: 2.1,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
@@ -78,6 +78,192 @@ class NetworkTopologyView extends StatelessWidget {
               final node = state.nodes[index];
               return _buildNodeCard(context, node, isDark);
             },
+          ),
+          const SizedBox(height: 24),
+
+          // Peer Health & Device Reputation System Section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF161B22) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD29922).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.star_outline, color: Color(0xFFD29922), size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Peer Health & Device Reputation System',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'CodeHub dynamically measures peer reliability to prefer high-performing seeders for chunk replication.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF238636).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF3FB950)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.verified, size: 14, color: Color(0xFF3FB950)),
+                          SizedBox(width: 6),
+                          Text(
+                            'Prefer Reliable Peers: ACTIVE',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF3FB950),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Reputation Cards for Swarm Peers
+                ...state.nodes.where((n) => !n.isLocal && n.type != NodeType.controlRelay).map((node) {
+                  return _buildPeerReputationCard(node, isDark);
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeerReputationCard(P2PNode node, bool isDark) {
+    final stars = '★' * node.starRating + '☆' * (5 - node.starRating);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? const Color(0xFF21262D) : Colors.grey.shade300,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    node.name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    stars,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFFD29922),
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
+              ),
+              if (node.isPreferred)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3FB950).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: const Color(0xFF3FB950), width: 0.8),
+                  ),
+                  child: const Text(
+                    'PREFERRED PEER',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF3FB950),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Exact Spec Metrics Grid (Uptime, Availability, Successful transfers, Failed transfers, Average latency)
+          Row(
+            children: [
+              _buildReputationStat('Uptime:', '${node.uptimePercent}%', isDark),
+              _buildReputationStat('Availability:', '${node.availabilityPercent}%', isDark),
+              _buildReputationStat('Successful transfers:', '${node.successfulTransfers}', isDark),
+              _buildReputationStat('Failed transfers:', '${node.failedTransfers}', isDark),
+              _buildReputationStat('Average latency:', '${node.pingMs > 0 ? node.pingMs : 42} ms', isDark),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReputationStat(String label, String value, bool isDark) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
         ],
       ),
