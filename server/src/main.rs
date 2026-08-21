@@ -73,11 +73,12 @@ async fn main() {
     let app = Router::new()
         .route("/health", get(health_check))
         
-        // 1. Authentication routes
+        // 1. Authentication & Authorization routes
         .route("/api/v1/auth/register", post(register_user))
         .route("/api/v1/auth/login", post(login_user))
         .route("/api/v1/auth/refresh", post(refresh_token))
         .route("/api/v1/auth/logout", post(logout_user))
+        .route("/api/v1/auth/authorize", post(authorize_user_action))
         
         // 2. Users routes
         .route("/api/v1/users/me", patch(update_my_profile))
@@ -98,13 +99,17 @@ async fn main() {
         .route("/api/v1/repositories/:id/replicas", post(update_replication_factor))
         .route("/api/v1/repositories/:id/replication-status", get(get_replication_status))
         
-        // 5. Search routes
+        // 5. Bootstrap Node & Rendezvous Discovery routes
+        .route("/api/v1/swarm/bootstrap-nodes", get(get_bootstrap_server_nodes))
+        .route("/api/v1/swarm/rendezvous/:repo_id", get(get_rendezvous_repository_peers))
+        
+        // 6. Search routes
         .route("/api/v1/search/repositories", get(search_repositories))
         
-        // 6. Issues routes
+        // 7. Issues routes
         .route("/api/v1/repositories/:id/issues", get(list_issues).post(create_issue))
         
-        // 7. Pull requests routes
+        // 8. Pull requests routes
         .route("/api/v1/repositories/:id/pulls", get(list_pulls).post(create_pull_request))
         
         .layer(cors);
@@ -165,6 +170,24 @@ async fn logout_user() -> Json<ApiResponse<()>> {
         success: true,
         message: "User logged out successfully".to_string(),
         data: None,
+    })
+}
+
+async fn authorize_user_action(
+    Json(payload): Json<discovery::AuthorizationRequest>,
+) -> Json<ApiResponse<discovery::AuthorizationResponse>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!(
+            "User '{}' authorized for '{}' access on repo '{}'",
+            payload.username, payload.requested_permission, payload.repo_id
+        ),
+        data: Some(discovery::AuthorizationResponse {
+            is_authorized: true,
+            role: "maintainer".to_string(),
+            user_id: "usr_998877665544332211".to_string(),
+            repo_id: payload.repo_id,
+        }),
     })
 }
 
@@ -343,6 +366,30 @@ async fn get_replication_status(
         success: true,
         message: format!("Replication health status evaluated for repository '{}'", id),
         data: Some(status),
+    })
+}
+
+// -----------------------------------------------------------------------------
+// 5. BOOTSTRAP NODE & RENDEZVOUS DISCOVERY HANDLERS
+// -----------------------------------------------------------------------------
+
+async fn get_bootstrap_server_nodes() -> Json<ApiResponse<discovery::BootstrapServerConfig>> {
+    let config = discovery::get_bootstrap_server_config();
+    Json(ApiResponse {
+        success: true,
+        message: "Master bootstrap node multiaddrs & DHT protocols retrieved".to_string(),
+        data: Some(config),
+    })
+}
+
+async fn get_rendezvous_repository_peers(
+    Path(repo_id): Path<String>,
+) -> Json<ApiResponse<Vec<discovery::PeerDiscoveryNode>>> {
+    let peers = discovery::get_rendezvous_peers(&repo_id);
+    Json(ApiResponse {
+        success: true,
+        message: format!("Discovered Rendezvous/DHT seeders for repository '{}'", repo_id),
+        data: Some(peers),
     })
 }
 
