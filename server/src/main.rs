@@ -10,6 +10,7 @@ use tower_http::cors::{Any, CorsLayer};
 
 pub mod api;
 pub mod auth;
+pub mod db;
 pub mod discovery;
 pub mod repository;
 pub mod search;

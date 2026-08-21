@@ -1,108 +1,86 @@
--- CodeHub Central Control Plane PostgreSQL Database Migration Schema
--- Hybrid Architecture: Central Server handles Auth, Permissions, Metadata, Issues & PRs
+-- CodeHub PostgreSQL Database Schema Migration
+-- Hybrid Control Plane Database
 
+-- 1. users
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(64) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
     public_key TEXT NOT NULL,
-    avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 2. repositories
 CREATE TABLE IF NOT EXISTS repositories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(128) NOT NULL,
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(128) NOT NULL,
     description TEXT,
-    default_branch VARCHAR(64) DEFAULT 'main',
-    root_commit_hash VARCHAR(64) NOT NULL,
-    total_size_mb DOUBLE PRECISION DEFAULT 0.0,
-    total_objects BIGINT DEFAULT 0,
-    stars_count INT DEFAULT 0,
-    forks_count INT DEFAULT 0,
-    is_private BOOLEAN DEFAULT false,
+    visibility VARCHAR(32) DEFAULT 'public', -- 'public', 'private'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(owner_id, name)
 );
 
+-- 3. repository_members
 CREATE TABLE IF NOT EXISTS repository_members (
-    repo_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
+    repository_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    role VARCHAR(32) DEFAULT 'read', -- 'owner', 'maintainer', 'write', 'read'
-    granted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (repo_id, user_id)
+    role VARCHAR(32) DEFAULT 'read', -- 'owner', 'admin', 'write', 'read'
+    PRIMARY KEY (repository_id, user_id)
 );
 
+-- 4. branches
 CREATE TABLE IF NOT EXISTS branches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    repo_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
+    repository_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
     name VARCHAR(128) NOT NULL,
-    head_commit_hash VARCHAR(64) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(repo_id, name)
+    commit_hash VARCHAR(64) NOT NULL,
+    UNIQUE(repository_id, name)
 );
 
-CREATE TABLE IF NOT EXISTS issues (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    repo_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    issue_number INT NOT NULL,
-    title VARCHAR(256) NOT NULL,
-    body TEXT,
-    status VARCHAR(32) DEFAULT 'open', -- 'open', 'closed'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(repo_id, issue_number)
-);
-
-CREATE TABLE IF NOT EXISTS pull_requests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    repo_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    pr_number INT NOT NULL,
-    title VARCHAR(256) NOT NULL,
-    description TEXT,
-    source_branch VARCHAR(128) NOT NULL,
-    target_branch VARCHAR(128) NOT NULL,
-    status VARCHAR(32) DEFAULT 'open', -- 'open', 'merged', 'closed'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(repo_id, pr_number)
-);
-
-CREATE TABLE IF NOT EXISTS comments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    issue_id UUID REFERENCES issues(id) ON DELETE CASCADE,
-    pull_request_id UUID REFERENCES pull_requests(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS notifications (
+-- 5. peers
+CREATE TABLE IF NOT EXISTS peers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    message TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS peer_nodes (
-    node_id VARCHAR(128) PRIMARY KEY,
-    ip_address VARCHAR(64) NOT NULL,
-    multiaddr TEXT NOT NULL,
-    node_type VARCHAR(32) DEFAULT 'peer',
-    allocated_storage_gb DOUBLE PRECISION DEFAULT 20.0,
-    used_storage_gb DOUBLE PRECISION DEFAULT 0.0,
+    peer_id VARCHAR(128) UNIQUE NOT NULL, -- Base58 multihash starting with 12D3KooW...
+    public_key TEXT NOT NULL,
     last_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS repo_seeds (
-    repo_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
-    node_id VARCHAR(128) REFERENCES peer_nodes(node_id) ON DELETE CASCADE,
-    replication_progress DOUBLE PRECISION DEFAULT 1.0,
-    pinned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (repo_id, node_id)
+-- 6. peer_repositories
+CREATE TABLE IF NOT EXISTS peer_repositories (
+    peer_id VARCHAR(128) REFERENCES peers(peer_id) ON DELETE CASCADE,
+    repository_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
+    storage_available BIGINT DEFAULT 2000000000,
+    last_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (peer_id, repository_id)
 );
+
+-- 7. issues
+CREATE TABLE IF NOT EXISTS issues (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    repository_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
+    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(256) NOT NULL,
+    body TEXT,
+    status VARCHAR(32) DEFAULT 'open' -- 'open', 'closed'
+);
+
+-- 8. pull_requests
+CREATE TABLE IF NOT EXISTS pull_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    repository_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
+    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    source_branch VARCHAR(128) NOT NULL,
+    target_branch VARCHAR(128) NOT NULL,
+    status VARCHAR(32) DEFAULT 'open' -- 'open', 'merged', 'closed'
+);
+
+-- Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_repositories_owner ON repositories(owner_id);
+CREATE INDEX IF NOT EXISTS idx_branches_repo ON branches(repository_id);
+CREATE INDEX IF NOT EXISTS idx_peers_user ON peers(user_id);
+CREATE INDEX IF NOT EXISTS idx_peer_repos_repo ON peer_repositories(repository_id);
+CREATE INDEX IF NOT EXISTS idx_issues_repo ON issues(repository_id);
+CREATE INDEX IF NOT EXISTS idx_pulls_repo ON pull_requests(repository_id);
