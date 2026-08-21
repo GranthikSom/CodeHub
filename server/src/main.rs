@@ -25,7 +25,6 @@ pub mod notifications;
 pub mod p2p_node;
 
 use api::{ApiResponse, HealthStatus};
-use auth::{AuthResponse, LoginPayload, RegisterPayload, UserStore};
 use repository::{IssueItem, PullRequestItem, RepoIndexItem};
 
 #[derive(Debug, Serialize, Deserialize)]
