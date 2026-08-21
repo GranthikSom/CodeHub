@@ -7,6 +7,8 @@ import '../native/native_bindings.dart';
 
 enum ActiveTab { overview, repos, dagExplorer, networkTopology, storageSettings }
 
+enum StoragePreset { zero, gb5, gb20, gb50, gb100, custom }
+
 class CodeHubState extends ChangeNotifier {
   ActiveTab _activeTab = ActiveTab.overview;
   String _searchQuery = '';
@@ -14,12 +16,57 @@ class CodeHubState extends ChangeNotifier {
   GitObject? _selectedGitObject;
   ThemeMode _themeMode = ThemeMode.dark;
 
+  // Storage Management & Seeding State
+  StoragePreset _selectedStoragePreset = StoragePreset.custom;
+  double _storageContributedGb = 42.5;
+  double _storageUsedGb = 17.2;
+  bool _isSeedingEnabled = true;
+
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
   bool get isNativeEngineActive => NativeP2PEngine.isNativeLoaded;
 
+  StoragePreset get selectedStoragePreset => _selectedStoragePreset;
+  double get storageContributedGb => _storageContributedGb;
+  double get storageUsedGb => _storageUsedGb;
+  double get storageAvailableGb => (_storageContributedGb - _storageUsedGb).clamp(0.0, double.infinity);
+  bool get isSeedingEnabled => _isSeedingEnabled;
+
   void toggleThemeMode() {
     _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    notifyListeners();
+  }
+
+  void setStoragePreset(StoragePreset preset, {double? customGb}) {
+    _selectedStoragePreset = preset;
+    switch (preset) {
+      case StoragePreset.zero:
+        _storageContributedGb = 0.0;
+        break;
+      case StoragePreset.gb5:
+        _storageContributedGb = 5.0;
+        break;
+      case StoragePreset.gb20:
+        _storageContributedGb = 20.0;
+        break;
+      case StoragePreset.gb50:
+        _storageContributedGb = 50.0;
+        break;
+      case StoragePreset.gb100:
+        _storageContributedGb = 100.0;
+        break;
+      case StoragePreset.custom:
+        if (customGb != null) {
+          _storageContributedGb = customGb;
+        }
+        break;
+    }
+    updateLocalStorageQuota(_storageContributedGb);
+    notifyListeners();
+  }
+
+  void setSeedingEnabled(bool enabled) {
+    _isSeedingEnabled = enabled;
     notifyListeners();
   }
 
@@ -139,10 +186,11 @@ class CodeHubState extends ChangeNotifier {
     for (var repo in pinnedRepos) {
       totalPinnedMb += repo.totalSizeMb;
     }
+    _storageUsedGb = double.parse((totalPinnedMb / 1024).toStringAsFixed(2));
     final localIndex = _nodes.indexWhere((n) => n.isLocal);
     if (localIndex != -1) {
       _nodes[localIndex] = _nodes[localIndex].copyWith(
-        storageUsedGb: double.parse((totalPinnedMb / 1024).toStringAsFixed(2)),
+        storageUsedGb: _storageUsedGb,
       );
     }
   }

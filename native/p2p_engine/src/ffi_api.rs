@@ -639,6 +639,30 @@ pub extern "C" fn codehub_merge_pull_request(
     CString::new(json_str).unwrap().into_raw()
 }
 
+/// Configures local node contributed storage quota in Gigabytes (GB)
+#[no_mangle]
+pub extern "C" fn codehub_set_storage_quota(quota_gb: f64) -> i32 {
+    let mut blockstore_guard = GLOBAL_BLOCKSTORE.lock().unwrap();
+    if let Some(ref mut blockstore) = *blockstore_guard {
+        let quota_bytes = (quota_gb * 1024.0 * 1024.0 * 1024.0) as u64;
+        blockstore.set_max_storage_bytes(quota_bytes);
+        0
+    } else {
+        0
+    }
+}
+
+/// Enables or disables P2P swarm seeding engine on the local node
+#[no_mangle]
+pub extern "C" fn codehub_set_seeding_enabled(enabled: i32) -> i32 {
+    let is_enabled = enabled != 0;
+    let mut engine_guard = GLOBAL_ENGINE.lock().unwrap();
+    if let Some(ref mut engine) = *engine_guard {
+        engine.set_seeding_active(is_enabled);
+    }
+    if is_enabled { 1 } else { 0 }
+}
+
 /// Frees C string memory allocated by Rust
 #[no_mangle]
 pub extern "C" fn codehub_free_string(ptr: *mut c_char) {

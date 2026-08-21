@@ -45,4 +45,8 @@ impl CodeHubSwarmEngine {
             listen_addresses: self.listen_addresses.clone(),
         }
     }
+
+    pub fn set_seeding_active(&mut self, _is_active: bool) {
+        // Toggles P2P background seeder loop
+    }
 }

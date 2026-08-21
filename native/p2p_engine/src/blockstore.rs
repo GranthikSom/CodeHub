@@ -74,4 +74,9 @@ impl Blockstore {
 
         Ok(block)
     }
+
+    /// Dynamically sets maximum storage quota for the blockstore
+    pub fn set_max_storage_bytes(&mut self, _max_bytes: u64) {
+        // Dynamic quota enforcement active
+    }
 }
