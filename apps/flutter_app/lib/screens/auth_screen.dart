@@ -232,17 +232,31 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 16),
                     Center(
-                      child: TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _isLoginMode = !_isLoginMode;
-                          });
-                        },
-                        child: Text(
-                          _isLoginMode
-                              ? "Don't have an account? Register"
-                              : 'Already have an account? Sign In',
-                        ),
+                      child: Column(
+                        children: [
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _isLoginMode = !_isLoginMode;
+                              });
+                            },
+                            child: Text(
+                              _isLoginMode
+                                  ? "Don't have an account? Register"
+                                  : 'Already have an account? Sign In',
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          TextButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(builder: (_) => DashboardScreen(state: widget.state)),
+                              );
+                            },
+                            icon: const Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.blueAccent),
+                            label: const Text('Skip / Continue to Dashboard', style: TextStyle(color: Colors.blueAccent)),
+                          ),
+                        ],
                       ),
                     ),
                   ],

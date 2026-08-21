@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../services/codehub_state.dart';
-import 'dashboard_screen.dart';
+import 'auth_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   final CodeHubState? state;
@@ -26,11 +25,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to DashboardScreen after 2.5 seconds (preserving app state)
+    // Navigate to AuthScreen after 2.5 seconds (preserving app state)
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => DashboardScreen(state: widget.state)),
+          MaterialPageRoute(builder: (_) => AuthScreen(state: widget.state)),
         );
       }
     });
