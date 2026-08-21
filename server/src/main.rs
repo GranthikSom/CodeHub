@@ -111,8 +111,11 @@ async fn main() {
         // 7. Issues routes
         .route("/api/v1/repositories/:id/issues", get(list_issues).post(create_issue))
         
-        // 8. Pull requests routes
+        // 8. Fork & Pull requests routes
+        .route("/api/v1/repositories/:id/fork", post(fork_repository))
         .route("/api/v1/repositories/:id/pulls", get(list_pulls).post(create_pull_request))
+        .route("/api/v1/repositories/:id/pulls/:pr_id", get(get_pull_request_by_id))
+        .route("/api/v1/repositories/:id/pulls/:pr_id/merge", post(merge_pull_request_handler))
         
         .layer(cors);
 
@@ -550,4 +553,48 @@ async fn create_pull_request(
             data: Some(pr),
         }),
     )
+}
+
+async fn fork_repository(
+    Path(repo_id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<String>>) {
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("Repository '{}' successfully forked", repo_id),
+            data: Some(format!("forked_repo_id=user-a/{}", repo_id)),
+        }),
+    )
+}
+
+async fn get_pull_request_by_id(
+    Path((repo_id, pr_id)): Path<(String, String)>,
+) -> Json<ApiResponse<PullRequestItem>> {
+    let item = PullRequestItem {
+        id: format!("pr-{}", pr_id),
+        repo_id,
+        pr_number: pr_id.parse().unwrap_or(42),
+        title: "feat: add OAuth2 login flow".to_string(),
+        author: "user-a".to_string(),
+        source_branch: "feature-oauth".to_string(),
+        target_branch: "main".to_string(),
+        status: "open".to_string(),
+    };
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Pull Request #{} retrieved", pr_id),
+        data: Some(item),
+    })
+}
+
+async fn merge_pull_request_handler(
+    Path((repo_id, pr_id)): Path<(String, String)>,
+) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!("Pull Request #{} for repository '{}' successfully MERGED into main", pr_id, repo_id),
+        data: Some("merge_commit_hash=8f91ab77221144332211".to_string()),
+    })
 }

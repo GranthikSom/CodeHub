@@ -14,6 +14,7 @@ pub mod sync_protocol;
 pub mod repository_encryption;
 pub mod git_interop;
 pub mod git_dag;
+pub mod pull_request_engine;
 pub mod ffi_api;
 
 pub use blockstore::Blockstore;
@@ -28,4 +29,5 @@ pub use sync_protocol::*;
 pub use repository_encryption::*;
 pub use git_interop::*;
 pub use git_dag::*;
+pub use pull_request_engine::*;
 pub use ffi_api::*;

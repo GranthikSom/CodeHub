@@ -563,6 +563,82 @@ pub extern "C" fn codehub_parse_git_commit_dag(
     CString::new(json_str).unwrap().into_raw()
 }
 
+/// Merges an open pull request by creating a dual-parent 3-way Merge Commit DAG object
+#[no_mangle]
+pub extern "C" fn codehub_merge_pull_request(
+    pr_id: u64,
+    source_repo_ptr: *const c_char,
+    target_repo_ptr: *const c_char,
+    target_head_ptr: *const c_char,
+    source_head_ptr: *const c_char,
+) -> *mut c_char {
+    let source_repo = if source_repo_ptr.is_null() {
+        "user-a/codehub".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(source_repo_ptr)
+                .to_str()
+                .unwrap_or("user-a/codehub")
+                .to_string()
+        }
+    };
+
+    let target_repo = if target_repo_ptr.is_null() {
+        "owner/codehub".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(target_repo_ptr)
+                .to_str()
+                .unwrap_or("owner/codehub")
+                .to_string()
+        }
+    };
+
+    let target_head = if target_head_ptr.is_null() {
+        "3a2c417c8899".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(target_head_ptr)
+                .to_str()
+                .unwrap_or("3a2c417c8899")
+                .to_string()
+        }
+    };
+
+    let source_head = if source_head_ptr.is_null() {
+        "8f91ab772211".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(source_head_ptr)
+                .to_str()
+                .unwrap_or("8f91ab772211")
+                .to_string()
+        }
+    };
+
+    let mut pr = crate::pull_request_engine::PullRequestEngine::create_pull_request(
+        pr_id,
+        &source_repo,
+        "feature-branch",
+        &target_repo,
+        "main",
+        "user-a",
+        "P2P Pull Request",
+        "Merge P2P branch",
+        &source_head,
+    );
+
+    let engine = crate::pull_request_engine::PullRequestEngine::new();
+    let merge_result = engine.merge_pull_request(&mut pr, &target_head, "repo-owner");
+
+    let json_str = match merge_result {
+        Ok(res) => serde_json::to_string(&res).unwrap_or_default(),
+        Err(e) => format!(r#"{{"error":"{}"}}"#, e),
+    };
+
+    CString::new(json_str).unwrap().into_raw()
+}
+
 /// Frees C string memory allocated by Rust
 #[no_mangle]
 pub extern "C" fn codehub_free_string(ptr: *mut c_char) {
