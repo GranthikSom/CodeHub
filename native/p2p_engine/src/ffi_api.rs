@@ -12,12 +12,31 @@ use crate::storage_engine::LocalEngine;
 use crate::content_addressing::ContentAddressedStore;
 use crate::chunking_engine::{RepositoryChunker, DEFAULT_CHUNK_SIZE_BYTES};
 use crate::piece_availability::{PeerBitfield, PieceAvailabilitySystem};
+use crate::peer_identity::PeerIdentityManager;
 
 lazy_static! {
     static ref GLOBAL_ENGINE: Mutex<Option<CodeHubSwarmEngine>> = Mutex::new(None);
     static ref GLOBAL_BLOCKSTORE: Mutex<Option<Blockstore>> = Mutex::new(None);
     static ref GLOBAL_LOCAL_ENGINE: Mutex<Option<LocalEngine>> = Mutex::new(None);
     static ref GLOBAL_CONTENT_STORE: Mutex<Option<ContentAddressedStore>> = Mutex::new(None);
+}
+
+/// Loads persistent identity from ~/.codehub/identity/ or generates a fresh cryptographic 12D3KooW... identity
+#[no_mangle]
+pub extern "C" fn codehub_get_or_create_peer_identity() -> *mut c_char {
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    let identity_dir = match *guard {
+        Some(ref engine) => engine.identity_dir.clone(),
+        None => std::path::PathBuf::from("/tmp/codehub_identity"),
+    };
+
+    match PeerIdentityManager::load_or_create(identity_dir) {
+        Ok(manager) => {
+            let json_str = serde_json::to_string(&manager.identity).unwrap_or_default();
+            CString::new(json_str).unwrap().into_raw()
+        }
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 /// Schedules non-overlapping parallel stream chunk downloads across active swarm peers

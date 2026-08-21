@@ -36,6 +36,9 @@ typedef DartChunkRepo = Pointer<Utf8> Function(Pointer<Utf8> repoId, Pointer<Utf
 typedef NativeScheduleDownload = Pointer<Utf8> Function(Size totalChunks);
 typedef DartScheduleDownload = Pointer<Utf8> Function(int totalChunks);
 
+typedef NativeGetPeerIdentity = Pointer<Utf8> Function();
+typedef DartGetPeerIdentity = Pointer<Utf8> Function();
+
 /// Native Rust P2P Engine Dart FFI Interface
 class NativeP2PEngine {
   static DynamicLibrary? _lib;
@@ -52,6 +55,7 @@ class NativeP2PEngine {
   static DartHasObject? _hasObject;
   static DartChunkRepo? _chunkRepo;
   static DartScheduleDownload? _scheduleDownload;
+  static DartGetPeerIdentity? _getPeerIdentity;
 
   static bool get isNativeLoaded => _isLoaded;
 
@@ -92,6 +96,7 @@ class NativeP2PEngine {
         _hasObject = _lib!.lookupFunction<NativeHasObject, DartHasObject>('codehub_has_object');
         _chunkRepo = _lib!.lookupFunction<NativeChunkRepo, DartChunkRepo>('codehub_chunk_repository_payload');
         _scheduleDownload = _lib!.lookupFunction<NativeScheduleDownload, DartScheduleDownload>('codehub_schedule_parallel_swarm_download');
+        _getPeerIdentity = _lib!.lookupFunction<NativeGetPeerIdentity, DartGetPeerIdentity>('codehub_get_or_create_peer_identity');
 
         _isLoaded = true;
       }
@@ -215,6 +220,20 @@ class NativeP2PEngine {
   static String? scheduleParallelSwarmDownload(int totalChunks) {
     if (!_isLoaded || _scheduleDownload == null || _freeString == null) return null;
     final resPtr = _scheduleDownload!(totalChunks);
+    if (resPtr == nullptr) return null;
+    try {
+      final resultStr = resPtr.toDartString();
+      _freeString!(resPtr);
+      return resultStr;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Loads persistent cryptographic identity (12D3KooW...) or generates a new Ed25519 keypair
+  static String? getOrCreatePeerIdentity() {
+    if (!_isLoaded || _getPeerIdentity == null || _freeString == null) return null;
+    final resPtr = _getPeerIdentity!();
     if (resPtr == nullptr) return null;
     try {
       final resultStr = resPtr.toDartString();

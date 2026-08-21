@@ -8,6 +8,7 @@ pub mod storage_engine;
 pub mod content_addressing;
 pub mod chunking_engine;
 pub mod piece_availability;
+pub mod peer_identity;
 pub mod ffi_api;
 
 pub use blockstore::Blockstore;
@@ -16,4 +17,5 @@ pub use storage_engine::LocalEngine;
 pub use content_addressing::ContentAddressedStore;
 pub use chunking_engine::RepositoryChunker;
 pub use piece_availability::PieceAvailabilitySystem;
+pub use peer_identity::PeerIdentityManager;
 pub use ffi_api::*;
