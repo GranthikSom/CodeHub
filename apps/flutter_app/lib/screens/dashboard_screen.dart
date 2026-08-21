@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../dashboard/landing_page.dart';
 import '../services/codehub_state.dart';
+import 'auth_screen.dart';
 import 'explore_screen.dart';
 import 'activity_feed_screen.dart';
 import 'notifications_screen.dart';
@@ -44,6 +45,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ListenableBuilder(
       listenable: _state,
       builder: (context, _) {
+        if (!_state.api.isAuthenticated) {
+          return Scaffold(
+            backgroundColor: const Color(0xFF0D1117),
+            body: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 450),
+                padding: const EdgeInsets.all(36),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF161B22),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF30363D)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.lock_outline_rounded, size: 48, color: Colors.redAccent),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Authentication Required',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Access to the CodeHub P2P Dashboard is restricted. Please sign in or register your identity key to proceed.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 46,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(builder: (_) => AuthScreen(state: _state)),
+                          );
+                        },
+                        icon: const Icon(Icons.login, size: 18),
+                        label: const Text('Sign In / Register Now', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         return Scaffold(
           body: Row(
             children: [
