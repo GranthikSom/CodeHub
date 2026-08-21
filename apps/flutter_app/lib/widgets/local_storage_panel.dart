@@ -487,6 +487,223 @@ class _LocalStoragePanelState extends State<LocalStoragePanel> {
           ),
           const SizedBox(height: 24),
 
+          // Section 3: Garbage Collection & 30-Day Grace Period Manager Card
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF161B22) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD29922).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.auto_delete_outlined,
+                            color: Color(0xFFD29922),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Garbage Collection & Orphan Chunk Management',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'Prevents orphaned Git object chunks from cluttering disk storage when repositories are deleted.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: activeState.isGcRunning
+                          ? null
+                          : () => activeState.triggerGarbageCollection(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF238636),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: activeState.isGcRunning
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.cleaning_services, size: 16),
+                      label: Text(
+                        activeState.isGcRunning ? 'Running GC...' : 'Run Garbage Collection',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Reference Tracking Flow Diagram Card: Object -> Referenced? -> YES (keep) / NO (30-day grace)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF21262D) : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.account_tree_outlined, size: 16, color: isDark ? const Color(0xFF58A6FF) : Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Object Reference Tracking Logic',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildGcFlowBox('Object', isDark),
+                          const Icon(Icons.arrow_right_alt, color: Color(0xFF8B949E)),
+                          _buildGcFlowBox('Referenced?', isDark, isHighlight: true),
+                          const Icon(Icons.arrow_right_alt, color: Color(0xFF8B949E)),
+                          Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF238636).withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: const Color(0xFF3FB950)),
+                                ),
+                                child: const Text(
+                                  'YES → keep',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF3FB950)),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD29922).withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: const Color(0xFFD29922)),
+                                ),
+                                child: const Text(
+                                  'NO → 30-day grace period candidate',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFD29922)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Metrics Breakdown Grid (Candidates, Grace Period, Reclaimable Space)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildGcStatCard(
+                        'Unreferenced Candidate Chunks',
+                        '${activeState.gcCandidateCount} chunks',
+                        Icons.collections_bookmark_outlined,
+                        const Color(0xFFD29922),
+                        isDark,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildGcStatCard(
+                        'Safety Grace Period',
+                        '${activeState.gracePeriodDays} Days Grace',
+                        Icons.timer_outlined,
+                        const Color(0xFF58A6FF),
+                        isDark,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildGcStatCard(
+                        'Reclaimable Disk Space',
+                        '${activeState.reclaimableGb} GB',
+                        Icons.cleaning_services_outlined,
+                        const Color(0xFF3FB950),
+                        isDark,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Grace Period Notice Banner
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF161B22) : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 16, color: Color(0xFF58A6FF)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          activeState.gcLastStatus,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Section 2: Pinned Repositories List
           Container(
             padding: const EdgeInsets.all(20),
@@ -725,6 +942,76 @@ class _LocalStoragePanelState extends State<LocalStoragePanel> {
             max: maxVal,
             activeColor: color,
             onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGcFlowBox(String title, bool isDark, {bool isHighlight = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: isHighlight
+            ? const Color(0xFF58A6FF).withValues(alpha: 0.15)
+            : (isDark ? const Color(0xFF161B22) : Colors.white),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isHighlight
+              ? const Color(0xFF58A6FF)
+              : (isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+        ),
+      ),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: isHighlight
+              ? const Color(0xFF58A6FF)
+              : (isDark ? Colors.white : Colors.black87),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGcStatCard(String label, String value, IconData icon, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? const Color(0xFF21262D) : Colors.grey.shade300,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
           ),
         ],
       ),

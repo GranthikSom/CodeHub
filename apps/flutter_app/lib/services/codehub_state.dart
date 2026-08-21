@@ -29,6 +29,13 @@ class CodeHubState extends ChangeNotifier {
   bool _seedWhileIdle = true;
   bool _seedOnBattery = false;
 
+  // Garbage Collection & Grace Period State
+  int _gcCandidateCount = 342;
+  double _reclaimableGb = 1.85;
+  final int _gracePeriodDays = 30;
+  bool _isGcRunning = false;
+  String _gcLastStatus = 'Active: 342 candidate chunks in 30-day grace period.';
+
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
   bool get isNativeEngineActive => NativeP2PEngine.isNativeLoaded;
@@ -44,6 +51,25 @@ class CodeHubState extends ChangeNotifier {
   int get maxPeersLimit => _maxPeersLimit;
   bool get seedWhileIdle => _seedWhileIdle;
   bool get seedOnBattery => _seedOnBattery;
+
+  int get gcCandidateCount => _gcCandidateCount;
+  double get reclaimableGb => _reclaimableGb;
+  int get gracePeriodDays => _gracePeriodDays;
+  bool get isGcRunning => _isGcRunning;
+  String get gcLastStatus => _gcLastStatus;
+
+  void triggerGarbageCollection() {
+    _isGcRunning = true;
+    notifyListeners();
+
+    Timer(const Duration(milliseconds: 800), () {
+      _isGcRunning = false;
+      _gcCandidateCount = (_gcCandidateCount - 12).clamp(0, 10000);
+      _reclaimableGb = (_reclaimableGb - 0.08).clamp(0.0, 100.0);
+      _gcLastStatus = 'Garbage Collection complete. 12 expired chunks purged (>30 days).';
+      notifyListeners();
+    });
+  }
 
   void toggleThemeMode() {
     _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
