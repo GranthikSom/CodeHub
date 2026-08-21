@@ -59,6 +59,9 @@ pub struct ReplicationFactorPayload {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchQuery {
     pub q: Option<String>,
+    pub language: Option<String>,
+    pub topic: Option<String>,
+    pub sort: Option<String>,
 }
 
 #[tokio::main]
@@ -107,6 +110,7 @@ async fn main() {
         
         // 6. Search routes
         .route("/api/v1/search/repositories", get(search_repositories))
+        .route("/api/v1/search/code", get(search_code))
         
         // 7. Issues routes
         .route("/api/v1/repositories/:id/issues", get(list_issues).post(create_issue))
@@ -446,40 +450,81 @@ async fn get_rendezvous_repository_peers(
 
 async fn search_repositories(Query(params): Query<SearchQuery>) -> Json<ApiResponse<Vec<RepoIndexItem>>> {
     let query_str = params.q.unwrap_or_default();
-    let all_repos = vec![
+    let lang_filter = params.language.map(|l| l.to_lowercase());
+    let topic_filter = params.topic.map(|t| t.to_lowercase());
+
+    let mut all_repos = vec![
         RepoIndexItem {
             id: "repo_101".to_string(),
             name: "codehub-core-p2p".to_string(),
             owner: "GranthikSom".to_string(),
+            description: Some("Decentralized P2P Git Object Replication Infrastructure".to_string()),
             root_commit_hash: "a81c4e97d2f831b2c4d5e6f7a8b9c0d1e2f3a4b5".to_string(),
             total_objects: 1420,
             seed_count: 8,
             is_private: false,
+            topics: vec!["p2p".to_string(), "git".to_string(), "libp2p".to_string(), "rust".to_string()],
+            language: "Rust".to_string(),
+            stars: 142,
+            forks: 28,
+            last_activity: "2026-08-21T11:20:00Z".to_string(),
         },
         RepoIndexItem {
             id: "repo_102".to_string(),
             name: "flutter-torrent-ui".to_string(),
             owner: "SohamMondal".to_string(),
+            description: Some("High Performance Desktop UI for Content-Addressed Swarms".to_string()),
             root_commit_hash: "b92d5f08e3a1b4c7d6e9f0a2b3c4d5e6f7a8b9c0".to_string(),
             total_objects: 512,
             seed_count: 5,
             is_private: false,
+            topics: vec!["flutter".to_string(), "ui".to_string(), "desktop".to_string()],
+            language: "Dart".to_string(),
+            stars: 89,
+            forks: 14,
+            last_activity: "2026-08-21T10:45:00Z".to_string(),
         },
     ];
 
-    let filtered: Vec<RepoIndexItem> = if query_str.is_empty() {
-        all_repos
-    } else {
-        all_repos
-            .into_iter()
-            .filter(|r| r.name.to_lowercase().contains(&query_str.to_lowercase()))
-            .collect()
-    };
+    let filtered: Vec<RepoIndexItem> = all_repos
+        .into_iter()
+        .filter(|r| {
+            let matches_query = query_str.is_empty()
+                || r.name.to_lowercase().contains(&query_str.to_lowercase())
+                || r.description.as_ref().map_or(false, |d| d.to_lowercase().contains(&query_str.to_lowercase()))
+                || r.topics.iter().any(|t| t.to_lowercase().contains(&query_str.to_lowercase()));
+            
+            let matches_lang = lang_filter.as_ref().map_or(true, |l| r.language.to_lowercase() == *l);
+            let matches_topic = topic_filter.as_ref().map_or(true, |t| r.topics.iter().any(|top| top.to_lowercase() == *t));
+
+            matches_query && matches_lang && matches_topic
+        })
+        .collect();
 
     Json(ApiResponse {
         success: true,
-        message: format!("Found {} matching repositories for query '{}'", filtered.len(), query_str),
+        message: format!("Found {} matching indexed repositories for query '{}'", filtered.len(), query_str),
         data: Some(filtered),
+    })
+}
+
+async fn search_code(Query(params): Query<SearchQuery>) -> Json<ApiResponse<Vec<repository::CodeSearchResultItem>>> {
+    let query_str = params.q.unwrap_or_default();
+    let results = vec![
+        repository::CodeSearchResultItem {
+            repo_id: "repo_101".to_string(),
+            repo_name: "codehub-core-p2p".to_string(),
+            file_path: "native/p2p_engine/src/sync_protocol.rs".to_string(),
+            blob_hash: "a81c4e97d2f831b2c4d5e6f7a8b9c0d1e2f3a4b5".to_string(),
+            matching_snippet: format!("pub fn verify_chunk_sha256(data: &[u8]) -> bool {{ ... {} ... }}", query_str),
+            line_number: 42,
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Full-text code search returned {} matching blob snippets", results.len()),
+        data: Some(results),
     })
 }
 

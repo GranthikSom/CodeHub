@@ -1,14 +1,30 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RepoIndexItem {
     pub id: String,
     pub name: String,
     pub owner: String,
+    pub description: Option<String>,
     pub root_commit_hash: String,
     pub total_objects: usize,
     pub seed_count: usize,
     pub is_private: bool,
+    pub topics: Vec<String>,
+    pub language: String,
+    pub stars: usize,
+    pub forks: usize,
+    pub last_activity: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CodeSearchResultItem {
+    pub repo_id: String,
+    pub repo_name: String,
+    pub file_path: String,
+    pub blob_hash: String,
+    pub matching_snippet: String,
+    pub line_number: usize,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

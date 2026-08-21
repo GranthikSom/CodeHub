@@ -15,9 +15,18 @@ CREATE TABLE IF NOT EXISTS repositories (
     owner_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     description TEXT,
+    topics TEXT[] DEFAULT '{}',
+    primary_language VARCHAR(50) DEFAULT 'Rust',
+    stars_count INT DEFAULT 0,
+    forks_count INT DEFAULT 0,
     visibility VARCHAR(20) DEFAULT 'public', -- 'public' or 'private'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_activity_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Full-Text Search GIN Index for fast repository search
+CREATE INDEX IF NOT EXISTS idx_repos_fts ON repositories 
+USING gin(to_tsvector('english', name || ' ' || coalesce(description, '') || ' ' || array_to_string(topics, ' ')));
 
 CREATE TABLE IF NOT EXISTS repository_members (
     repository_id VARCHAR(64) REFERENCES repositories(id) ON DELETE CASCADE,
