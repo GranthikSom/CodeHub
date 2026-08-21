@@ -1,6 +1,15 @@
 # 🚀 CodeHub — Decentralized P2P Code Collaboration Platform
 
-CodeHub is a production-grade, decentralized peer-to-peer alternative to GitHub built with **Rust (Native Engine & Control Server)** and **Flutter (Desktop & Cross-Platform UI)**.
+CodeHub is a developer platform where repositories are distributed across a peer network instead of depending entirely on centralized repository storage. Built with **Rust (Native P2P Engine & Axum Control Server)** and **Flutter (Desktop UI)**.
+
+### 🌟 The 7 Pillars of Differentiation:
+1. **Git-like Developer Platform**: Pull Requests, Issues, Code Browser, Commits & Branch workflows.
+2. **Device Storage**: Leverages local peer SSD/NVMe disk space to decentralize storage burden.
+3. **P2P Repository Replication**: BitSwap DAG-aware chunk distribution across active peer swarms.
+4. **Centralized Control Plane**: Seamless JWT auth, team permissions, and zero-friction access management.
+5. **Automatic Geo-Replication**: 9-Replica seed mesh (Owner + 3 Geo Seeds in GER/SGP/IND + 5 Community Peers) guaranteeing 99.999% SLA durability.
+6. **Real-Time Repository Health Diagnostics**: Continuous replication score checks (0-100%) and auto-healing re-replication.
+7. **Cross-Platform Flutter Client**: Native Desktop GUI (Linux, macOS, Windows) + Zero-Config CLI.
 
 ---
 
