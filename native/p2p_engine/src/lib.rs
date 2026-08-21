@@ -19,6 +19,7 @@ pub mod discovery;
 pub mod production_hardening;
 pub mod dedicated_storage_nodes;
 pub mod seed_server_mesh;
+pub mod production_architecture;
 pub mod ffi_api;
 
 pub use blockstore::Blockstore;
@@ -38,4 +39,5 @@ pub use discovery::*;
 pub use production_hardening::*;
 pub use dedicated_storage_nodes::*;
 pub use seed_server_mesh::*;
+pub use production_architecture::*;
 pub use ffi_api::*;

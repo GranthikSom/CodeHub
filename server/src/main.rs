@@ -158,6 +158,8 @@ async fn main() {
         // 12. Dual-Role Server Embedded P2P Storage Peer & Multi-Tier Seed Mesh
         .route("/api/v1/system/peer-node", get(get_server_peer_node_status))
         .route("/api/v1/repositories/:id/replication-mesh", get(get_repository_replication_mesh))
+        // 13. Phase 16 Complete Final Production Architecture Blueprint
+        .route("/api/v1/system/production-architecture", get(get_production_architecture_status))
         
         .layer(cors);
 
@@ -1504,6 +1506,16 @@ async fn get_repository_replication_mesh(
     Json(ApiResponse {
         success: true,
         message: format!("Multi-Tier Seed Server Mesh Report for repository '{}' (Replication Score = 9)", repo_id),
+        data: Some(report),
+    })
+}
+
+async fn get_production_architecture_status() -> Json<ApiResponse<p2p_engine::FinalProductionArchitectureReport>> {
+    let report = p2p_engine::ProductionArchitectureInspector::generate_production_blueprint();
+
+    Json(ApiResponse {
+        success: true,
+        message: "Final Target Production Architecture Blueprint & Health Metrics Retrieved".to_string(),
         data: Some(report),
     })
 }
