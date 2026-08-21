@@ -1,0 +1,18 @@
+[package]
+name = "codehub_cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["Soham Mondal <soham@codehub.p2p>"]
+description = "CodeHub Command Line Interface (CLI) for P2P Git repository operations"
+
+[[bin]]
+name = "codehub"
+path = "src/main.rs"
+
+[dependencies]
+p2p_engine = { path = "../native/p2p_engine" }
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+hex = "0.4"
