@@ -207,45 +207,111 @@ class P2PNetworkHeader extends StatelessWidget {
               const SizedBox(width: 12),
 
               // User Profile & JWT Auth Account Button
-              Tooltip(
-                message: state.api.isAuthenticated ? 'Authenticated (GranthikSom)' : 'Sign In / Account',
-                child: InkWell(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AuthScreen()),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: const Color(0xFF58A6FF),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.account_circle_outlined,
-                          size: 18,
-                          color: Color(0xFF58A6FF),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          state.api.isAuthenticated ? 'GranthikSom' : 'Sign In',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
+              Builder(
+                builder: (context) {
+                  final isAuth = state.api.isAuthenticated;
+                  final username = state.api.currentUsername ?? 'Developer';
+                  final role = state.api.currentRole ?? 'developer';
+
+                  if (!isAuth) {
+                    return Tooltip(
+                      message: 'Sign In / Register Account',
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => AuthScreen(state: state)),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: const Color(0xFF58A6FF),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.account_circle_outlined,
+                                size: 18,
+                                color: Color(0xFF58A6FF),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Sign In',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
+                    );
+                  }
+
+                  return Tooltip(
+                    message: 'Authenticated as @$username ($role)',
+                    child: InkWell(
+                      onTap: () => _showUserProfileModal(context, state),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF161B22) : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF238636)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircleAvatar(
+                              radius: 11,
+                              backgroundColor: const Color(0xFF238636),
+                              child: Text(
+                                username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              username,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: role == 'admin' ? Colors.purple.withValues(alpha: 0.2) : Colors.blue.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                role.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: role == 'admin' ? const Color(0xFFBC8CFF) : const Color(0xFF58A6FF),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_drop_down, size: 16, color: Colors.grey),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
 
               const SizedBox(width: 12),
@@ -403,4 +469,135 @@ class P2PNetworkHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showUserProfileModal(BuildContext context, CodeHubState state) {
+  final username = state.api.currentUsername ?? 'User';
+  final email = state.api.currentEmail ?? '$username@codehub.p2p';
+  final role = state.api.currentRole ?? 'developer';
+  final peerId = state.api.currentPeerId ?? '12D3KooWNodeKeyUnregistered';
+
+  showDialog(
+    context: context,
+    builder: (ctx) {
+      final isDark = Theme.of(ctx).brightness == Brightness.dark;
+      return AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF161B22) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: const Color(0xFF238636),
+              child: Text(
+                username.isNotEmpty ? username[0].toUpperCase() : 'U',
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(username, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: role == 'admin' ? Colors.purple.withValues(alpha: 0.2) : Colors.blue.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          role.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: role == 'admin' ? const Color(0xFFBC8CFF) : const Color(0xFF58A6FF),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(color: Color(0xFF30363D)),
+            const SizedBox(height: 8),
+            const Text('Ed25519 Peer Identity Key', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF30363D)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      peerId,
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFF7EE787)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF238636).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.verified, size: 16, color: Color(0xFF238636)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Argon2id Hashed Session Active',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF7EE787), fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF85149),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              state.logoutUser();
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Signed out successfully'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            icon: const Icon(Icons.logout, size: 16),
+            label: const Text('Sign Out'),
+          ),
+        ],
+      );
+    },
+  );
 }

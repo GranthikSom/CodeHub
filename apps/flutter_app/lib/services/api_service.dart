@@ -4,11 +4,38 @@ import 'dart:io';
 class ApiService {
   final String baseUrl;
   String? _jwtToken;
+  String? _currentUsername;
+  String? _currentEmail;
+  String? _currentPeerId;
+  String? _currentRole;
 
   ApiService({this.baseUrl = 'http://localhost:8080/api/v1'});
 
   String? get jwtToken => _jwtToken;
   bool get isAuthenticated => _jwtToken != null && _jwtToken!.isNotEmpty;
+  String? get currentUsername => _currentUsername;
+  String? get currentEmail => _currentEmail;
+  String? get currentPeerId => _currentPeerId;
+  String? get currentRole => _currentRole;
+
+  void logout() {
+    _jwtToken = null;
+    _currentUsername = null;
+    _currentEmail = null;
+    _currentPeerId = null;
+    _currentRole = null;
+  }
+
+  void _saveUserData(Map<String, dynamic> json) {
+    if (json['data'] != null) {
+      final d = json['data'] as Map<String, dynamic>;
+      if (d['token'] != null) _jwtToken = d['token'] as String;
+      if (d['username'] != null) _currentUsername = d['username'] as String;
+      if (d['email'] != null) _currentEmail = d['email'] as String;
+      if (d['peer_id'] != null) _currentPeerId = d['peer_id'] as String;
+      if (d['role'] != null) _currentRole = d['role'] as String;
+    }
+  }
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
@@ -35,8 +62,8 @@ class ApiService {
       final responseBody = await response.transform(utf8.decoder).join();
       client.close();
       final json = jsonDecode(responseBody) as Map<String, dynamic>;
-      if (json['data'] != null && json['data']['token'] != null) {
-        _jwtToken = json['data']['token'] as String;
+      if (json['success'] == true) {
+        _saveUserData(json);
       }
       return json;
     } catch (e) {
@@ -65,8 +92,8 @@ class ApiService {
       final responseBody = await response.transform(utf8.decoder).join();
       client.close();
       final json = jsonDecode(responseBody) as Map<String, dynamic>;
-      if (json['data'] != null && json['data']['token'] != null) {
-        _jwtToken = json['data']['token'] as String;
+      if (json['success'] == true) {
+        _saveUserData(json);
       }
       return json;
     } catch (e) {

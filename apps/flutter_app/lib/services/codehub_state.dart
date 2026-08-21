@@ -105,6 +105,15 @@ class CodeHubState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void notifyAuthStateChanged() {
+    notifyListeners();
+  }
+
+  void logoutUser() {
+    _apiService.logout();
+    notifyListeners();
+  }
+
   void setUploadLimit(double limitMbps) {
     _uploadLimitMbps = limitMbps;
     notifyListeners();

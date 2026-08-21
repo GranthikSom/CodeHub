@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'dashboard_screen.dart';
 
+import '../services/codehub_state.dart';
+
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  final CodeHubState? state;
+  const AuthScreen({super.key, this.state});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -16,7 +19,9 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController(text: 'soham@codehub.p2p');
   final _passwordController = TextEditingController(text: 'password123');
 
-  final ApiService _api = ApiService();
+  final ApiService _fallbackApi = ApiService();
+
+  ApiService get _api => widget.state?.api ?? _fallbackApi;
 
   Future<void> _submitAuth() async {
     final username = _usernameController.text.trim();
@@ -51,6 +56,7 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     if (response['success'] == true) {
+      widget.state?.notifyAuthStateChanged();
       final message = response['message'] ?? 'Authenticated successfully';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -66,9 +72,13 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       );
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      }
     } else {
       final errMsg = response['message'] ?? 'Authentication failed. Please check your credentials.';
       ScaffoldMessenger.of(context).showSnackBar(
