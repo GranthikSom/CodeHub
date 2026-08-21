@@ -36,6 +36,14 @@ class CodeHubState extends ChangeNotifier {
   bool _isGcRunning = false;
   String _gcLastStatus = 'Active: 342 candidate chunks in 30-day grace period.';
 
+  // Repository Versioning & Delta Sync State
+  final double _baseVersionMb = 500.0;
+  final double _targetVersionMb = 505.0;
+  final double _deltaTransferMb = 5.0;
+  final double _bandwidthSavedPercent = 99.01;
+  bool _isDeltaSyncRunning = false;
+  String _deltaSyncStatus = 'Version 1 (500 MB) → Version 2 (505 MB). Only 5 MB new objects needed.';
+
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
   bool get isNativeEngineActive => NativeP2PEngine.isNativeLoaded;
@@ -57,6 +65,24 @@ class CodeHubState extends ChangeNotifier {
   int get gracePeriodDays => _gracePeriodDays;
   bool get isGcRunning => _isGcRunning;
   String get gcLastStatus => _gcLastStatus;
+
+  double get baseVersionMb => _baseVersionMb;
+  double get targetVersionMb => _targetVersionMb;
+  double get deltaTransferMb => _deltaTransferMb;
+  double get bandwidthSavedPercent => _bandwidthSavedPercent;
+  bool get isDeltaSyncRunning => _isDeltaSyncRunning;
+  String get deltaSyncStatus => _deltaSyncStatus;
+
+  void runDeltaSyncSimulation() {
+    _isDeltaSyncRunning = true;
+    notifyListeners();
+
+    Timer(const Duration(milliseconds: 600), () {
+      _isDeltaSyncRunning = false;
+      _deltaSyncStatus = 'Delta Sync complete! Distributed 5 MB new objects (Saved 500 MB redundancy).';
+      notifyListeners();
+    });
+  }
 
   void triggerGarbageCollection() {
     _isGcRunning = true;

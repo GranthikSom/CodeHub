@@ -307,6 +307,124 @@ class GitObjectDagView extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // Repository Versioning & Immutable Delta Replication Card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.difference_outlined, size: 16, color: Color(0xFF58A6FF)),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Repository Versioning & Delta Sync',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF238636).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFF3FB950), width: 0.8),
+                            ),
+                            child: const Text(
+                              '99% Bandwidth Saved',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF3FB950),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Immutable Commit Chain Visualiser Diagram: Commit A -> Commit B -> Commit C
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildCommitNode('Commit A', 'v1: 500 MB', isDark),
+                          const Icon(Icons.arrow_right_alt, color: Color(0xFF8B949E), size: 20),
+                          _buildCommitNode('Commit B', 'delta: 2 MB', isDark),
+                          const Icon(Icons.arrow_right_alt, color: Color(0xFF8B949E), size: 20),
+                          _buildCommitNode('Commit C', 'v2: 505 MB', isDark, isTarget: true),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Metric Grid: Base (500MB) vs Target (505MB) -> Transfer (5MB)
+                      Row(
+                        children: [
+                          _buildDeltaStat('Version 1 Base', '${activeState.baseVersionMb.toStringAsFixed(0)} MB', isDark),
+                          _buildDeltaStat('Version 2 Target', '${activeState.targetVersionMb.toStringAsFixed(0)} MB', isDark),
+                          _buildDeltaStat('P2P Delta Transfer', '${activeState.deltaTransferMb.toStringAsFixed(0)} MB', isDark, isHighlight: true),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Trigger Button & Live Status
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: activeState.isDeltaSyncRunning
+                                ? null
+                                : () => activeState.runDeltaSyncSimulation(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF238636),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                            icon: activeState.isDeltaSyncRunning
+                                ? const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Icon(Icons.sync_alt, size: 14),
+                            label: Text(
+                              activeState.isDeltaSyncRunning ? 'Syncing Delta...' : 'Simulate Delta Sync',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              activeState.deltaSyncStatus,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -408,5 +526,86 @@ class GitObjectDagView extends StatelessWidget {
       case GitObjectType.blob:
         return const Color(0xFF3FB950);
     }
+  }
+
+  Widget _buildCommitNode(String title, String subtitle, bool isDark, {bool isTarget = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isTarget
+            ? const Color(0xFF238636).withValues(alpha: 0.15)
+            : (isDark ? const Color(0xFF161B22) : Colors.white),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isTarget
+              ? const Color(0xFF3FB950)
+              : (isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: isTarget
+                  ? const Color(0xFF3FB950)
+                  : (isDark ? Colors.white : Colors.black87),
+            ),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 9,
+              color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeltaStat(String label, String value, bool isDark, {bool isHighlight = false}) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: isHighlight
+              ? const Color(0xFF238636).withValues(alpha: 0.15)
+              : (isDark ? const Color(0xFF161B22) : Colors.white),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isHighlight
+                ? const Color(0xFF3FB950)
+                : (isDark ? const Color(0xFF21262D) : Colors.grey.shade300),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: isHighlight
+                    ? const Color(0xFF3FB950)
+                    : (isDark ? Colors.white : Colors.black87),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
