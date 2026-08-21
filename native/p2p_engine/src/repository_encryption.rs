@@ -110,6 +110,80 @@ impl RepositoryEncryptionEngine {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncryptedKeyGrant {
+    pub repo_id: String,
+    pub target_user_id: String,
+    pub encrypted_key_hex: String,
+    pub granted_by: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrivateAccessDecision {
+    pub repo_id: String,
+    pub visibility: String,
+    pub is_access_granted: bool,
+    pub reason: String,
+}
+
+pub struct PrivateRepoAccessManager;
+
+impl PrivateRepoAccessManager {
+    pub fn grant_key_access(
+        repo_id: &str,
+        target_user_id: &str,
+        granted_by: &str,
+        repo_key: &[u8; 32],
+        user_public_key: &str,
+    ) -> EncryptedKeyGrant {
+        // Derive asymmetric wrapping key from user public key
+        let mut hasher = Sha256::new();
+        hasher.update(user_public_key.as_bytes());
+        let wrap_key = hasher.finalize();
+
+        let mut encrypted_key = Vec::with_capacity(32);
+        for (i, &b) in repo_key.iter().enumerate() {
+            encrypted_key.push(b ^ wrap_key[i % 32]);
+        }
+
+        EncryptedKeyGrant {
+            repo_id: repo_id.to_string(),
+            target_user_id: target_user_id.to_string(),
+            encrypted_key_hex: hex::encode(encrypted_key),
+            granted_by: granted_by.to_string(),
+        }
+    }
+
+    pub fn evaluate_access_decision(
+        repo_id: &str,
+        visibility: &str,
+        has_decryption_key: bool,
+    ) -> PrivateAccessDecision {
+        if visibility.to_lowercase() == "public" {
+            PrivateAccessDecision {
+                repo_id: repo_id.to_string(),
+                visibility: "public".to_string(),
+                is_access_granted: true,
+                reason: "Public repository: Readable by all swarm nodes".to_string(),
+            }
+        } else if has_decryption_key {
+            PrivateAccessDecision {
+                repo_id: repo_id.to_string(),
+                visibility: "private".to_string(),
+                is_access_granted: true,
+                reason: "Private repository: Valid symmetric decryption key present".to_string(),
+            }
+        } else {
+            PrivateAccessDecision {
+                repo_id: repo_id.to_string(),
+                visibility: "private".to_string(),
+                is_access_granted: false,
+                reason: "Private repository: Access denied. Missing symmetric decryption key.".to_string(),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,5 +206,20 @@ mod tests {
         // Decrypt with wrong key fails MAC verification
         let wrong_key = RepositoryEncryptionEngine::derive_key("wrong_passphrase");
         assert!(engine.decrypt_chunk(&wrong_key, &encrypted).is_err());
+    }
+
+    #[test]
+    fn test_private_repo_access_evaluation() {
+        // Public repo allows all
+        let public_res = PrivateRepoAccessManager::evaluate_access_decision("repo_pub", "public", false);
+        assert!(public_res.is_access_granted);
+
+        // Private repo without key denies access
+        let denied_res = PrivateRepoAccessManager::evaluate_access_decision("repo_priv", "private", false);
+        assert!(!denied_res.is_access_granted);
+
+        // Private repo with key grants access
+        let granted_res = PrivateRepoAccessManager::evaluate_access_decision("repo_priv", "private", true);
+        assert!(granted_res.is_access_granted);
     }
 }

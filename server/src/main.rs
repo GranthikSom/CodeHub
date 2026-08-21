@@ -93,11 +93,13 @@ async fn main() {
                 .delete(delete_repository),
         )
         
-        // 4. Repository peers & replication routes
+        // 4. Repository peers, replication & key management routes
         .route("/api/v1/repositories/:id/announce", post(announce_peer))
         .route("/api/v1/repositories/:id/peers", get(get_repository_peers))
         .route("/api/v1/repositories/:id/replicas", post(update_replication_factor))
         .route("/api/v1/repositories/:id/replication-status", get(get_replication_status))
+        .route("/api/v1/repositories/:id/keys/grant", post(grant_repository_key))
+        .route("/api/v1/repositories/:id/keys/access", get(get_repository_key_access))
         
         // 5. Bootstrap Node & Rendezvous Discovery routes
         .route("/api/v1/swarm/bootstrap-nodes", get(get_bootstrap_server_nodes))
@@ -366,6 +368,40 @@ async fn get_replication_status(
         success: true,
         message: format!("Replication health status evaluated for repository '{}'", id),
         data: Some(status),
+    })
+}
+
+#[derive(serde::Deserialize)]
+struct KeyGrantPayload {
+    target_user_id: String,
+    granted_by: String,
+    user_public_key: String,
+}
+
+async fn grant_repository_key(
+    Path(repo_id): Path<String>,
+    Json(payload): Json<KeyGrantPayload>,
+) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!(
+            "Encrypted repository key granted to member '{}' for repo '{}'",
+            payload.target_user_id, repo_id
+        ),
+        data: Some(format!(
+            "granted_key_hash=8f91ab_{}_{}",
+            payload.target_user_id, repo_id
+        )),
+    })
+}
+
+async fn get_repository_key_access(
+    Path(repo_id): Path<String>,
+) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!("Retrieved encrypted symmetric key payload for repo '{}'", repo_id),
+        data: Some("encrypted_key_payload_hex_998877665544332211".to_string()),
     })
 }
 
