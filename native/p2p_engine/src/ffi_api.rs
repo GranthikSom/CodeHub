@@ -372,7 +372,7 @@ pub extern "C" fn codehub_confirm_push_replication(repo_id_ptr: *const c_char) -
         }
     };
 
-    let engine = crate::replication_guarantee::ReplicationGuaranteeEngine::new(3);
+    let engine = crate::replication_guarantee::ReplicationGuaranteeEngine::new(3, 5);
     let seeders = vec!["Peer A (India 🇮🇳)", "Peer B (Germany 🇩🇪)", "Peer C (USA 🇺🇸)"];
     let result = engine.verify_push_replication(&repo_id, &seeders);
 
