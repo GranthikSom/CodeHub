@@ -62,7 +62,7 @@ class _CodeHubAppState extends State<CodeHubApp> {
             ),
             useMaterial3: true,
           ),
-          home: const SplashScreen(),
+          home: SplashScreen(state: _state),
         );
       },
     );

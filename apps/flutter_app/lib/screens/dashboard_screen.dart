@@ -7,7 +7,8 @@ import 'activity_feed_screen.dart';
 import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final CodeHubState? state;
+  const DashboardScreen({super.key, this.state});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -16,16 +17,25 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   late CodeHubState _state;
+  bool _isOwnedState = false;
 
   @override
   void initState() {
     super.initState();
-    _state = CodeHubState();
+    if (widget.state != null) {
+      _state = widget.state!;
+      _isOwnedState = false;
+    } else {
+      _state = CodeHubState();
+      _isOwnedState = true;
+    }
   }
 
   @override
   void dispose() {
-    _state.dispose();
+    if (_isOwnedState) {
+      _state.dispose();
+    }
     super.dispose();
   }
 
