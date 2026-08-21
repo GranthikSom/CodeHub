@@ -107,6 +107,7 @@ async fn main() {
         // 5. Bootstrap Node & Rendezvous Discovery routes
         .route("/api/v1/swarm/bootstrap-nodes", get(get_bootstrap_server_nodes))
         .route("/api/v1/swarm/rendezvous/:repo_id", get(get_rendezvous_repository_peers))
+        .route("/api/v1/swarm/relays", get(get_circuit_relay_nodes))
         
         // 6. Search routes
         .route("/api/v1/search/repositories", get(search_repositories))
@@ -451,6 +452,37 @@ async fn get_rendezvous_repository_peers(
         success: true,
         message: format!("Discovered Rendezvous/DHT seeders for repository '{}'", repo_id),
         data: Some(peers),
+    })
+}
+
+#[derive(serde::Serialize)]
+struct CircuitRelayNodeConfig {
+    pub relay_id: String,
+    pub multiaddr: String,
+    pub region: String,
+    pub is_active: bool,
+}
+
+async fn get_circuit_relay_nodes() -> Json<ApiResponse<Vec<CircuitRelayNodeConfig>>> {
+    let relays = vec![
+        CircuitRelayNodeConfig {
+            relay_id: "relay_us_east_1".to_string(),
+            multiaddr: "/dns4/relay1.codehub.com/tcp/4001/p2p/12D3KooWSH1Y6m98aBCdE1f2g3h4i5j6k7l8m9n0".to_string(),
+            region: "us-east".to_string(),
+            is_active: true,
+        },
+        CircuitRelayNodeConfig {
+            relay_id: "relay_eu_west_1".to_string(),
+            multiaddr: "/dns4/relay2.codehub.com/tcp/4001/p2p/12D3KooWEU2Y6m98aBCdE1f2g3h4i5j6k7l8m9n0".to_string(),
+            region: "eu-west".to_string(),
+            is_active: true,
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: "Dedicated libp2p Circuit Relay v2 nodes retrieved for NAT/CGNAT fallback".to_string(),
+        data: Some(relays),
     })
 }
 

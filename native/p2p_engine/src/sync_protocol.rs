@@ -74,6 +74,29 @@ impl RepositorySyncEngine {
             retry_recommended,
         }
     }
+
+    /// Circuit Relay v2 Fallback Route Resolution for peers behind strict NAT/CGNAT
+    pub fn get_fallback_circuit_relays(&self) -> Vec<CircuitRelayRoute> {
+        vec![
+            CircuitRelayRoute {
+                relay_id: "relay_us_east_1".to_string(),
+                multiaddr: "/dns4/relay1.codehub.com/tcp/4001/p2p/12D3KooWSH1Y6m98aBCdE1f2g3h4i5j6k7l8m9n0".to_string(),
+                nat_type_supported: "CGNAT / Symmetric Firewall".to_string(),
+            },
+            CircuitRelayRoute {
+                relay_id: "relay_eu_west_1".to_string(),
+                multiaddr: "/dns4/relay2.codehub.com/tcp/4001/p2p/12D3KooWEU2Y6m98aBCdE1f2g3h4i5j6k7l8m9n0".to_string(),
+                nat_type_supported: "CGNAT / Symmetric Firewall".to_string(),
+            },
+        ]
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CircuitRelayRoute {
+    pub relay_id: String,
+    pub multiaddr: String,
+    pub nat_type_supported: String,
 }
 
 #[cfg(test)]

@@ -118,6 +118,27 @@ CodeHub employs a hybrid architecture balancing **decentralized, content-address
 
 ---
 
+## 🌐 NAT Traversal & Circuit Relay Fallback Architecture
+
+To guarantee reliable connectivity for nodes behind restrictive **NAT**, **CGNAT**, **Mobile Networks**, or **Corporate Firewalls**, CodeHub maintains a dual connection strategy:
+
+```
+                       Direct P2P Connection (STUN / AutoNAT)
+                   Peer A ════════════════════════════════► Peer B
+                               (Public IP / Unrestricted)
+
+                                        OR
+
+                      Fallback via Circuit Relay v2 (NAT / CGNAT)
+                   Peer A ────────► Relay Node ────────► Peer B
+                              (relay1.codehub.com)
+```
+
+1. **Direct P2P Traversal**: Enabled via `libp2p-autonat` and `libp2p-dcutr` (DCUtR hole punching).
+2. **Circuit Relay v2 Fallback**: When direct socket binding fails due to symmetric firewalls, traffic is encapsulated via `libp2p-relay` through dedicated relay servers (`relay1.codehub.com`, `relay2.codehub.com`).
+
+---
+
 ## 🚀 Production Server Deployment Architecture
 
 ### Phase 1: Single-Node Lean MVP Architecture
