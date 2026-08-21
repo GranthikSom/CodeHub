@@ -15,6 +15,7 @@ pub mod repository_encryption;
 pub mod git_interop;
 pub mod git_dag;
 pub mod pull_request_engine;
+pub mod discovery;
 pub mod ffi_api;
 
 pub use blockstore::Blockstore;
@@ -30,4 +31,5 @@ pub use repository_encryption::*;
 pub use git_interop::*;
 pub use git_dag::*;
 pub use pull_request_engine::*;
+pub use discovery::*;
 pub use ffi_api::*;
