@@ -124,12 +124,14 @@ async fn main() {
             post(add_issue_comment),
         )
         
-        // 8. Fork & Pull requests & Branches routes
+        // 8. Fork & Pull requests & Branches & Reviews & Comments routes
         .route("/api/v1/repositories/:id/fork", post(fork_repository))
         .route("/api/v1/repositories/:id/branches", get(list_branches).post(create_branch))
         .route("/api/v1/repositories/:id/pulls", get(list_pulls).post(create_pull_request))
         .route("/api/v1/repositories/:id/pulls/:pr_id", get(get_pull_request_by_id))
         .route("/api/v1/repositories/:id/pulls/:pr_id/merge", post(merge_pull_request_handler))
+        .route("/api/v1/repositories/:id/pulls/:pr_id/reviews", get(list_pr_reviews).post(create_pr_review))
+        .route("/api/v1/repositories/:id/pulls/:pr_id/comments", get(list_pr_comments).post(create_pr_comment))
         
         // 9. Stars, Followers, Watchers, Notifications routes
         .route("/api/v1/repositories/:id/star", post(star_repository).delete(unstar_repository))
@@ -140,6 +142,14 @@ async fn main() {
         .route("/api/v1/repositories/:id/watch", post(watch_repository).delete(unwatch_repository))
         .route("/api/v1/notifications", get(list_notifications))
         .route("/api/v1/notifications/:id/read", patch(mark_notification_read))
+
+        // 10. Releases, Tags, Actions/CI, Webhooks, Projects & Discussions routes
+        .route("/api/v1/repositories/:id/releases", get(list_releases).post(create_release))
+        .route("/api/v1/repositories/:id/tags", get(list_tags).post(create_tag))
+        .route("/api/v1/repositories/:id/actions/runs", get(list_workflow_runs).post(trigger_workflow_run))
+        .route("/api/v1/repositories/:id/webhooks", get(list_webhooks).post(create_webhook))
+        .route("/api/v1/repositories/:id/projects", get(list_projects).post(create_project))
+        .route("/api/v1/repositories/:id/discussions", get(list_discussions).post(create_discussion))
         
         .layer(cors);
 
@@ -1007,4 +1017,341 @@ async fn create_branch(
         message: format!("Branch '{}' created for repository '{}'", payload.name, id),
         data: Some(new_branch),
     })
+}
+
+// -----------------------------------------------------------------------------
+// 10. PHASE 11 GITHUB-LIKE FEATURE HANDLERS
+// -----------------------------------------------------------------------------
+
+async fn list_pr_reviews(
+    Path((repo_id, pr_id)): Path<(String, String)>,
+) -> Json<ApiResponse<Vec<repository::PullRequestReviewItem>>> {
+    let reviews = vec![
+        repository::PullRequestReviewItem {
+            id: format!("review_1_{}", pr_id),
+            pr_id: pr_id.clone(),
+            reviewer: "GranthikSom".to_string(),
+            state: "APPROVED".to_string(),
+            body: "LGTM! SHA-256 integrity checks pass and tests are green.".to_string(),
+            submitted_at: "2026-08-21T12:30:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("PR Reviews retrieved for PR #{} in repo '{}'", pr_id, repo_id),
+        data: Some(reviews),
+    })
+}
+
+async fn create_pr_review(
+    Path((repo_id, pr_id)): Path<(String, String)>,
+    Json(payload): Json<repository::PullRequestReviewItem>,
+) -> (StatusCode, Json<ApiResponse<repository::PullRequestReviewItem>>) {
+    let mut review = payload;
+    review.pr_id = pr_id.clone();
+
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("PR Review submitted for PR #{} in repo '{}'", pr_id, repo_id),
+            data: Some(review),
+        }),
+    )
+}
+
+async fn list_pr_comments(
+    Path((repo_id, pr_id)): Path<(String, String)>,
+) -> Json<ApiResponse<Vec<repository::PullRequestCommentItem>>> {
+    let comments = vec![
+        repository::PullRequestCommentItem {
+            id: format!("pr_comment_1_{}", pr_id),
+            pr_id: pr_id.clone(),
+            author: "soham_dev".to_string(),
+            file_path: "native/p2p_engine/src/discovery.rs".to_string(),
+            line_number: 42,
+            body: "Consider using XOR distance caching here for faster DHT routing.".to_string(),
+            created_at: "2026-08-21T12:45:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("PR Code Comments retrieved for PR #{} in repo '{}'", pr_id, repo_id),
+        data: Some(comments),
+    })
+}
+
+async fn create_pr_comment(
+    Path((repo_id, pr_id)): Path<(String, String)>,
+    Json(payload): Json<repository::PullRequestCommentItem>,
+) -> (StatusCode, Json<ApiResponse<repository::PullRequestCommentItem>>) {
+    let mut comment = payload;
+    comment.pr_id = pr_id.clone();
+
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("Inline Code Comment added to PR #{} in repo '{}'", pr_id, repo_id),
+            data: Some(comment),
+        }),
+    )
+}
+
+async fn list_releases(
+    Path(repo_id): Path<String>,
+) -> Json<ApiResponse<Vec<repository::ReleaseItem>>> {
+    let releases = vec![
+        repository::ReleaseItem {
+            id: "rel_v1.0.0".to_string(),
+            repo_id: repo_id.clone(),
+            tag_name: "v1.0.0".to_string(),
+            name: "CodeHub v1.0.0 — Decentralized P2P Git Engine".to_string(),
+            body: "Major release featuring Kademlia DHT, AES-256 zero-knowledge encryption, and 5-stage push sync.".to_string(),
+            author: "GranthikSom".to_string(),
+            is_draft: false,
+            is_prerelease: false,
+            published_at: "2026-08-21T00:00:00Z".to_string(),
+            download_count: 1420,
+            assets: vec![
+                repository::ReleaseAssetItem {
+                    id: "asset_1".to_string(),
+                    name: "codehub-linux-x64.tar.gz".to_string(),
+                    size_bytes: 14200000,
+                    download_url: format!("http://0.0.0.0:8080/api/v1/repositories/{}/releases/assets/codehub-linux-x64.tar.gz", repo_id),
+                },
+            ],
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Releases retrieved for repository '{}'", repo_id),
+        data: Some(releases),
+    })
+}
+
+async fn create_release(
+    Path(repo_id): Path<String>,
+    Json(payload): Json<repository::ReleaseItem>,
+) -> (StatusCode, Json<ApiResponse<repository::ReleaseItem>>) {
+    let mut release = payload;
+    release.repo_id = repo_id.clone();
+
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("Release '{}' published for repository '{}'", release.tag_name, repo_id),
+            data: Some(release),
+        }),
+    )
+}
+
+async fn list_tags(
+    Path(repo_id): Path<String>,
+) -> Json<ApiResponse<Vec<repository::GitTagItem>>> {
+    let tags = vec![
+        repository::GitTagItem {
+            name: "v1.0.0".to_string(),
+            commit_sha: "8f2a1b9c4e21a3b5".to_string(),
+            tagger: "GranthikSom".to_string(),
+            message: "v1.0.0 Production Release Tag".to_string(),
+            created_at: "2026-08-21T00:00:00Z".to_string(),
+        },
+        repository::GitTagItem {
+            name: "v0.9.0-beta".to_string(),
+            commit_sha: "3c19d4f2a1887e12".to_string(),
+            tagger: "soham_dev".to_string(),
+            message: "v0.9.0 Beta Swarm Testing".to_string(),
+            created_at: "2026-08-15T00:00:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Git Tag refs retrieved for repository '{}'", repo_id),
+        data: Some(tags),
+    })
+}
+
+async fn create_tag(
+    Path(repo_id): Path<String>,
+    Json(payload): Json<repository::GitTagItem>,
+) -> (StatusCode, Json<ApiResponse<repository::GitTagItem>>) {
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("Git Tag '{}' created in repository '{}'", payload.name, repo_id),
+            data: Some(payload),
+        }),
+    )
+}
+
+async fn list_workflow_runs(
+    Path(repo_id): Path<String>,
+) -> Json<ApiResponse<Vec<repository::WorkflowRunItem>>> {
+    let runs = vec![
+        repository::WorkflowRunItem {
+            id: "run_101".to_string(),
+            repo_id: repo_id.clone(),
+            name: "P2P Engine Integration Suite".to_string(),
+            event: "push".to_string(),
+            status: "success".to_string(),
+            commit_sha: "4668e20a11223344".to_string(),
+            actor: "GranthikSom".to_string(),
+            run_number: 42,
+            duration_secs: 18,
+            created_at: "2026-08-21T13:00:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Actions/CI Workflow Runs retrieved for repository '{}'", repo_id),
+        data: Some(runs),
+    })
+}
+
+async fn trigger_workflow_run(
+    Path(repo_id): Path<String>,
+    Json(payload): Json<repository::WorkflowRunItem>,
+) -> (StatusCode, Json<ApiResponse<repository::WorkflowRunItem>>) {
+    let mut run = payload;
+    run.repo_id = repo_id.clone();
+    run.status = "running".to_string();
+
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("Workflow Run '{}' triggered for repository '{}'", run.name, repo_id),
+            data: Some(run),
+        }),
+    )
+}
+
+async fn list_webhooks(
+    Path(repo_id): Path<String>,
+) -> Json<ApiResponse<Vec<repository::WebhookItem>>> {
+    let webhooks = vec![
+        repository::WebhookItem {
+            id: "wh_101".to_string(),
+            repo_id: repo_id.clone(),
+            url: "https://discord.com/api/webhooks/123456789/codehub".to_string(),
+            events: vec!["push".to_string(), "pull_request".to_string(), "issues".to_string()],
+            is_active: true,
+            created_at: "2026-08-20T10:00:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Webhooks retrieved for repository '{}'", repo_id),
+        data: Some(webhooks),
+    })
+}
+
+async fn create_webhook(
+    Path(repo_id): Path<String>,
+    Json(payload): Json<repository::WebhookItem>,
+) -> (StatusCode, Json<ApiResponse<repository::WebhookItem>>) {
+    let mut wh = payload;
+    wh.repo_id = repo_id.clone();
+
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("Webhook configured for URL '{}' in repo '{}'", wh.url, repo_id),
+            data: Some(wh),
+        }),
+    )
+}
+
+async fn list_projects(
+    Path(repo_id): Path<String>,
+) -> Json<ApiResponse<Vec<repository::ProjectBoardItem>>> {
+    let projects = vec![
+        repository::ProjectBoardItem {
+            id: "proj_101".to_string(),
+            repo_id: repo_id.clone(),
+            name: "v1.0 P2P Engine Roadmap".to_string(),
+            body: "Tracking Phase 1 through 12 implementation progress.".to_string(),
+            columns: vec![
+                repository::ProjectColumnItem { id: "col_todo".to_string(), name: "To Do".to_string(), cards_count: 2 },
+                repository::ProjectColumnItem { id: "col_in_progress".to_string(), name: "In Progress".to_string(), cards_count: 3 },
+                repository::ProjectColumnItem { id: "col_done".to_string(), name: "Done".to_string(), cards_count: 10 },
+            ],
+            created_at: "2026-08-01T00:00:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Project Kanban Boards retrieved for repository '{}'", repo_id),
+        data: Some(projects),
+    })
+}
+
+async fn create_project(
+    Path(repo_id): Path<String>,
+    Json(payload): Json<repository::ProjectBoardItem>,
+) -> (StatusCode, Json<ApiResponse<repository::ProjectBoardItem>>) {
+    let mut proj = payload;
+    proj.repo_id = repo_id.clone();
+
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("Project Board '{}' created for repo '{}'", proj.name, repo_id),
+            data: Some(proj),
+        }),
+    )
+}
+
+async fn list_discussions(
+    Path(repo_id): Path<String>,
+) -> Json<ApiResponse<Vec<repository::DiscussionItem>>> {
+    let discussions = vec![
+        repository::DiscussionItem {
+            id: "disc_101".to_string(),
+            repo_id: repo_id.clone(),
+            discussion_number: 1,
+            title: "Q&A: How to configure zero-trust seeder nodes?".to_string(),
+            body: "What are the recommended NAT traversal settings for home routers?".to_string(),
+            author: "community_user".to_string(),
+            category: "Q&A".to_string(),
+            upvotes_count: 19,
+            comments_count: 7,
+            created_at: "2026-08-20T16:00:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Community Discussions retrieved for repository '{}'", repo_id),
+        data: Some(discussions),
+    })
+}
+
+async fn create_discussion(
+    Path(repo_id): Path<String>,
+    Json(payload): Json<repository::DiscussionItem>,
+) -> (StatusCode, Json<ApiResponse<repository::DiscussionItem>>) {
+    let mut disc = payload;
+    disc.repo_id = repo_id.clone();
+
+    (
+        StatusCode::CREATED,
+        Json(ApiResponse {
+            success: true,
+            message: format!("Discussion #{} created in repo '{}'", disc.discussion_number, repo_id),
+            data: Some(disc),
+        }),
+    )
 }
