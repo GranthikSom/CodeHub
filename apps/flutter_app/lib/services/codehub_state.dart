@@ -22,6 +22,13 @@ class CodeHubState extends ChangeNotifier {
   double _storageUsedGb = 17.2;
   bool _isSeedingEnabled = true;
 
+  // Bandwidth & Power Management State
+  double _uploadLimitMbps = 10.0;
+  double _downloadLimitMbps = 50.0;
+  int _maxPeersLimit = 20;
+  bool _seedWhileIdle = true;
+  bool _seedOnBattery = false;
+
   ThemeMode get themeMode => _themeMode;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
   bool get isNativeEngineActive => NativeP2PEngine.isNativeLoaded;
@@ -32,8 +39,39 @@ class CodeHubState extends ChangeNotifier {
   double get storageAvailableGb => (_storageContributedGb - _storageUsedGb).clamp(0.0, double.infinity);
   bool get isSeedingEnabled => _isSeedingEnabled;
 
+  double get uploadLimitMbps => _uploadLimitMbps;
+  double get downloadLimitMbps => _downloadLimitMbps;
+  int get maxPeersLimit => _maxPeersLimit;
+  bool get seedWhileIdle => _seedWhileIdle;
+  bool get seedOnBattery => _seedOnBattery;
+
   void toggleThemeMode() {
     _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    notifyListeners();
+  }
+
+  void setUploadLimit(double limitMbps) {
+    _uploadLimitMbps = limitMbps;
+    notifyListeners();
+  }
+
+  void setDownloadLimit(double limitMbps) {
+    _downloadLimitMbps = limitMbps;
+    notifyListeners();
+  }
+
+  void setMaxPeersLimit(int maxPeers) {
+    _maxPeersLimit = maxPeers;
+    notifyListeners();
+  }
+
+  void setSeedWhileIdle(bool value) {
+    _seedWhileIdle = value;
+    notifyListeners();
+  }
+
+  void setSeedOnBattery(bool value) {
+    _seedOnBattery = value;
     notifyListeners();
   }
 

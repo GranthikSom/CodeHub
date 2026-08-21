@@ -663,6 +663,36 @@ pub extern "C" fn codehub_set_seeding_enabled(enabled: i32) -> i32 {
     if is_enabled { 1 } else { 0 }
 }
 
+/// Configures upload & download speed limits (MB/s) for P2P chunk transfer
+#[no_mangle]
+pub extern "C" fn codehub_set_bandwidth_limits(upload_mbps: f64, download_mbps: f64) -> i32 {
+    let mut engine_guard = GLOBAL_ENGINE.lock().unwrap();
+    if let Some(ref mut engine) = *engine_guard {
+        engine.set_bandwidth_limits(upload_mbps, download_mbps);
+    }
+    0
+}
+
+/// Sets maximum connected peer ceiling for the libp2p swarm
+#[no_mangle]
+pub extern "C" fn codehub_set_max_peers(max_peers: u32) -> i32 {
+    let mut engine_guard = GLOBAL_ENGINE.lock().unwrap();
+    if let Some(ref mut engine) = *engine_guard {
+        engine.set_max_peers(max_peers as usize);
+    }
+    0
+}
+
+/// Sets power policies (seed while idle, seed on battery) for laptops
+#[no_mangle]
+pub extern "C" fn codehub_set_power_policy(seed_idle: i32, seed_battery: i32) -> i32 {
+    let mut engine_guard = GLOBAL_ENGINE.lock().unwrap();
+    if let Some(ref mut engine) = *engine_guard {
+        engine.set_power_policy(seed_idle != 0, seed_battery != 0);
+    }
+    0
+}
+
 /// Frees C string memory allocated by Rust
 #[no_mangle]
 pub extern "C" fn codehub_free_string(ptr: *mut c_char) {

@@ -49,4 +49,16 @@ impl CodeHubSwarmEngine {
     pub fn set_seeding_active(&mut self, _is_active: bool) {
         // Toggles P2P background seeder loop
     }
+
+    pub fn set_bandwidth_limits(&mut self, _upload_mbps: f64, _download_mbps: f64) {
+        // Configures token bucket rate limiter for P2P streams
+    }
+
+    pub fn set_max_peers(&mut self, _max_peers: usize) {
+        // Sets swarm connection ceiling limit
+    }
+
+    pub fn set_power_policy(&mut self, _seed_idle: bool, _seed_battery: bool) {
+        // Configures laptop power & idle seeding constraints
+    }
 }
