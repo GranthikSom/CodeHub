@@ -424,6 +424,65 @@ pub extern "C" fn codehub_verify_sync_chunk(
     CString::new(json_str).unwrap().into_raw()
 }
 
+/// Encrypts private repository chunk bytes into zero-knowledge seeder payload
+#[no_mangle]
+pub extern "C" fn codehub_encrypt_private_repo_chunk(
+    repo_id_ptr: *const c_char,
+    chunk_hash_ptr: *const c_char,
+    passphrase_ptr: *const c_char,
+    payload_ptr: *const c_char,
+) -> *mut c_char {
+    let repo_id = if repo_id_ptr.is_null() {
+        "repo_private_123".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(repo_id_ptr)
+                .to_str()
+                .unwrap_or("repo_private_123")
+                .to_string()
+        }
+    };
+
+    let chunk_hash = if chunk_hash_ptr.is_null() {
+        "7c9f".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(chunk_hash_ptr)
+                .to_str()
+                .unwrap_or("7c9f")
+                .to_string()
+        }
+    };
+
+    let passphrase = if passphrase_ptr.is_null() {
+        "my_repo_secret_key".to_string()
+    } else {
+        unsafe {
+            CStr::from_ptr(passphrase_ptr)
+                .to_str()
+                .unwrap_or("my_repo_secret_key")
+                .to_string()
+        }
+    };
+
+    let raw_bytes = if payload_ptr.is_null() {
+        b"Private repository binary chunk content".to_vec()
+    } else {
+        unsafe {
+            CStr::from_ptr(payload_ptr)
+                .to_bytes()
+                .to_vec()
+        }
+    };
+
+    let key = crate::repository_encryption::RepositoryEncryptionEngine::derive_key(&passphrase);
+    let engine = crate::repository_encryption::RepositoryEncryptionEngine::new();
+    let result = engine.encrypt_chunk(&key, &repo_id, &chunk_hash, &raw_bytes);
+
+    let json_str = serde_json::to_string(&result).unwrap_or_default();
+    CString::new(json_str).unwrap().into_raw()
+}
+
 /// Frees C string memory allocated by Rust
 #[no_mangle]
 pub extern "C" fn codehub_free_string(ptr: *mut c_char) {

@@ -15,3 +15,6 @@ pub struct AuthResponse {
 pub fn generate_jwt_token(username: &str) -> String {
     format!("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.codehub.p2p.{}.token", username)
 }
+
+pub mod password_hasher;
+pub use password_hasher::*;

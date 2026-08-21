@@ -11,6 +11,7 @@ pub mod piece_availability;
 pub mod peer_identity;
 pub mod replication_guarantee;
 pub mod sync_protocol;
+pub mod repository_encryption;
 pub mod ffi_api;
 
 pub use blockstore::Blockstore;
@@ -22,4 +23,5 @@ pub use piece_availability::PieceAvailabilitySystem;
 pub use peer_identity::PeerIdentityManager;
 pub use replication_guarantee::*;
 pub use sync_protocol::*;
+pub use repository_encryption::*;
 pub use ffi_api::*;
