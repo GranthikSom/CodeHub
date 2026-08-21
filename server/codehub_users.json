@@ -8,6 +8,15 @@
     "role": "developer",
     "created_at": "2026-08-21T20:38:00Z"
   },
+  "alicedev_1787326720573": {
+    "id": "usr_416c6963",
+    "username": "AliceDev_1787326720573",
+    "email": "alice@codehub.p2p",
+    "password_hash": "$argon2id$v=19$m=4096,t=3,p=1$73616c745f316662$686173685f6172676f6e3269645f7365637572655f706173735f3435365f73616c745f316662",
+    "peer_id": "12D3KooWAliceNodeKey",
+    "role": "developer",
+    "created_at": "2026-08-21T20:38:00Z"
+  },
   "granthiksom": {
     "id": "usr_granthiksom_101",
     "username": "GranthikSom",

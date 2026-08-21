@@ -148,17 +148,6 @@
             border-color: #8b949e;
         }
 
-        .btn-danger {
-            background-color: rgba(248, 81, 73, 0.15);
-            color: var(--accent-danger);
-            border-color: rgba(248, 81, 73, 0.4);
-        }
-
-        .btn-danger:hover {
-            background-color: var(--accent-danger);
-            color: white;
-        }
-
         /* Container Layout */
         .container {
             max-width: 1380px;
@@ -234,6 +223,12 @@
             font-size: 18px;
             font-weight: 700;
             margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title-left {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -451,13 +446,50 @@
             </div>
         </section>
 
+        <!-- Live Registered Users Table (WebSockets Streamed) -->
+        <section class="card">
+            <div class="section-title">
+                <div class="section-title-left">
+                    <span>👥</span> Registered Developer Accounts & Peer Node Keys
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="badge badge-purple" id="total-users-badge">Loading Users...</span>
+                    <span class="badge badge-green" id="ws-status-badge">⚡ Connecting WebSockets...</span>
+                </div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+                Live WebSocket Stream (<code class="mono">ws://localhost:8080/api/v1/admin/ws</code>) — Auto-refreshes in real-time when new developers register or sign in.
+            </p>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username & Role</th>
+                            <th>Email Address</th>
+                            <th>Ed25519 Peer Node ID</th>
+                            <th>Created Date</th>
+                            <th>Socket Session</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted);">Connecting to live WebSocket stream...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <!-- Main Split Section: Auth Console & Swarm Inspector -->
         <section class="split-section">
             
             <!-- Auth & Identity Management -->
             <div class="card">
                 <h2 class="section-title">
-                    <span>🔑</span> Developer Authentication & Identity Engine
+                    <div class="section-title-left">
+                        <span>🔑</span> Developer Authentication & Identity Engine
+                    </div>
                 </h2>
                 <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
                     Test zero-plain-password Argon2id hashing and Ed25519 node identity key generation.
@@ -489,7 +521,9 @@
             <!-- System Audit & Console -->
             <div class="card">
                 <h2 class="section-title">
-                    <span>📡</span> Real-Time P2P Telemetry & Audit Logs
+                    <div class="section-title-left">
+                        <span>📡</span> Real-Time P2P Telemetry & Audit Logs
+                    </div>
                 </h2>
                 <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
                     Live output from Axum control plane and Kademlia DHT routing table resynchronization.
@@ -509,7 +543,9 @@
         <!-- Indexed Repositories Table -->
         <section class="card">
             <h2 class="section-title">
-                <span>📚</span> Global Repository Catalog & Peer Replication Mesh
+                <div class="section-title-left">
+                    <span>📚</span> Global Repository Catalog & Peer Replication Mesh
+                </div>
             </h2>
             <div class="table-wrapper">
                 <table>
@@ -536,7 +572,9 @@
         <!-- 7-Month Infrastructure Engineering Roadmap -->
         <section class="card">
             <h2 class="section-title">
-                <span>🚀</span> 7-Month Infrastructure Engineering Roadmap (Sequential Order)
+                <div class="section-title-left">
+                    <span>🚀</span> 7-Month Infrastructure Engineering Roadmap (Sequential Order)
+                </div>
             </h2>
             <div class="timeline" id="roadmap-timeline">
                 <div class="timeline-item">
@@ -568,6 +606,75 @@
     <!-- Frontend Logic -->
     <script>
         const API_BASE = '/api/v1';
+
+        // Initialize Live WebSockets Stream
+        let ws;
+        function initLiveUsersWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/api/v1/admin/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                const badge = document.getElementById('ws-status-badge');
+                if (badge) {
+                    badge.className = 'badge badge-green';
+                    badge.innerText = '⚡ Live WebSocket Active';
+                }
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.event === 'users_live_update' && data.users) {
+                        renderUsersTable(data.users);
+                        if (data.total_users !== undefined) {
+                            document.getElementById('total-users-badge').innerText = `${data.total_users} Users Registered`;
+                        }
+                    }
+                } catch (e) {
+                    console.error("WS Parse Error:", e);
+                }
+            };
+            
+            ws.onclose = () => {
+                const badge = document.getElementById('ws-status-badge');
+                if (badge) {
+                    badge.className = 'badge badge-purple';
+                    badge.innerText = '🔄 Reconnecting WS...';
+                }
+                setTimeout(initLiveUsersWebSocket, 3000);
+            };
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('users-table-body');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No users found in database</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                const roleBadge = u.role === 'admin' ? 'badge-purple' : 'badge-blue';
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="mono" style="font-size: 12px; color: var(--accent-cyan);">${u.id}</td>
+                        <td style="font-weight: 600;">
+                            ${u.username} 
+                            <span class="badge ${roleBadge}" style="margin-left: 6px;">${u.role}</span>
+                        </td>
+                        <td style="color: var(--text-muted);">${u.email}</td>
+                        <td class="mono" style="font-size: 11px; color: #7ee787;">${u.peer_id}</td>
+                        <td style="font-size: 12px; color: var(--text-muted);">${u.created_at}</td>
+                        <td>
+                            <span class="status-pill" style="padding: 2px 8px; font-size: 11px;">
+                                <span class="status-dot"></span> Active Session
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
 
         // Check backend server health on load
         async function checkServerHealth() {
@@ -692,6 +799,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             checkServerHealth();
             fetchRepositories();
+            initLiveUsersWebSocket();
         });
     </script>
 </body>

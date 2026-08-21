@@ -15,6 +15,17 @@ pub struct User {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserSafe {
+    pub id: String,
+    pub username: String,
+    pub email: String,
+    pub peer_id: String,
+    pub role: String,
+    pub created_at: String,
+    pub is_active_session: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegisterPayload {
     pub username: String,
     pub email: Option<String>,
@@ -152,6 +163,24 @@ impl UserStore {
         };
         self.register(&reg_payload)
     }
+
+    pub fn get_all_users(&self) -> Vec<UserSafe> {
+        let map = match self.users_by_username.read() {
+            Ok(guard) => guard,
+            Err(_) => return Vec::new(),
+        };
+        let mut list: Vec<UserSafe> = map.values().map(|u| UserSafe {
+            id: u.id.clone(),
+            username: u.username.clone(),
+            email: u.email.clone(),
+            peer_id: u.peer_id.clone(),
+            role: u.role.clone(),
+            created_at: u.created_at.clone(),
+            is_active_session: true,
+        }).collect();
+        list.sort_by(|a, b| a.username.cmp(&b.username));
+        list
+    }
 }
 
 pub fn generate_structured_jwt(user: &User) -> String {
@@ -193,15 +222,16 @@ mod tests {
         assert_eq!(bad_pass_res.unwrap_err(), "Invalid password provided");
 
         // 3. Test registering new developer user
+        let test_name = format!("AliceDev_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis());
         let reg_res = store.register(&RegisterPayload {
-            username: "AliceDev".to_string(),
+            username: test_name.clone(),
             email: Some("alice@codehub.p2p".to_string()),
             password: "secure_pass_456".to_string(),
             peer_id: Some("12D3KooWAliceNodeKey".to_string()),
         });
         assert!(reg_res.is_ok());
         let alice = reg_res.unwrap();
-        assert_eq!(alice.username, "AliceDev");
+        assert_eq!(alice.username, test_name);
         assert!(alice.password_hash.starts_with("$argon2id$v=19$m=4096,t=3,p=1$"));
 
         // 4. Test duplicate registration rejection
