@@ -1,6 +1,7 @@
 use axum::{
     extract::{Path, Query},
     http::StatusCode,
+    response::Html,
     routing::{get, patch, post},
     Json, Router,
 };
@@ -82,6 +83,8 @@ async fn main() {
         .allow_headers(Any);
 
     let app = Router::new()
+        .route("/", get(serve_admin_panel))
+        .route("/admin", get(serve_admin_panel))
         .route("/health", get(health_check))
         
         // 1. Authentication & Authorization routes
@@ -1682,4 +1685,8 @@ async fn perform_system_hard_refresh() -> Json<ApiResponse<HardRefreshResult>> {
         message: "Hard Refresh Complete: Cleared server transient caches & resynchronized Kademlia DHT routing table".to_string(),
         data: Some(result),
     })
+}
+
+async fn serve_admin_panel() -> Html<&'static str> {
+    Html(include_str!("../public/index.html"))
 }
