@@ -172,6 +172,7 @@ async fn main() {
         .route("/api/v1/system/product-positioning", get(get_product_positioning_status))
         .route("/api/v1/system/p2p-protocol-spec", get(get_p2p_protocol_spec_status))
         .route("/api/v1/system/release-roadmap", get(get_release_roadmap_status))
+        .route("/api/v1/system/development-roadmap", get(get_development_roadmap_status))
         
         .layer(cors);
 
@@ -1568,6 +1569,16 @@ async fn get_release_roadmap_status() -> Json<ApiResponse<p2p_engine::ReleaseRoa
     Json(ApiResponse {
         success: true,
         message: "Version Release Roadmap (v0.1 MVP Core -> v1.0 Production)".to_string(),
+        data: Some(report),
+    })
+}
+
+async fn get_development_roadmap_status() -> Json<ApiResponse<p2p_engine::InfrastructureRoadmapReport>> {
+    let report = p2p_engine::InfrastructureDevelopmentInspector::get_infrastructure_roadmap();
+
+    Json(ApiResponse {
+        success: true,
+        message: "7-Month Infrastructure Engineering Roadmap & 13-Step Sequential Construction Order".to_string(),
         data: Some(report),
     })
 }

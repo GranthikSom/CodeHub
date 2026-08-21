@@ -24,6 +24,7 @@ pub mod technology_stack_audit;
 pub mod product_differentiation;
 pub mod p2p_protocol_architecture;
 pub mod release_roadmap;
+pub mod infrastructure_roadmap;
 pub mod ffi_api;
 
 // Clean Modular Architecture Namespaces
@@ -57,4 +58,5 @@ pub use technology_stack_audit::*;
 pub use product_differentiation::*;
 pub use p2p_protocol_architecture::*;
 pub use release_roadmap::*;
+pub use infrastructure_roadmap::*;
 pub use ffi_api::*;

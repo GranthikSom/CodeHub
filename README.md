@@ -106,6 +106,27 @@ CodeHub avoids generic BitTorrent backends in favor of a 5-layer protocol tailor
 
 ---
 
+## 🏗️ 7-Month Infrastructure Engineering Roadmap
+
+CodeHub is built as a serious infrastructure platform following a 7-month engineering progression:
+
+```text
+MONTH 1: Control & UI Foundation (Flutter UI, Theme System, Axum API, Auth, PostgreSQL Schema)
+MONTH 2: Core Native Engine (Rust Storage Engine, Object Store Directory, Git Objects, SHA-256 Hashing)
+MONTH 3: Chunking & Direct P2P (FastCDC Chunking, libp2p QUIC/Noise, Peer Identity, 2-Peer Connections)
+MONTH 4: Discovery & Sync Engine (Kademlia DHT, Provider Records, Chunk Upload/Download, Sync Protocols)
+MONTH 5: Mesh Replication & Security (Multi-Tier Seed Mesh, Storage Nodes, NAT Traversal, DDoS Rate Limiting)
+MONTH 6: Tooling & Collaboration (CodeHub Git CLI, Issues, Pull Requests, Inline Reviews, Tantivy Search)
+MONTH 7+: Testing & Scaling (Integration Test Suite, Prometheus/Grafana Monitoring, Production Network)
+```
+
+### 🔨 13-Step Sequential Construction Order
+```text
+Flutter UI ➔ Rust Local Engine ➔ Git Object Store ➔ Chunk Engine ➔ Two-Peer P2P ➔ Multi-Peer P2P ➔ DHT Discovery ➔ Replication Mesh ➔ Own Server ➔ Authentication/Permissions ➔ Git CLI ➔ GitHub-like Features ➔ Production Infrastructure
+```
+
+---
+
 ## ⚙️ Running Locally
 
 ### 1. Control Server
