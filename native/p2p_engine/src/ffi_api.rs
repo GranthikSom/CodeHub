@@ -10,12 +10,46 @@ use crate::blockstore::{Blockstore, GitObjectType};
 use crate::p2p_swarm::CodeHubSwarmEngine;
 use crate::storage_engine::LocalEngine;
 use crate::content_addressing::ContentAddressedStore;
+use crate::chunking_engine::{RepositoryChunker, DEFAULT_CHUNK_SIZE_BYTES};
 
 lazy_static! {
     static ref GLOBAL_ENGINE: Mutex<Option<CodeHubSwarmEngine>> = Mutex::new(None);
     static ref GLOBAL_BLOCKSTORE: Mutex<Option<Blockstore>> = Mutex::new(None);
     static ref GLOBAL_LOCAL_ENGINE: Mutex<Option<LocalEngine>> = Mutex::new(None);
     static ref GLOBAL_CONTENT_STORE: Mutex<Option<ContentAddressedStore>> = Mutex::new(None);
+}
+
+/// Splits a repository payload into 1 MB BitTorrent-style chunks
+#[no_mangle]
+pub extern "C" fn codehub_chunk_repository_payload(
+    repo_id_ptr: *const c_char,
+    payload_ptr: *const c_char,
+) -> *mut c_char {
+    if repo_id_ptr.is_null() || payload_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let repo_id = match unsafe { CStr::from_ptr(repo_id_ptr) }.to_str() {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    let payload = match unsafe { CStr::from_ptr(payload_ptr) }.to_str() {
+        Ok(s) => s.as_bytes(),
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    let chunks_dir = match *guard {
+        Some(ref engine) => engine.chunks_dir.clone(),
+        None => std::path::PathBuf::from("/tmp/codehub_chunks"),
+    };
+
+    match RepositoryChunker::chunk_payload(repo_id, payload, DEFAULT_CHUNK_SIZE_BYTES, &chunks_dir) {
+        Ok(metadata) => {
+            let json_str = serde_json::to_string(&metadata).unwrap_or_default();
+            CString::new(json_str).unwrap().into_raw()
+        }
+        Err(_) => std::ptr::null_mut(),
+    }
 }
 
 /// Stores a payload using SHA-256 content addressing (deduplicates automatically)

@@ -6,10 +6,12 @@ pub mod blockstore;
 pub mod p2p_swarm;
 pub mod storage_engine;
 pub mod content_addressing;
+pub mod chunking_engine;
 pub mod ffi_api;
 
 pub use blockstore::Blockstore;
 pub use p2p_swarm::CodeHubSwarmEngine;
 pub use storage_engine::LocalEngine;
 pub use content_addressing::ContentAddressedStore;
+pub use chunking_engine::RepositoryChunker;
 pub use ffi_api::*;

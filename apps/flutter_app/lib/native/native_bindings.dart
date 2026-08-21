@@ -30,6 +30,9 @@ typedef DartContentPut = Pointer<Utf8> Function(Pointer<Utf8> payload);
 typedef NativeHasObject = Int32 Function(Pointer<Utf8> hash);
 typedef DartHasObject = int Function(Pointer<Utf8> hash);
 
+typedef NativeChunkRepo = Pointer<Utf8> Function(Pointer<Utf8> repoId, Pointer<Utf8> payload);
+typedef DartChunkRepo = Pointer<Utf8> Function(Pointer<Utf8> repoId, Pointer<Utf8> payload);
+
 /// Native Rust P2P Engine Dart FFI Interface
 class NativeP2PEngine {
   static DynamicLibrary? _lib;
@@ -44,6 +47,7 @@ class NativeP2PEngine {
   static DartGetStorageStats? _getStorageStats;
   static DartContentPut? _contentPut;
   static DartHasObject? _hasObject;
+  static DartChunkRepo? _chunkRepo;
 
   static bool get isNativeLoaded => _isLoaded;
 
@@ -82,6 +86,7 @@ class NativeP2PEngine {
         _getStorageStats = _lib!.lookupFunction<NativeGetStorageStats, DartGetStorageStats>('codehub_get_storage_stats_json');
         _contentPut = _lib!.lookupFunction<NativeContentPut, DartContentPut>('codehub_content_put');
         _hasObject = _lib!.lookupFunction<NativeHasObject, DartHasObject>('codehub_has_object');
+        _chunkRepo = _lib!.lookupFunction<NativeChunkRepo, DartChunkRepo>('codehub_chunk_repository_payload');
 
         _isLoaded = true;
       }
@@ -181,6 +186,23 @@ class NativeP2PEngine {
       return _hasObject!(hashPtr) == 1;
     } finally {
       calloc.free(hashPtr);
+    }
+  }
+
+  /// Splits repository payload into 1 MB BitTorrent-style chunks
+  static String? chunkRepositoryPayload(String repoId, String payload) {
+    if (!_isLoaded || _chunkRepo == null || _freeString == null) return null;
+    final repoPtr = repoId.toNativeUtf8();
+    final payloadPtr = payload.toNativeUtf8();
+    try {
+      final resPtr = _chunkRepo!(repoPtr, payloadPtr);
+      if (resPtr == nullptr) return null;
+      final resultStr = resPtr.toDartString();
+      _freeString!(resPtr);
+      return resultStr;
+    } finally {
+      calloc.free(repoPtr);
+      calloc.free(payloadPtr);
     }
   }
 }
