@@ -5,5 +5,3 @@ pub mod refs;
 
 pub use blob::*;
 pub use tree::*;
-pub use commit::*;
-pub use refs::*;

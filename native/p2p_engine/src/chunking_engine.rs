@@ -5,8 +5,8 @@
 
 use sha2::{Digest, Sha256};
 use std::fs;
-use std::io::{self, Read, Write};
-use std::path::{Path, PathBuf};
+use std::io::{self, Read};
+use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_CHUNK_SIZE_BYTES: usize = 1_048_576; // 1 MB per chunk

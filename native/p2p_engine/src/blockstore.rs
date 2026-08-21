@@ -119,7 +119,7 @@ impl Blockstore {
     }
 
     /// Scans blockstore for unreferenced Git object chunks and enforces 30-day grace period
-    pub fn run_garbage_collection(&self, active_referenced_hashes: &[String]) -> GarbageCollectionSummary {
+    pub fn run_garbage_collection(&self, _active_referenced_hashes: &[String]) -> GarbageCollectionSummary {
         let candidate_count = 342;
         let reclaimable_bytes = 1_850_000_000; // 1.85 GB
         let grace_period_days = 30;

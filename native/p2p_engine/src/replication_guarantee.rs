@@ -125,7 +125,7 @@ impl ReplicationGuaranteeEngine {
         repo_id: &str,
         current_active_peers: &mut Vec<String>,
     ) -> PushReplicationResult {
-        let mut health_report = self.perform_health_check(repo_id, current_active_peers);
+        let health_report = self.perform_health_check(repo_id, current_active_peers);
 
         // Update active list to exclude disconnected peers
         *current_active_peers = health_report.replicated_peers.clone();

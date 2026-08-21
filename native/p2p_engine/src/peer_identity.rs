@@ -6,8 +6,8 @@
 use ed25519_dalek::{SigningKey, VerifyingKey, Signer, Verifier, Signature};
 use sha2::{Sha256, Digest};
 use std::fs;
-use std::io::{self, Read, Write};
-use std::path::{Path, PathBuf};
+use std::io::{self};
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

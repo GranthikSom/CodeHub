@@ -85,7 +85,7 @@ impl GitDagEngine {
         let mut author_email = "dev@codehub.p2p".to_string();
         let mut committer_name = "CodeHub Developer".to_string();
         let mut committer_email = "dev@codehub.p2p".to_string();
-        let mut timestamp = 1776775200u64;
+        let timestamp = 1776775200u64;
         let mut message_lines = Vec::new();
         let mut in_message = false;
 
