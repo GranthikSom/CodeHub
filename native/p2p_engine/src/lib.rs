@@ -22,6 +22,15 @@ pub mod seed_server_mesh;
 pub mod production_architecture;
 pub mod ffi_api;
 
+// Clean Modular Architecture Namespaces
+pub mod identity;
+pub mod storage;
+pub mod git;
+pub mod p2p;
+pub mod sync;
+pub mod crypto;
+pub mod ffi;
+
 pub use blockstore::Blockstore;
 pub use p2p_swarm::CodeHubSwarmEngine;
 pub use storage_engine::LocalEngine;
