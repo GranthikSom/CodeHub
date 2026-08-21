@@ -42,6 +42,9 @@ typedef DartGetPeerIdentity = Pointer<Utf8> Function();
 typedef NativeGetConnectedPeers = Pointer<Utf8> Function();
 typedef DartGetConnectedPeers = Pointer<Utf8> Function();
 
+typedef NativeConfirmPushReplication = Pointer<Utf8> Function(Pointer<Utf8> repoId);
+typedef DartConfirmPushReplication = Pointer<Utf8> Function(Pointer<Utf8> repoId);
+
 /// Native Rust P2P Engine Dart FFI Interface
 class NativeP2PEngine {
   static DynamicLibrary? _lib;
@@ -60,6 +63,7 @@ class NativeP2PEngine {
   static DartScheduleDownload? _scheduleDownload;
   static DartGetPeerIdentity? _getPeerIdentity;
   static DartGetConnectedPeers? _getConnectedPeers;
+  static DartConfirmPushReplication? _confirmPushReplication;
 
   static bool get isNativeLoaded => _isLoaded;
 
@@ -102,6 +106,7 @@ class NativeP2PEngine {
         _scheduleDownload = _lib!.lookupFunction<NativeScheduleDownload, DartScheduleDownload>('codehub_schedule_parallel_swarm_download');
         _getPeerIdentity = _lib!.lookupFunction<NativeGetPeerIdentity, DartGetPeerIdentity>('codehub_get_or_create_peer_identity');
         _getConnectedPeers = _lib!.lookupFunction<NativeGetConnectedPeers, DartGetConnectedPeers>('codehub_get_connected_peers');
+        _confirmPushReplication = _lib!.lookupFunction<NativeConfirmPushReplication, DartConfirmPushReplication>('codehub_confirm_push_replication');
 
         _isLoaded = true;
       }
@@ -260,6 +265,21 @@ class NativeP2PEngine {
       return resultStr;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Verifies push replication guarantees across min 3 active swarm nodes
+  static String? confirmPushReplication(String repoId) {
+    if (!_isLoaded || _confirmPushReplication == null || _freeString == null) return null;
+    final repoIdPtr = repoId.toNativeUtf8();
+    try {
+      final resPtr = _confirmPushReplication!(repoIdPtr);
+      if (resPtr == nullptr) return null;
+      final resultStr = resPtr.toDartString();
+      _freeString!(resPtr);
+      return resultStr;
+    } finally {
+      calloc.free(repoIdPtr);
     }
   }
 }
