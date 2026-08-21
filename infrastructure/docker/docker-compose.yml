@@ -1,13 +1,16 @@
 version: '3.8'
 
 services:
-  control_plane:
+  # Load-balanced Axum API Nodes
+  axum_api_1:
     build:
       context: ../../server
       dockerfile: ../infrastructure/docker/Dockerfile
+    container_name: codehub_api_1
     ports:
-      - "8080:8080"
+      - "8081:8080"
     environment:
+      - NODE_ID=api_node_1
       - DATABASE_URL=postgres://codehub:codehub_pass@postgres:5432/codehub_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=codehub_production_jwt_secret_key_change_me
@@ -16,6 +19,41 @@ services:
       - redis
     restart: always
 
+  axum_api_2:
+    build:
+      context: ../../server
+      dockerfile: ../infrastructure/docker/Dockerfile
+    container_name: codehub_api_2
+    ports:
+      - "8082:8080"
+    environment:
+      - NODE_ID=api_node_2
+      - DATABASE_URL=postgres://codehub:codehub_pass@postgres:5432/codehub_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=codehub_production_jwt_secret_key_change_me
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  axum_api_3:
+    build:
+      context: ../../server
+      dockerfile: ../infrastructure/docker/Dockerfile
+    container_name: codehub_api_3
+    ports:
+      - "8083:8080"
+    environment:
+      - NODE_ID=api_node_3
+      - DATABASE_URL=postgres://codehub:codehub_pass@postgres:5432/codehub_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=codehub_production_jwt_secret_key_change_me
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  # Relational Database
   postgres:
     image: postgres:16-alpine
     container_name: codehub_postgres
@@ -27,9 +65,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../../server/migrations/0001_init.sql:/docker-entrypoint-initdb.d/0001_init.sql
+      - ../db/schema.sql:/docker-entrypoint-initdb.d/0001_init.sql
     restart: always
 
+  # Memory Cache
   redis:
     image: redis:7-alpine
     container_name: codehub_redis
@@ -39,6 +78,7 @@ services:
       - redis_data:/data
     restart: always
 
+  # Reverse Proxy & Load Balancer Router
   caddy:
     image: caddy:2-alpine
     container_name: codehub_caddy
@@ -50,7 +90,34 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - control_plane
+      - axum_api_1
+      - axum_api_2
+      - axum_api_3
+    restart: always
+
+  # Separate P2P Bootstrap Rendezvous Nodes
+  p2p1_bootstrap:
+    image: alpine:latest
+    container_name: p2p1_codehub_com
+    command: ["sh", "-c", "echo 'p2p1.codehub.com rendezvous seeder running on port 4001' && tail -f /dev/null"]
+    ports:
+      - "4001:4001"
+    restart: always
+
+  p2p2_bootstrap:
+    image: alpine:latest
+    container_name: p2p2_codehub_com
+    command: ["sh", "-c", "echo 'p2p2.codehub.com rendezvous seeder running on port 4002' && tail -f /dev/null"]
+    ports:
+      - "4002:4001"
+    restart: always
+
+  p2p3_bootstrap:
+    image: alpine:latest
+    container_name: p2p3_codehub_com
+    command: ["sh", "-c", "echo 'p2p3.codehub.com rendezvous seeder running on port 4003' && tail -f /dev/null"]
+    ports:
+      - "4003:4001"
     restart: always
 
 volumes:

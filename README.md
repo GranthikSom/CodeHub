@@ -118,6 +118,44 @@ CodeHub employs a hybrid architecture balancing **decentralized, content-address
 
 ---
 
+## 🚀 Production Server Deployment Architecture
+
+### Phase 1: Single-Node Lean MVP Architecture
+```
+Internet → Cloudflare → Caddy/Nginx → Axum Control Server (API, Auth, Bootstrap)
+                                              │
+                                       ┌──────┴──────┐
+                                       ▼             ▼
+                                  PostgreSQL       Redis
+```
+- **Independent P2P Bootstrap Rendezvous Seeders**:
+  - `p2p1.codehub.com`
+  - `p2p2.codehub.com`
+  - `p2p3.codehub.com`
+
+---
+
+### Phase 2: High-Availability Scale-Out Enterprise Topology
+```
+                                 Internet
+                                    │
+                                Cloudflare
+                                    │
+                              Load Balancer
+                                    │
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
+                  API 1           API 2           API 3
+                    │               │               │
+                    └───────────────┼───────────────┘
+                                    │
+                             ┌──────┴──────┐
+                             ▼             ▼
+                        PostgreSQL       Redis
+```
+
+---
+
 ## 🌐 Sovereign Infrastructure Domains
 
 - **`app.codehub.com`**: Web & Desktop Client Application

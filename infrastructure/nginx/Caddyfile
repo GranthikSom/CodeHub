@@ -1,7 +1,17 @@
 api.codehub.com, auth.codehub.com, registry.codehub.com {
-    reverse_proxy control_plane:8080
+    reverse_proxy axum_api_1:8080 axum_api_2:8080 axum_api_3:8080 {
+        lb_policy round_robin
+    }
 }
 
-p2p.codehub.com {
-    reverse_proxy control_plane:4001
+p2p.codehub.com, p2p1.codehub.com {
+    reverse_proxy p2p1_bootstrap:4001
+}
+
+p2p2.codehub.com {
+    reverse_proxy p2p2_bootstrap:4001
+}
+
+p2p3.codehub.com {
+    reverse_proxy p2p3_bootstrap:4001
 }
