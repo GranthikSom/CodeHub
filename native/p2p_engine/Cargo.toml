@@ -28,4 +28,7 @@ lazy_static = "1.4"
 
 # Logging & error handling
 tracing = "0.1"
+dirs = "5.0"
+tempfile = "3.8"
+rand = "0.8"
 anyhow = "1.0"

@@ -146,11 +146,51 @@ impl LocalEngine {
         Ok(repo_dir)
     }
 
-    /// Stores a SHA-256 content-addressed object in global blockstore (`objects/`)
-    pub fn store_global_object(&self, payload: &[u8]) -> io::Result<String> {
+    /// Opens an existing local repository by name, verifying layout integrity
+    pub fn open_repository(&self, repo_name: &str) -> io::Result<PathBuf> {
+        let repo_dir = self.repositories_dir.join(repo_name);
+        if !repo_dir.exists() {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("Repository '{}' not found in local engine", repo_name),
+            ));
+        }
+        Ok(repo_dir)
+    }
+
+    /// Writes a working copy file into a repository and automatically hashes & stores it as a Git object
+    pub fn write_file(&self, repo_name: &str, relative_path: &str, content: &[u8]) -> io::Result<String> {
+        let repo_dir = self.open_repository(repo_name)?;
+        let target_file = repo_dir.join(relative_path);
+        
+        if let Some(parent) = target_file.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        
+        fs::write(&target_file, content)?;
+
+        // Automatically store content-addressed object in local object store
+        let hash = self.store_global_object(content)?;
+        Ok(hash)
+    }
+
+    /// Reads a working copy file from a local repository
+    pub fn read_file(&self, repo_name: &str, relative_path: &str) -> io::Result<Vec<u8>> {
+        let repo_dir = self.open_repository(repo_name)?;
+        let target_file = repo_dir.join(relative_path);
+        fs::read(target_file)
+    }
+
+    /// Computes SHA-256 hash digest of an object payload without storing
+    pub fn hash_object(payload: &[u8]) -> String {
         let mut hasher = Sha256::new();
         hasher.update(payload);
-        let hash = hex::encode(hasher.finalize());
+        hex::encode(hasher.finalize())
+    }
+
+    /// Stores a SHA-256 content-addressed object in global blockstore (`objects/`)
+    pub fn store_global_object(&self, payload: &[u8]) -> io::Result<String> {
+        let hash = Self::hash_object(payload);
 
         let prefix = &hash[0..2];
         let suffix = &hash[2..];
@@ -164,6 +204,29 @@ impl LocalEngine {
         }
 
         Ok(hash)
+    }
+
+    /// Retrieves an object by its SHA-256 hash digest from the local blockstore
+    pub fn retrieve_object(&self, hash: &str) -> io::Result<Vec<u8>> {
+        if hash.len() < 4 {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid hash digest length"));
+        }
+        let prefix = &hash[0..2];
+        let suffix = &hash[2..];
+
+        let obj_path = self.objects_dir.join(prefix).join(suffix);
+        let payload = fs::read(obj_path)?;
+
+        // Checksum verification
+        let computed = Self::hash_object(&payload);
+        if computed != hash {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Object SHA-256 checksum mismatch!",
+            ));
+        }
+
+        Ok(payload)
     }
 
     /// Stores a chunk payload for large file shards in `chunks/`
@@ -236,5 +299,40 @@ mod tests {
 
         let hash = engine.store_global_object(b"hello codehub p2p").unwrap();
         assert_eq!(hash.len(), 64);
+    }
+
+    #[test]
+    fn test_phase3_repository_lifecycle() {
+        let tmp = tempdir().unwrap();
+        let engine = LocalEngine::init(Some(tmp.path().join(".codehub"))).unwrap();
+
+        // 1. Create Repository
+        let repo_path = engine.create_repository("test-repo").unwrap();
+        assert!(repo_path.exists());
+
+        // 2. Open Repository
+        let opened_path = engine.open_repository("test-repo").unwrap();
+        assert_eq!(repo_path, opened_path);
+
+        // 3. Write File & Auto Hash Object
+        let sample_payload = b"println!(\"Hello CodeHub P2P Engine\");";
+        let object_hash = engine.write_file("test-repo", "src/main.rs", sample_payload).unwrap();
+        assert_eq!(object_hash.len(), 64);
+
+        // 4. Read File
+        let read_bytes = engine.read_file("test-repo", "src/main.rs").unwrap();
+        assert_eq!(read_bytes, sample_payload);
+
+        // 5. Hash Object
+        let computed_hash = LocalEngine::hash_object(sample_payload);
+        assert_eq!(computed_hash, object_hash);
+
+        // 6. Store Object
+        let stored_hash = engine.store_global_object(sample_payload).unwrap();
+        assert_eq!(stored_hash, object_hash);
+
+        // 7. Retrieve Object
+        let retrieved = engine.retrieve_object(&object_hash).unwrap();
+        assert_eq!(retrieved, sample_payload);
     }
 }

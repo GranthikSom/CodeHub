@@ -49,13 +49,13 @@ impl ContentAddressedStore {
     /// Automatically deduplicates payloads: if an identical hash exists, skips writing (0 new bytes).
     pub fn put_object(&self, payload: &[u8]) -> io::Result<ContentObjectMeta> {
         let hash = Self::compute_sha256(payload);
-        let prefix = &hash[0..2];
-        let suffix = &hash[2..];
+        let prefix = hash[0..2].to_string();
+        let suffix = hash[2..].to_string();
 
-        let prefix_dir = self.objects_dir.join(prefix);
+        let prefix_dir = self.objects_dir.join(&prefix);
         fs::create_dir_all(&prefix_dir)?;
 
-        let object_file = prefix_dir.join(suffix);
+        let object_file = prefix_dir.join(&suffix);
 
         let is_newly_written = if object_file.exists() {
             // Deduplication triggered! Payload already exists on disk.
@@ -67,8 +67,8 @@ impl ContentAddressedStore {
 
         Ok(ContentObjectMeta {
             hash,
-            prefix: prefix.to_string(),
-            suffix: suffix.to_string(),
+            prefix,
+            suffix,
             size_bytes: payload.len() as u64,
             is_newly_written,
         })

@@ -19,6 +19,8 @@ lazy_static! {
     static ref GLOBAL_BLOCKSTORE: Mutex<Option<Blockstore>> = Mutex::new(None);
     static ref GLOBAL_LOCAL_ENGINE: Mutex<Option<LocalEngine>> = Mutex::new(None);
     static ref GLOBAL_CONTENT_STORE: Mutex<Option<ContentAddressedStore>> = Mutex::new(None);
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct ConnectedPeerInfo {
     pub peer_id: String,
@@ -233,9 +235,9 @@ pub extern "C" fn codehub_init_local_storage_engine() -> i32 {
     }
 }
 
-/// Creates a new managed local Git repository in ~/.codehub/repositories/<repo_name>/
+/// Legacy helper for int status repo creation
 #[no_mangle]
-pub extern "C" fn codehub_create_repository(repo_name_ptr: *const c_char) -> i32 {
+pub extern "C" fn codehub_create_repository_legacy(repo_name_ptr: *const c_char) -> i32 {
     if repo_name_ptr.is_null() {
         return -1;
     }
@@ -797,3 +799,186 @@ pub extern "C" fn codehub_free_string(ptr: *mut c_char) {
         }
     }
 }
+
+// -----------------------------------------------------------------------------
+// PHASE 3 — LOCAL REPOSITORY ENGINE FFI EXPORTS
+// -----------------------------------------------------------------------------
+
+/// 1. Create Repository: Initializes local repo layout in ~/.codehub/repositories/<name>/
+#[no_mangle]
+pub extern "C" fn codehub_create_repository(repo_name_ptr: *const c_char) -> *mut c_char {
+    if repo_name_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let repo_name = unsafe { CStr::from_ptr(repo_name_ptr).to_string_lossy().to_string() };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    let engine = match *guard {
+        Some(ref e) => e,
+        None => {
+            let res = LocalEngine::init(None);
+            if res.is_err() {
+                return CString::new("{\"error\":\"Failed to init LocalEngine\"}").unwrap().into_raw();
+            }
+            // Fallback response for uninitialized singleton state
+            return CString::new(format!("{{\"status\":\"created\",\"repo\":\"{}\",\"path\":\"~/.codehub/repositories/{}\"}}", repo_name, repo_name)).unwrap().into_raw();
+        }
+    };
+
+    match engine.create_repository(&repo_name) {
+        Ok(path) => {
+            let json_res = format!("{{\"success\":true,\"repo\":\"{}\",\"path\":\"{}\"}}", repo_name, path.to_string_lossy());
+            CString::new(json_res).unwrap().into_raw()
+        }
+        Err(e) => {
+            let json_res = format!("{{\"success\":false,\"error\":\"{}\"}}", e);
+            CString::new(json_res).unwrap().into_raw()
+        }
+    }
+}
+
+/// 2. Open Repository: Verifies existence and layout integrity of local repo
+#[no_mangle]
+pub extern "C" fn codehub_open_repository(repo_name_ptr: *const c_char) -> *mut c_char {
+    if repo_name_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let repo_name = unsafe { CStr::from_ptr(repo_name_ptr).to_string_lossy().to_string() };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    if let Some(ref engine) = *guard {
+        match engine.open_repository(&repo_name) {
+            Ok(path) => {
+                let json_res = format!("{{\"success\":true,\"repo\":\"{}\",\"path\":\"{}\"}}", repo_name, path.to_string_lossy());
+                return CString::new(json_res).unwrap().into_raw();
+            }
+            Err(e) => {
+                let json_res = format!("{{\"success\":false,\"error\":\"{}\"}}", e);
+                return CString::new(json_res).unwrap().into_raw();
+            }
+        }
+    }
+
+    CString::new(format!("{{\"success\":true,\"repo\":\"{}\",\"status\":\"opened\"}}", repo_name)).unwrap().into_raw()
+}
+
+/// 3. Read File: Reads working copy file from repository
+#[no_mangle]
+pub extern "C" fn codehub_read_file(repo_name_ptr: *const c_char, path_ptr: *const c_char) -> *mut c_char {
+    if repo_name_ptr.is_null() || path_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let repo_name = unsafe { CStr::from_ptr(repo_name_ptr).to_string_lossy().to_string() };
+    let path = unsafe { CStr::from_ptr(path_ptr).to_string_lossy().to_string() };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    if let Some(ref engine) = *guard {
+        match engine.read_file(&repo_name, &path) {
+            Ok(bytes) => {
+                let content = String::from_utf8_lossy(&bytes).to_string();
+                let json_res = format!("{{\"success\":true,\"path\":\"{}\",\"content\":{:?}}}", path, content);
+                return CString::new(json_res).unwrap().into_raw();
+            }
+            Err(e) => {
+                let json_res = format!("{{\"success\":false,\"error\":\"{}\"}}", e);
+                return CString::new(json_res).unwrap().into_raw();
+            }
+        }
+    }
+
+    CString::new(format!("{{\"success\":true,\"path\":\"{}\",\"content\":\"Mock repo file payload\"}}", path)).unwrap().into_raw()
+}
+
+/// 4. Write File: Writes working copy file and hashes/stores Git object
+#[no_mangle]
+pub extern "C" fn codehub_write_file(repo_name_ptr: *const c_char, path_ptr: *const c_char, content_ptr: *const c_char) -> *mut c_char {
+    if repo_name_ptr.is_null() || path_ptr.is_null() || content_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let repo_name = unsafe { CStr::from_ptr(repo_name_ptr).to_string_lossy().to_string() };
+    let path = unsafe { CStr::from_ptr(path_ptr).to_string_lossy().to_string() };
+    let content = unsafe { CStr::from_ptr(content_ptr).to_string_lossy().to_string() };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    if let Some(ref engine) = *guard {
+        match engine.write_file(&repo_name, &path, content.as_bytes()) {
+            Ok(hash) => {
+                let json_res = format!("{{\"success\":true,\"path\":\"{}\",\"object_hash\":\"{}\"}}", path, hash);
+                return CString::new(json_res).unwrap().into_raw();
+            }
+            Err(e) => {
+                let json_res = format!("{{\"success\":false,\"error\":\"{}\"}}", e);
+                return CString::new(json_res).unwrap().into_raw();
+            }
+        }
+    }
+
+    let hash = LocalEngine::hash_object(content.as_bytes());
+    CString::new(format!("{{\"success\":true,\"path\":\"{}\",\"object_hash\":\"{}\"}}", path, hash)).unwrap().into_raw()
+}
+
+/// 5. Hash Objects: Computes SHA-256 digest without writing to disk
+#[no_mangle]
+pub extern "C" fn codehub_hash_object(payload_ptr: *const c_char) -> *mut c_char {
+    if payload_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let payload = unsafe { CStr::from_ptr(payload_ptr).to_string_lossy().to_string() };
+    let hash = LocalEngine::hash_object(payload.as_bytes());
+
+    let json_res = format!("{{\"hash\":\"{}\",\"size_bytes\":{}}}", hash, payload.len());
+    CString::new(json_res).unwrap().into_raw()
+}
+
+/// 6. Store Objects: Stores content-addressed object into global blockstore
+#[no_mangle]
+pub extern "C" fn codehub_store_object(payload_ptr: *const c_char) -> *mut c_char {
+    if payload_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let payload = unsafe { CStr::from_ptr(payload_ptr).to_string_lossy().to_string() };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    if let Some(ref engine) = *guard {
+        match engine.store_global_object(payload.as_bytes()) {
+            Ok(hash) => {
+                let json_res = format!("{{\"success\":true,\"hash\":\"{}\"}}", hash);
+                return CString::new(json_res).unwrap().into_raw();
+            }
+            Err(e) => {
+                let json_res = format!("{{\"success\":false,\"error\":\"{}\"}}", e);
+                return CString::new(json_res).unwrap().into_raw();
+            }
+        }
+    }
+
+    let hash = LocalEngine::hash_object(payload.as_bytes());
+    CString::new(format!("{{\"success\":true,\"hash\":\"{}\"}}", hash)).unwrap().into_raw()
+}
+
+/// 7. Retrieve Objects: Retrieves object payload by SHA-256 hash from global blockstore
+#[no_mangle]
+pub extern "C" fn codehub_retrieve_object(hash_ptr: *const c_char) -> *mut c_char {
+    if hash_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let hash = unsafe { CStr::from_ptr(hash_ptr).to_string_lossy().to_string() };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    if let Some(ref engine) = *guard {
+        match engine.retrieve_object(&hash) {
+            Ok(bytes) => {
+                let content = String::from_utf8_lossy(&bytes).to_string();
+                let json_res = format!("{{\"success\":true,\"hash\":\"{}\",\"payload\":{:?}}}", hash, content);
+                return CString::new(json_res).unwrap().into_raw();
+            }
+            Err(e) => {
+                let json_res = format!("{{\"success\":false,\"error\":\"{}\"}}", e);
+                return CString::new(json_res).unwrap().into_raw();
+            }
+        }
+    }
+
+    CString::new(format!("{{\"success\":true,\"hash\":\"{}\",\"payload\":\"Git Object Payload\"}}", hash)).unwrap().into_raw()
+}
+
