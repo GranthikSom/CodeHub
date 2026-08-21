@@ -92,6 +92,20 @@ CodeHub avoids generic BitTorrent backends in favor of a 5-layer protocol tailor
 
 ---
 
+## 🗓️ Version Release Roadmap (v0.1 -> v1.0)
+
+| Version | Scope / Focus Milestone | Status |
+| :--- | :--- | :--- |
+| **v0.1** | **Core Proof-of-Concept MVP**: Register, Login, Create repository, Local repository, Git objects, Hashing, Chunking, Peer discovery, Peer connection, Upload, Download, Integrity verification, Replication, Repository browser. | ✅ COMPLETED |
+| **v0.2** | **Collaboration Basics**: Issues, Branches, Commits, Tags. | ✅ COMPLETED |
+| **v0.3** | **Advanced Peer Workflows**: Pull Requests, Inline Reviews, Repository Forks. | ✅ COMPLETED |
+| **v0.4** | **Security & Encryption**: Private Repositories, AES-256 Zero-Knowledge Chunk Encryption. | ✅ COMPLETED |
+| **v0.5** | **Developer CLI**: CodeHub Git CLI (`codehub clone`, `codehub push`, `codehub pull`). | ✅ COMPLETED |
+| **v0.6** | **CI/CD & Event Workhooks**: Sandboxed Actions Runner & Triggers. | ✅ COMPLETED |
+| **v1.0** | **Production Hardened Network**: 9-Replica Geo Seed Mesh & Cross-Platform Flutter Desktop App. | 🚀 LAUNCH READY |
+
+---
+
 ## ⚙️ Running Locally
 
 ### 1. Control Server

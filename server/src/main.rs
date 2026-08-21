@@ -171,6 +171,7 @@ async fn main() {
         .route("/api/v1/system/technology-audit", get(get_technology_stack_audit_status))
         .route("/api/v1/system/product-positioning", get(get_product_positioning_status))
         .route("/api/v1/system/p2p-protocol-spec", get(get_p2p_protocol_spec_status))
+        .route("/api/v1/system/release-roadmap", get(get_release_roadmap_status))
         
         .layer(cors);
 
@@ -1557,6 +1558,16 @@ async fn get_p2p_protocol_spec_status() -> Json<ApiResponse<p2p_engine::P2PProto
     Json(ApiResponse {
         success: true,
         message: "5-Tier Git-Native P2P Protocol Stack Specification (PubSub Sync + Direct Out-of-Band P2P Chunk Streams)".to_string(),
+        data: Some(report),
+    })
+}
+
+async fn get_release_roadmap_status() -> Json<ApiResponse<p2p_engine::ReleaseRoadmapReport>> {
+    let report = p2p_engine::ReleaseRoadmapInspector::get_roadmap();
+
+    Json(ApiResponse {
+        success: true,
+        message: "Version Release Roadmap (v0.1 MVP Core -> v1.0 Production)".to_string(),
         data: Some(report),
     })
 }
