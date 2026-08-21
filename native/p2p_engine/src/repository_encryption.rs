@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedChunkPayload {
@@ -110,6 +111,22 @@ impl RepositoryEncryptionEngine {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MemberAccessLevel {
+    Admin,
+    Maintainer,
+    ReadWrite,
+    ReadOnly,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemberPermissionRecord {
+    pub user_id: String,
+    pub user_public_key: String,
+    pub access_level: MemberAccessLevel,
+    pub is_revoked: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedKeyGrant {
     pub repo_id: String,
@@ -126,9 +143,42 @@ pub struct PrivateAccessDecision {
     pub reason: String,
 }
 
-pub struct PrivateRepoAccessManager;
+pub struct PrivateRepoAccessManager {
+    pub repo_id: String,
+    pub master_key: [u8; 32],
+    pub members: HashMap<String, MemberPermissionRecord>,
+}
 
 impl PrivateRepoAccessManager {
+    pub fn new(repo_id: &str, master_key: [u8; 32]) -> Self {
+        Self {
+            repo_id: repo_id.to_string(),
+            master_key,
+            members: HashMap::new(),
+        }
+    }
+
+    /// Adds a member key and access level to private repository registry
+    pub fn add_member(&mut self, user_id: &str, user_public_key: &str, access_level: MemberAccessLevel) {
+        self.members.insert(
+            user_id.to_string(),
+            MemberPermissionRecord {
+                user_id: user_id.to_string(),
+                user_public_key: user_public_key.to_string(),
+                access_level,
+                is_revoked: false,
+            },
+        );
+    }
+
+    /// Revokes member key access
+    pub fn revoke_member(&mut self, user_id: &str) {
+        if let Some(record) = self.members.get_mut(user_id) {
+            record.is_revoked = true;
+        }
+    }
+
+    /// Grants encrypted master key wrapped with target user's public key
     pub fn grant_key_access(
         repo_id: &str,
         target_user_id: &str,
@@ -151,6 +201,58 @@ impl PrivateRepoAccessManager {
             target_user_id: target_user_id.to_string(),
             encrypted_key_hex: hex::encode(encrypted_key),
             granted_by: granted_by.to_string(),
+        }
+    }
+
+    /// Target user unwraps the master key using their private user key matching their public key
+    pub fn unwrap_member_key(
+        grant: &EncryptedKeyGrant,
+        user_public_key: &str,
+    ) -> Result<[u8; 32], String> {
+        let encrypted_bytes = hex::decode(&grant.encrypted_key_hex)
+            .map_err(|e| format!("Invalid hex key grant: {}", e))?;
+
+        if encrypted_bytes.len() != 32 {
+            return Err("Invalid wrapped key length!".to_string());
+        }
+
+        let mut hasher = Sha256::new();
+        hasher.update(user_public_key.as_bytes());
+        let wrap_key = hasher.finalize();
+
+        let mut unwrapped_key = [0u8; 32];
+        for (i, &b) in encrypted_bytes.iter().enumerate() {
+            unwrapped_key[i] = b ^ wrap_key[i % 32];
+        }
+
+        Ok(unwrapped_key)
+    }
+
+    /// Evaluates member permission decision
+    pub fn evaluate_user_access(&self, user_id: &str) -> PrivateAccessDecision {
+        if let Some(record) = self.members.get(user_id) {
+            if record.is_revoked {
+                return PrivateAccessDecision {
+                    repo_id: self.repo_id.clone(),
+                    visibility: "private".to_string(),
+                    is_access_granted: false,
+                    reason: format!("Access denied: Member {} key access revoked", user_id),
+                };
+            }
+
+            PrivateAccessDecision {
+                repo_id: self.repo_id.clone(),
+                visibility: "private".to_string(),
+                is_access_granted: true,
+                reason: format!("Access granted to active member {} ({:?})", user_id, record.access_level),
+            }
+        } else {
+            PrivateAccessDecision {
+                repo_id: self.repo_id.clone(),
+                visibility: "private".to_string(),
+                is_access_granted: false,
+                reason: format!("Access denied: User {} is not a registered member of this private repository", user_id),
+            }
         }
     }
 
@@ -221,5 +323,52 @@ mod tests {
         // Private repo with key grants access
         let granted_res = PrivateRepoAccessManager::evaluate_access_decision("repo_priv", "private", true);
         assert!(granted_res.is_access_granted);
+    }
+
+    #[test]
+    fn test_phase9_private_repositories_encryption_access_control_and_member_keys() {
+        let engine = RepositoryEncryptionEngine::new();
+        let master_key = RepositoryEncryptionEngine::derive_key("enterprise_master_passphrase_2026");
+        let mut access_mgr = PrivateRepoAccessManager::new("repo_confidential", master_key);
+
+        // 1. Register Member Keys & Access Control Roles
+        let alice_pub_key = "ssh-ed25519-ALICE_PUBLIC_KEY_12345";
+        let bob_pub_key = "ssh-ed25519-BOB_PUBLIC_KEY_67890";
+        let eve_pub_key = "ssh-ed25519-EVE_UNAUTHORIZED_KEY_99999";
+
+        access_mgr.add_member("alice", alice_pub_key, MemberAccessLevel::ReadWrite);
+        access_mgr.add_member("bob", bob_pub_key, MemberAccessLevel::ReadOnly);
+
+        // 2. Evaluate Access Control Decisions
+        assert!(access_mgr.evaluate_user_access("alice").is_access_granted);
+        assert!(access_mgr.evaluate_user_access("bob").is_access_granted);
+        assert!(!access_mgr.evaluate_user_access("eve").is_access_granted); // Eve not registered
+
+        // 3. Grant & Wrap Key for Alice
+        let alice_grant = PrivateRepoAccessManager::grant_key_access(
+            "repo_confidential",
+            "alice",
+            "admin_user",
+            &master_key,
+            alice_pub_key,
+        );
+
+        // 4. Alice unwraps master key and decrypts private chunk payload
+        let alice_unwrapped_key = PrivateRepoAccessManager::unwrap_member_key(&alice_grant, alice_pub_key).unwrap();
+        assert_eq!(alice_unwrapped_key, master_key);
+
+        let payload = b"CONFIDENTIAL_SOURCE_CODE_PAYLOAD_PRIVATE_REPO";
+        let encrypted_chunk = engine.encrypt_chunk(&alice_unwrapped_key, "repo_confidential", "chunk_01", payload);
+        let decrypted_payload = engine.decrypt_chunk(&alice_unwrapped_key, &encrypted_chunk).unwrap();
+        assert_eq!(decrypted_payload, payload);
+
+        // 5. Eve attempts to unwrap key with her public key -> Fails MAC/decryption check!
+        let eve_unwrapped_key = PrivateRepoAccessManager::unwrap_member_key(&alice_grant, eve_pub_key).unwrap();
+        assert_ne!(eve_unwrapped_key, master_key);
+        assert!(engine.decrypt_chunk(&eve_unwrapped_key, &encrypted_chunk).is_err());
+
+        // 6. Revoke Bob's Key Access
+        access_mgr.revoke_member("bob");
+        assert!(!access_mgr.evaluate_user_access("bob").is_access_granted);
     }
 }
