@@ -184,10 +184,19 @@ async fn main() {
         .layer(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(err) => {
+            eprintln!("❌ Failed to bind to http://0.0.0.0:8080: {}", err);
+            eprintln!("💡 Port 8080 is in use. Run 'fuser -k 8080/tcp' to release the port.");
+            std::process::exit(1);
+        }
+    };
     println!("🚀 CodeHub Control Server API running at http://{}", addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    if let Err(e) = axum::serve(listener, app).await {
+        eprintln!("❌ Server error: {}", e);
+    }
 }
 
 async fn health_check() -> Json<ApiResponse<HealthStatus>> {
