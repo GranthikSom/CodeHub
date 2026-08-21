@@ -8,10 +8,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::blockstore::{Blockstore, GitObjectType};
 use crate::p2p_swarm::CodeHubSwarmEngine;
+use crate::storage_engine::LocalEngine;
 
 lazy_static! {
     static ref GLOBAL_ENGINE: Mutex<Option<CodeHubSwarmEngine>> = Mutex::new(None);
     static ref GLOBAL_BLOCKSTORE: Mutex<Option<Blockstore>> = Mutex::new(None);
+    static ref GLOBAL_LOCAL_ENGINE: Mutex<Option<LocalEngine>> = Mutex::new(None);
 }
 
 #[derive(Serialize, Deserialize)]
@@ -21,6 +23,63 @@ pub struct NativeTelemetry {
     pub download_mbps: f64,
     pub total_blocks: u64,
     pub is_native_active: bool,
+}
+
+/// Initializes the ~/.codehub/ local repository storage engine
+#[no_mangle]
+pub extern "C" fn codehub_init_local_storage_engine() -> i32 {
+    match LocalEngine::init(None) {
+        Ok(engine) => {
+            let mut guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+            *guard = Some(engine);
+            0 // Success
+        }
+        Err(_) => -1,
+    }
+}
+
+/// Creates a new managed local Git repository in ~/.codehub/repositories/<repo_name>/
+#[no_mangle]
+pub extern "C" fn codehub_create_repository(repo_name_ptr: *const c_char) -> i32 {
+    if repo_name_ptr.is_null() {
+        return -1;
+    }
+    let c_str = unsafe { CStr::from_ptr(repo_name_ptr) };
+    let repo_name = match c_str.to_str() {
+        Ok(s) => s,
+        Err(_) => return -2,
+    };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    if let Some(ref engine) = *guard {
+        match engine.create_repository(repo_name) {
+            Ok(_) => 0,
+            Err(_) => -3,
+        }
+    } else {
+        -4
+    }
+}
+
+/// Returns storage diagnostic JSON metrics for ~/.codehub/
+#[no_mangle]
+pub extern "C" fn codehub_get_storage_stats_json() -> *mut c_char {
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    let stats_json = match *guard {
+        Some(ref engine) => {
+            let stats = engine.get_storage_stats().unwrap_or_else(|_| crate::storage_engine::StorageStats {
+                root_path: "~/.codehub".to_string(),
+                total_bytes_used: 0,
+                total_repositories: 0,
+                total_global_objects: 0,
+                total_chunks: 0,
+            });
+            serde_json::to_string(&stats).unwrap_or_default()
+        }
+        None => r#"{"root_path":"~/.codehub","total_bytes_used":0,"total_repositories":0,"total_global_objects":0,"total_chunks":0}"#.to_string(),
+    };
+
+    CString::new(stats_json).unwrap().into_raw()
 }
 
 /// Initializes the native Rust libp2p engine and blockstore

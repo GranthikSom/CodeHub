@@ -15,6 +15,15 @@ typedef DartGetTelemetry = Pointer<Utf8> Function();
 typedef NativeFreeString = Void Function(Pointer<Utf8> ptr);
 typedef DartFreeString = void Function(Pointer<Utf8> ptr);
 
+typedef NativeInitLocalStorage = Int32 Function();
+typedef DartInitLocalStorage = int Function();
+
+typedef NativeCreateRepo = Int32 Function(Pointer<Utf8> repoName);
+typedef DartCreateRepo = int Function(Pointer<Utf8> repoName);
+
+typedef NativeGetStorageStats = Pointer<Utf8> Function();
+typedef DartGetStorageStats = Pointer<Utf8> Function();
+
 /// Native Rust P2P Engine Dart FFI Interface
 class NativeP2PEngine {
   static DynamicLibrary? _lib;
@@ -24,6 +33,9 @@ class NativeP2PEngine {
   static DartStoreBlob? _storeBlob;
   static DartGetTelemetry? _getTelemetry;
   static DartFreeString? _freeString;
+  static DartInitLocalStorage? _initLocalStorage;
+  static DartCreateRepo? _createRepo;
+  static DartGetStorageStats? _getStorageStats;
 
   static bool get isNativeLoaded => _isLoaded;
 
@@ -57,6 +69,9 @@ class NativeP2PEngine {
         _storeBlob = _lib!.lookupFunction<NativeStoreBlob, DartStoreBlob>('codehub_store_git_blob');
         _getTelemetry = _lib!.lookupFunction<NativeGetTelemetry, DartGetTelemetry>('codehub_get_telemetry_json');
         _freeString = _lib!.lookupFunction<NativeFreeString, DartFreeString>('codehub_free_string');
+        _initLocalStorage = _lib!.lookupFunction<NativeInitLocalStorage, DartInitLocalStorage>('codehub_init_local_storage_engine');
+        _createRepo = _lib!.lookupFunction<NativeCreateRepo, DartCreateRepo>('codehub_create_repository');
+        _getStorageStats = _lib!.lookupFunction<NativeGetStorageStats, DartGetStorageStats>('codehub_get_storage_stats_json');
 
         _isLoaded = true;
       }
@@ -74,6 +89,35 @@ class NativeP2PEngine {
       return _initNode!(pathPtr);
     } finally {
       calloc.free(pathPtr);
+    }
+  }
+
+  /// Initializes ~/.codehub/ local repository storage engine
+  static int initLocalStorageEngine() {
+    if (!_isLoaded || _initLocalStorage == null) return -1;
+    return _initLocalStorage!();
+  }
+
+  /// Creates a managed local repository in ~/.codehub/repositories/repo_name/
+  static int createRepository(String repoName) {
+    if (!_isLoaded || _createRepo == null) return -1;
+    final repoPtr = repoName.toNativeUtf8();
+    try {
+      return _createRepo!(repoPtr);
+    } finally {
+      calloc.free(repoPtr);
+    }
+  }
+
+  /// Returns storage diagnostic JSON metrics for ~/.codehub/
+  static String? getStorageStatsJson() {
+    if (!_isLoaded || _getStorageStats == null || _freeString == null) return null;
+    final resPtr = _getStorageStats!();
+    if (resPtr == nullptr) return null;
+    try {
+      return resPtr.toDartString();
+    } finally {
+      _freeString!(resPtr);
     }
   }
 
