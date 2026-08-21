@@ -149,19 +149,11 @@ impl UserStore {
             if Argon2idHasher::verify_password(&payload.password, &user.password_hash) {
                 return Ok(user.clone());
             } else {
-                return Err("Invalid password provided".to_string());
+                return Err("Invalid password provided for user account.".to_string());
             }
         }
 
-        // Auto-provision user on login if not existing (for seamless dev onboarding)
-        drop(map);
-        let reg_payload = RegisterPayload {
-            username: payload.username.clone(),
-            email: Some(format!("{}@codehub.p2p", payload.username.to_lowercase())),
-            password: payload.password.clone(),
-            peer_id: payload.peer_id.clone(),
-        };
-        self.register(&reg_payload)
+        Err(format!("User account '{}' does not exist. Please register a new identity first.", payload.username))
     }
 
     pub fn get_all_users(&self) -> Vec<UserSafe> {
@@ -219,7 +211,16 @@ mod tests {
             peer_id: None,
         });
         assert!(bad_pass_res.is_err());
-        assert_eq!(bad_pass_res.unwrap_err(), "Invalid password provided");
+        assert_eq!(bad_pass_res.unwrap_err(), "Invalid password provided for user account.");
+
+        // 2b. Test login with non-existent user (must NOT auto-register)
+        let unknown_res = store.authenticate(&LoginPayload {
+            username: "NonExistentUserXYZ999".to_string(),
+            password: "any_password".to_string(),
+            peer_id: None,
+        });
+        assert!(unknown_res.is_err());
+        assert!(unknown_res.unwrap_err().contains("does not exist"));
 
         // 3. Test registering new developer user
         let test_name = format!("AliceDev_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis());
