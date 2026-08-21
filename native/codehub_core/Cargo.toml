@@ -1,0 +1,28 @@
+[package]
+name = "codehub_core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Soham Mondal <soham@codehub.p2p>"]
+description = "Native Rust P2P storage engine, libp2p swarm & content-addressed Git blockstore"
+
+[lib]
+name = "codehub_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# libp2p networking stack for transport, discovery & pubsub
+libp2p = { version = "0.53.2", features = ["tcp", "quic", "noise", "yamux", "kad", "gossipsub", "tokio", "macros", "serde"] }
+
+# Cryptographic SHA-256 hashing for Git content-addressed DAG objects
+sha2 = "0.10"
+hex = "0.4"
+
+# Async runtime & serialization
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+lazy_static = "1.4"
+
+# Logging & error handling
+tracing = "0.1"
+anyhow = "1.0"

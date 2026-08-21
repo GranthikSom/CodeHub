@@ -1,0 +1,7 @@
+api.codehub.com, auth.codehub.com, registry.codehub.com {
+    reverse_proxy control_plane:8080
+}
+
+p2p.codehub.com {
+    reverse_proxy control_plane:4001
+}

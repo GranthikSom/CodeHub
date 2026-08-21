@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  control_plane:
+    build:
+      context: ./server/codehub_control_plane
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://codehub:codehub_pass@postgres:5432/codehub_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=codehub_production_jwt_secret_key_change_me
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: codehub_postgres
+    environment:
+      POSTGRES_USER: codehub
+      POSTGRES_PASSWORD: codehub_pass
+      POSTGRES_DB: codehub_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/migrations/0001_init.sql:/docker-entrypoint-initdb.d/0001_init.sql
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: codehub_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: codehub_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./server/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - control_plane
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
