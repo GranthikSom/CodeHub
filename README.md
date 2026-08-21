@@ -82,6 +82,42 @@ codehub/
 
 ---
 
+## 🏛️ CodeHub Hybrid Architecture
+
+CodeHub employs a hybrid architecture balancing **decentralized, content-addressed storage** with **fast, centralized metadata indexing**:
+
+```
+                                 CODEHUB
+                                    │
+                       ┌────────────┴────────────┐
+                       │                         │
+                    CONTROL                   P2P DATA
+                    PLANE                      PLANE
+                       │                         │
+                 ┌─────┼─────┐            ┌─────┼─────┐
+                 │     │     │            │     │     │
+                Auth  DB   Search        Peer   Peer  Peer
+                 │     │     │            │     │     │
+                 └─────┴─────┘            └─────┴─────┘
+```
+
+### 🛡️ Central Control Plane
+- **Identity & Authentication**: JWT tokens, Argon2id password hashing, public key user credentials.
+- **Relational Metadata Index (PostgreSQL)**:
+  - Repository index, user access permissions.
+  - Issues tracker, Pull Requests metadata, Comments, Labels, Milestones.
+  - Social Graph: Stars, Followers, Watchers, Notifications.
+- **Central Search Index**: GIN full-text index for fast repository metadata/topic filtering and code search without scanning P2P nodes.
+- **Bootstrap & Rendezvous Discovery**: Facilitates initial peer discovery for new nodes entering the swarm.
+
+### 🌐 P2P Data Plane
+- **Content-Addressed Git Blockstore**: SHA-256 object hashing for `Commit`, `Tree`, `Blob`, and `Tag` objects.
+- **Decentralized Sync Protocol**: direct peer-to-peer chunk transfers (`ANNOUNCE_REPOSITORY`, `REQUEST_CHUNK`, `SEND_CHUNK`).
+- **Replication Guarantees**: Swarm replica health monitoring enforcing minimum copy count policies (e.g. 3/3 healthy replicas).
+- **Zero-Trust Encryption**: Noise TLS 1.3 connection security and AES-GCM payload encryption for private repositories.
+
+---
+
 ## 🌐 Sovereign Infrastructure Domains
 
 - **`app.codehub.com`**: Web & Desktop Client Application
