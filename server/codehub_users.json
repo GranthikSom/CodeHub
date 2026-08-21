@@ -1,16 +1,34 @@
 {
-  "alicedev": {
-    "id": "usr_416c6963",
-    "username": "AliceDev",
-    "email": "alice@codehub.p2p",
-    "password_hash": "$argon2id$v=19$m=4096,t=3,p=1$73616c745f316662$686173685f6172676f6e3269645f7365637572655f706173735f3435365f73616c745f316662",
-    "peer_id": "12D3KooWAliceNodeKey",
+  "sohamdddddd": {
+    "id": "usr_736f6861",
+    "username": "sohamdddddd",
+    "email": "sohamdddddd@codehub.p2p",
+    "password_hash": "$argon2id$v=19$m=4096,t=3,p=1$73616c745f6534$686173685f6172676f6e3269645f3132333435365f73616c745f6534",
+    "peer_id": "12D3KooW_sohamdddddd_NodeKey",
+    "role": "developer",
+    "created_at": "2026-08-21T20:38:00Z"
+  },
+  "sohamm": {
+    "id": "usr_736f6861",
+    "username": "sohamm",
+    "email": "sohamm@codehub.p2p",
+    "password_hash": "$argon2id$v=19$m=4096,t=3,p=1$73616c745f6534$686173685f6172676f6e3269645f3132333435365f73616c745f6534",
+    "peer_id": "12D3KooW_sohamm_NodeKey",
     "role": "developer",
     "created_at": "2026-08-21T20:38:00Z"
   },
   "alicedev_1787326720573": {
     "id": "usr_416c6963",
     "username": "AliceDev_1787326720573",
+    "email": "alice@codehub.p2p",
+    "password_hash": "$argon2id$v=19$m=4096,t=3,p=1$73616c745f316662$686173685f6172676f6e3269645f7365637572655f706173735f3435365f73616c745f316662",
+    "peer_id": "12D3KooWAliceNodeKey",
+    "role": "developer",
+    "created_at": "2026-08-21T20:38:00Z"
+  },
+  "alicedev_1787327819377": {
+    "id": "usr_416c6963",
+    "username": "AliceDev_1787327819377",
     "email": "alice@codehub.p2p",
     "password_hash": "$argon2id$v=19$m=4096,t=3,p=1$73616c745f316662$686173685f6172676f6e3269645f7365637572655f706173735f3435365f73616c745f316662",
     "peer_id": "12D3KooWAliceNodeKey",
@@ -25,5 +43,23 @@
     "peer_id": "12D3KooWGranthikSomNodeKey998877665544332211",
     "role": "admin",
     "created_at": "2026-01-01T00:00:00Z"
+  },
+  "soham": {
+    "id": "usr_736f6861",
+    "username": "soham",
+    "email": "soham@codehub.p2p",
+    "password_hash": "$argon2id$v=19$m=4096,t=3,p=1$73616c745f6534$686173685f6172676f6e3269645f3132333435365f73616c745f6534",
+    "peer_id": "12D3KooW_soham_NodeKey",
+    "role": "developer",
+    "created_at": "2026-08-21T20:38:00Z"
+  },
+  "alicedev": {
+    "id": "usr_416c6963",
+    "username": "AliceDev",
+    "email": "alice@codehub.p2p",
+    "password_hash": "$argon2id$v=19$m=4096,t=3,p=1$73616c745f316662$686173685f6172676f6e3269645f7365637572655f706173735f3435365f73616c745f316662",
+    "peer_id": "12D3KooWAliceNodeKey",
+    "role": "developer",
+    "created_at": "2026-08-21T20:38:00Z"
   }
 }

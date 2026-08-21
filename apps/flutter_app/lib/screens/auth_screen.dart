@@ -41,12 +41,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (_isLoginMode) {
       response = await _api.login(username: username, password: password);
     } else {
-      final regRes = await _api.register(username: username, email: email, password: password);
-      if (regRes['success'] == false) {
-        response = regRes;
-      } else {
-        response = await _api.login(username: username, password: password);
-      }
+      response = await _api.register(username: username, email: email, password: password);
     }
 
     if (!mounted) return;

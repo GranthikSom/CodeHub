@@ -27,24 +27,22 @@ class ApiService {
       _headers.forEach((k, v) => request.headers.set(k, v));
       request.add(utf8.encode(jsonEncode({
         'username': username,
-        'email': email,
+        'email': email.isNotEmpty ? email : '$username@codehub.p2p',
         'password': password,
       })));
 
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
       client.close();
-      return jsonDecode(responseBody) as Map<String, dynamic>;
+      final json = jsonDecode(responseBody) as Map<String, dynamic>;
+      if (json['data'] != null && json['data']['token'] != null) {
+        _jwtToken = json['data']['token'] as String;
+      }
+      return json;
     } catch (e) {
-      // Offline fallback response for Phase 2 UI test
       return {
-        'success': true,
-        'message': 'Registration successful (Control Plane Offline Mode)',
-        'data': {
-          'user_id': 'usr_998',
-          'username': username,
-          'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock_token',
-        }
+        'success': false,
+        'message': 'Cannot connect to CodeHub server at $baseUrl ($e). Ensure backend is running.',
       };
     }
   }
@@ -72,16 +70,9 @@ class ApiService {
       }
       return json;
     } catch (e) {
-      _jwtToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock_token_active';
       return {
-        'success': true,
-        'message': 'Login successful (Control Plane Offline Mode)',
-        'data': {
-          'user_id': 'usr_101',
-          'username': username,
-          'token': _jwtToken,
-          'expires_in': 86400,
-        }
+        'success': false,
+        'message': 'Cannot connect to CodeHub server at $baseUrl ($e). Ensure backend is running.',
       };
     }
   }
