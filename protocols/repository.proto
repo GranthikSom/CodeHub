@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package codehub.protocol.repository;
+
+enum ObjectType {
+  COMMIT = 0;
+  TREE = 1;
+  BLOB = 2;
+}
+
+message RepositoryMetadata {
+  string id = 1;
+  string name = 2;
+  string owner = 3;
+  string root_commit_hash = 4;
+  uint64 total_objects = 5;
+  bool is_private = 6;
+}
+
+message GitObjectBlock {
+  string hash = 1;
+  ObjectType type = 2;
+  uint64 size_bytes = 3;
+  bytes payload = 4;
+}

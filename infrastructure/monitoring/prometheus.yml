@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'codehub_control_plane'
+    static_configs:
+      - targets: ['control_plane:8080']
+
+  - job_name: 'codehub_p2p_nodes'
+    static_configs:
+      - targets: ['p2p.codehub.com:4001']

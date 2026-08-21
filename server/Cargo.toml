@@ -1,9 +1,9 @@
 [package]
-name = "codehub_control_plane"
+name = "codehub_server"
 version = "0.1.0"
 edition = "2021"
 authors = ["Soham Mondal <soham@codehub.p2p>"]
-description = "CodeHub Central Control Plane API Server (Authentication, Repository Indexing, Peer Discovery)"
+description = "CodeHub Central Control Plane API Server (Authentication, Repository Indexing, Search, Peer Discovery)"
 
 [dependencies]
 axum = "0.7"

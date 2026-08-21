@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package codehub.protocol.peer;
+
+message PeerIdentity {
+  string peer_id = 1;
+  string multiaddr = 2;
+  string nat_type = 3;
+  string public_key = 4;
+}
+
+message SwarmTelemetry {
+  string peer_id = 1;
+  double upload_mbps = 2;
+  double download_mbps = 3;
+  uint64 pinned_blocks = 4;
+  uint32 connected_peers = 5;
+}

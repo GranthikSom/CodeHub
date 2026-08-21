@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package codehub.protocol.sync;
+
+message SwarmSyncAnnouncement {
+  string repo_id = 1;
+  string head_commit_hash = 2;
+  repeated string object_hashes = 3;
+  uint64 timestamp = 4;
+}
+
+message BlockFetchRequest {
+  string repo_id = 1;
+  repeated string requested_hashes = 2;
+}
+
+message BlockFetchResponse {
+  string repo_id = 1;
+  repeated bytes blocks_payload = 2;
+}

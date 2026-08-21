@@ -1,12 +1,12 @@
 [package]
-name = "codehub_core"
+name = "p2p_engine"
 version = "0.1.0"
 edition = "2021"
 authors = ["Soham Mondal <soham@codehub.p2p>"]
 description = "Native Rust P2P storage engine, libp2p swarm & content-addressed Git blockstore"
 
 [lib]
-name = "codehub_core"
+name = "p2p_engine"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

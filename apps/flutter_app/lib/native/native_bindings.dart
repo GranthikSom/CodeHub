@@ -27,17 +27,29 @@ class NativeP2PEngine {
 
   static bool get isNativeLoaded => _isLoaded;
 
-  /// Attempts to load the native codehub_core shared library
+  /// Attempts to load the native p2p_engine shared library
   static void initialize() {
     if (_isLoaded) return;
 
     try {
       if (Platform.isLinux) {
-        _lib = DynamicLibrary.open('libcodehub_core.so');
+        try {
+          _lib = DynamicLibrary.open('libp2p_engine.so');
+        } catch (_) {
+          _lib = DynamicLibrary.open('libcodehub_core.so');
+        }
       } else if (Platform.isMacOS) {
-        _lib = DynamicLibrary.open('libcodehub_core.dylib');
+        try {
+          _lib = DynamicLibrary.open('libp2p_engine.dylib');
+        } catch (_) {
+          _lib = DynamicLibrary.open('libcodehub_core.dylib');
+        }
       } else if (Platform.isWindows) {
-        _lib = DynamicLibrary.open('codehub_core.dll');
+        try {
+          _lib = DynamicLibrary.open('p2p_engine.dll');
+        } catch (_) {
+          _lib = DynamicLibrary.open('codehub_core.dll');
+        }
       }
 
       if (_lib != null) {
