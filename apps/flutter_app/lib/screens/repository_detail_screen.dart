@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../widgets/branches_view.dart';
 import '../widgets/code_browser_view.dart';
 import '../widgets/git_object_dag_view.dart';
+import '../widgets/issues_view.dart';
 import '../widgets/local_storage_panel.dart';
+import '../widgets/permissions_view.dart';
+import '../widgets/pull_requests_view.dart';
 import '../widgets/repository_network_view.dart';
 
 class RepositoryDetailScreen extends StatefulWidget {
@@ -86,14 +89,14 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
           // 4. Tags
           _buildPlaceholderTab(context, title: 'Tags & Signatures', icon: Icons.label_important, subtitle: 'v1.0.0, v0.9.4-beta'),
 
-          // 5. Issues
-          _buildPlaceholderTab(context, title: 'Issue Tracker', icon: Icons.bug_report, subtitle: '#101 Support QUIC multiplexing over libp2p'),
+          // 5. Issues (Phase 2 Issue Tracker)
+          IssuesView(repoName: widget.repoName, owner: widget.owner),
 
-          // 6. Pull Requests
-          _buildPlaceholderTab(context, title: 'Pull Requests', icon: Icons.merge_type, subtitle: '#201 feat: implement Kademlia DHT peer discovery'),
+          // 6. Pull Requests (Phase 2 Pull Requests)
+          PullRequestsView(repoName: widget.repoName, owner: widget.owner),
 
-          // 7. Members & Permissions
-          _buildPlaceholderTab(context, title: 'Repository Members', icon: Icons.people, subtitle: 'GranthikSom (Owner), SohamMondal (Maintainer)'),
+          // 7. Members & Permissions (Phase 2 Key Permissions & Access Control)
+          PermissionsView(repoName: widget.repoName, owner: widget.owner),
 
           // 8. Releases
           _buildPlaceholderTab(context, title: 'Releases & Assets', icon: Icons.rocket_launch, subtitle: 'v1.0.0 Stable Release — SHA256: 8f2a1b9c...'),

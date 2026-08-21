@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/codehub_state.dart';
+import '../screens/auth_screen.dart';
 
 class P2PNetworkHeader extends StatelessWidget {
   final CodeHubState state;
@@ -170,6 +171,50 @@ class P2PNetworkHeader extends StatelessWidget {
                       style: const TextStyle(fontSize: 11, color: Color(0xFFBC8CFF), fontWeight: FontWeight.w600),
                     ),
                   ],
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // User Profile & JWT Auth Account Button
+              Tooltip(
+                message: state.api.isAuthenticated ? 'Authenticated (GranthikSom)' : 'Sign In / Account',
+                child: InkWell(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AuthScreen()),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: const Color(0xFF58A6FF),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.account_circle_outlined,
+                          size: 18,
+                          color: Color(0xFF58A6FF),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          state.api.isAuthenticated ? 'GranthikSom' : 'Sign In',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
 
