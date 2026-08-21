@@ -65,3 +65,28 @@ pub struct PullRequestItem {
 
 pub mod replication_policy;
 pub use replication_policy::*;
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct NotificationItem {
+    pub id: String,
+    pub user_id: String,
+    pub title: String,
+    pub body: String,
+    pub notification_type: String,
+    pub is_read: bool,
+    pub created_at: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct StargazerItem {
+    pub user_id: String,
+    pub username: String,
+    pub starred_at: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct FollowerItem {
+    pub follower_id: String,
+    pub follower_username: String,
+    pub followed_at: String,
+}

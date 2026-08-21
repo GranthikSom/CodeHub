@@ -129,6 +129,16 @@ async fn main() {
         .route("/api/v1/repositories/:id/pulls/:pr_id", get(get_pull_request_by_id))
         .route("/api/v1/repositories/:id/pulls/:pr_id/merge", post(merge_pull_request_handler))
         
+        // 9. Stars, Followers, Watchers, Notifications routes
+        .route("/api/v1/repositories/:id/star", post(star_repository).delete(unstar_repository))
+        .route("/api/v1/repositories/:id/stargazers", get(list_stargazers))
+        .route("/api/v1/users/:username/follow", post(follow_user).delete(unfollow_user))
+        .route("/api/v1/users/:username/followers", get(list_followers))
+        .route("/api/v1/users/:username/following", get(list_following))
+        .route("/api/v1/repositories/:id/watch", post(watch_repository).delete(unwatch_repository))
+        .route("/api/v1/notifications", get(list_notifications))
+        .route("/api/v1/notifications/:id/read", patch(mark_notification_read))
+        
         .layer(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
@@ -742,5 +752,147 @@ async fn merge_pull_request_handler(
         success: true,
         message: format!("Pull Request #{} for repository '{}' successfully MERGED into main", pr_id, repo_id),
         data: Some("merge_commit_hash=8f91ab77221144332211".to_string()),
+    })
+}
+
+// -----------------------------------------------------------------------------
+// 9. SOCIAL METADATA HANDLERS (STARS, FOLLOWERS, WATCHERS, NOTIFICATIONS)
+// -----------------------------------------------------------------------------
+
+async fn star_repository(Path(repo_id): Path<String>) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!("Repository '{}' starred", repo_id),
+        data: Some("starred=true".to_string()),
+    })
+}
+
+async fn unstar_repository(Path(repo_id): Path<String>) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!("Repository '{}' unstarred", repo_id),
+        data: Some("starred=false".to_string()),
+    })
+}
+
+async fn list_stargazers(Path(repo_id): Path<String>) -> Json<ApiResponse<Vec<repository::StargazerItem>>> {
+    let stargazers = vec![
+        repository::StargazerItem {
+            user_id: "user_101".to_string(),
+            username: "GranthikSom".to_string(),
+            starred_at: "2026-08-21T11:30:00Z".to_string(),
+        },
+        repository::StargazerItem {
+            user_id: "user_102".to_string(),
+            username: "SohamMondal".to_string(),
+            starred_at: "2026-08-21T10:15:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Stargazers retrieved for repository '{}'", repo_id),
+        data: Some(stargazers),
+    })
+}
+
+async fn follow_user(Path(username): Path<String>) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!("You are now following user '@{}'", username),
+        data: Some("following=true".to_string()),
+    })
+}
+
+async fn unfollow_user(Path(username): Path<String>) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!("You unfollowed user '@{}'", username),
+        data: Some("following=false".to_string()),
+    })
+}
+
+async fn list_followers(Path(username): Path<String>) -> Json<ApiResponse<Vec<repository::FollowerItem>>> {
+    let followers = vec![
+        repository::FollowerItem {
+            follower_id: "user_201".to_string(),
+            follower_username: "rust_dev".to_string(),
+            followed_at: "2026-08-20T14:22:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Followers retrieved for user '@{}'", username),
+        data: Some(followers),
+    })
+}
+
+async fn list_following(Path(username): Path<String>) -> Json<ApiResponse<Vec<repository::FollowerItem>>> {
+    let following = vec![
+        repository::FollowerItem {
+            follower_id: "user_301".to_string(),
+            follower_username: "p2p_architect".to_string(),
+            followed_at: "2026-08-19T09:10:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: format!("Following list retrieved for user '@{}'", username),
+        data: Some(following),
+    })
+}
+
+async fn watch_repository(Path(repo_id): Path<String>) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!("Now watching updates for repository '{}'", repo_id),
+        data: Some("watching=true".to_string()),
+    })
+}
+
+async fn unwatch_repository(Path(repo_id): Path<String>) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!("Stopped watching repository '{}'", repo_id),
+        data: Some("watching=false".to_string()),
+    })
+}
+
+async fn list_notifications() -> Json<ApiResponse<Vec<repository::NotificationItem>>> {
+    let notifications = vec![
+        repository::NotificationItem {
+            id: "notif_1".to_string(),
+            user_id: "me".to_string(),
+            title: "New Pull Request #42".to_string(),
+            body: "user-a opened PR #42: Add OAuth2 login flow".to_string(),
+            notification_type: "pr".to_string(),
+            is_read: false,
+            created_at: "2026-08-21T11:25:00Z".to_string(),
+        },
+        repository::NotificationItem {
+            id: "notif_2".to_string(),
+            user_id: "me".to_string(),
+            title: "Repository Starred".to_string(),
+            body: "GranthikSom starred codehub-core-p2p".to_string(),
+            notification_type: "star".to_string(),
+            is_read: true,
+            created_at: "2026-08-21T10:00:00Z".to_string(),
+        },
+    ];
+
+    Json(ApiResponse {
+        success: true,
+        message: "Notifications retrieved".to_string(),
+        data: Some(notifications),
+    })
+}
+
+async fn mark_notification_read(Path(id): Path<String>) -> Json<ApiResponse<String>> {
+    Json(ApiResponse {
+        success: true,
+        message: format!("Notification '{}' marked as read", id),
+        data: Some("is_read=true".to_string()),
     })
 }

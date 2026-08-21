@@ -105,3 +105,35 @@ CREATE TABLE IF NOT EXISTS pull_requests (
     head_commit_hash VARCHAR(64) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Social Metadata Schema (Stars, Followers, Watchers, Notifications)
+CREATE TABLE IF NOT EXISTS repository_stars (
+    user_id VARCHAR(64) REFERENCES users(id) ON DELETE CASCADE,
+    repository_id VARCHAR(64) REFERENCES repositories(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, repository_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_followers (
+    follower_id VARCHAR(64) REFERENCES users(id) ON DELETE CASCADE,
+    following_id VARCHAR(64) REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, following_id)
+);
+
+CREATE TABLE IF NOT EXISTS repository_watchers (
+    user_id VARCHAR(64) REFERENCES users(id) ON DELETE CASCADE,
+    repository_id VARCHAR(64) REFERENCES repositories(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, repository_id)
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    body TEXT NOT NULL,
+    notification_type VARCHAR(50) DEFAULT 'star', -- 'star', 'follow', 'pr', 'issue', 'mention'
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
