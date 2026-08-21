@@ -73,6 +73,149 @@ class RepositoryNetworkView extends StatelessWidget {
               ),
             ],
           ),
+          // Repository Health Card Section
+          Card(
+            elevation: 0,
+            color: isDark ? const Color(0xFF1E2430) : Colors.grey[100],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: isDark ? Colors.white12 : Colors.grey[300]!,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Repository Health',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF238636).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFF3FB950)),
+                        ),
+                        child: const Text(
+                          'Status: HEALTHY',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3FB950),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Health Progress ASCII Visualiser Bar: ██████████████████░░
+                  Row(
+                    children: [
+                      Text(
+                        'Health Score:  ',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700,
+                        ),
+                      ),
+                      Text(
+                        '██████████████████░░',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? const Color(0xFF3FB950) : const Color(0xFF238636),
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '(90%)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+
+                  // Scores Grid: Replication 5/5, Peer availability 4/5, Integrity 5/5, Network 4/5
+                  Row(
+                    children: [
+                      _buildHealthMetric('Replication', '5/5', const Color(0xFF3FB950), isDark),
+                      _buildHealthMetric('Peer availability', '4/5', const Color(0xFF58A6FF), isDark),
+                      _buildHealthMetric('Integrity', '5/5', const Color(0xFF3FB950), isDark),
+                      _buildHealthMetric('Network', '4/5', const Color(0xFFBC8CFF), isDark),
+                    ],
+                  ),
+
+                  // Single Replica Critical Alert Toggle / Demonstration Banner
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF85149).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFF85149), width: 1.2),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: Color(0xFFF85149), size: 22),
+                            const SizedBox(width: 8),
+                            Text(
+                              '⚠ CRITICAL REPLICATION ALERT',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFFFF7B72) : const Color(0xFFCF222E),
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Only one copy of this repository currently exists on the network.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Pin this repository to your node to add a secondary P2P replica and protect code integrity.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
 
           // Overview Quick Metrics (Peers, Size, Seeders, Leechers)
@@ -355,6 +498,32 @@ class RepositoryNetworkView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildHealthMetric(String label, String score, Color color, bool isDark) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            score,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

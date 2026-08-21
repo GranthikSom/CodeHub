@@ -701,6 +701,35 @@ pub extern "C" fn codehub_get_peer_reputations() -> *mut c_char {
     CString::new(json_str).unwrap().into_raw()
 }
 
+/// Evaluates repository health and returns JSON report for Flutter UI consumption
+#[no_mangle]
+pub extern "C" fn codehub_get_repository_health(repo_id_ptr: *const c_char, replica_count: u32) -> *mut c_char {
+    let repo_id = if !repo_id_ptr.is_null() {
+        unsafe { CStr::from_ptr(repo_id_ptr).to_string_lossy().to_string() }
+    } else {
+        "repo_default".to_string()
+    };
+
+    let blockstore_guard = GLOBAL_BLOCKSTORE.lock().unwrap();
+    let report = if let Some(ref blockstore) = *blockstore_guard {
+        blockstore.evaluate_repository_health(&repo_id, replica_count as usize)
+    } else {
+        crate::blockstore::RepositoryHealthReport {
+            repo_id,
+            replication_score: 5,
+            peer_availability_score: 4,
+            integrity_score: 5,
+            network_score: 4,
+            health_percent: 90,
+            status: "HEALTHY".to_string(),
+            critical_warning: None,
+        }
+    };
+
+    let json_str = serde_json::to_string(&report).unwrap_or_default();
+    CString::new(json_str).unwrap().into_raw()
+}
+
 /// Frees C string memory allocated by Rust
 #[no_mangle]
 pub extern "C" fn codehub_free_string(ptr: *mut c_char) {

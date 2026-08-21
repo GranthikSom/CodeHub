@@ -19,6 +19,12 @@ class CodeRepository {
   final int forks;
   final List<String> tags;
 
+  // Repository Health Metrics
+  final int replicationScore;
+  final int peerAvailabilityScore;
+  final int integrityScore;
+  final int networkScore;
+
   const CodeRepository({
     required this.id,
     required this.name,
@@ -37,7 +43,35 @@ class CodeRepository {
     required this.stars,
     required this.forks,
     required this.tags,
+    this.replicationScore = 5,
+    this.peerAvailabilityScore = 4,
+    this.integrityScore = 5,
+    this.networkScore = 4,
   });
+
+  bool get isSingleReplicaCritical => replicaCount <= 1;
+
+  String get healthStatus {
+    if (replicaCount <= 1) return 'CRITICAL';
+    if (replicaCount == 2) return 'DEGRADED';
+    return 'HEALTHY';
+  }
+
+  int get effectiveReplicationScore => replicaCount <= 1 ? 1 : (replicaCount == 2 ? 3 : 5);
+  int get effectivePeerAvailabilityScore => replicaCount <= 1 ? 1 : (replicaCount == 2 ? 3 : 4);
+
+  double get healthProgressPercent {
+    if (replicaCount <= 1) return 0.18;
+    if (replicaCount == 2) return 0.60;
+    return 0.90;
+  }
+
+  String? get criticalWarning {
+    if (replicaCount <= 1) {
+      return '⚠ CRITICAL\nOnly one copy of this repository currently exists on the network.';
+    }
+    return null;
+  }
 
   CodeRepository copyWith({
     bool? isPinnedLocally,
@@ -65,6 +99,10 @@ class CodeRepository {
       stars: stars ?? this.stars,
       forks: forks ?? this.forks,
       tags: tags,
+      replicationScore: replicationScore,
+      peerAvailabilityScore: peerAvailabilityScore,
+      integrityScore: integrityScore,
+      networkScore: networkScore,
     );
   }
 }

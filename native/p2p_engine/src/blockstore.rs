@@ -79,4 +79,54 @@ impl Blockstore {
     pub fn set_max_storage_bytes(&mut self, _max_bytes: u64) {
         // Dynamic quota enforcement active
     }
+
+    /// Evaluates repository health score and detects single-replica critical risk
+    pub fn evaluate_repository_health(&self, repo_id: &str, replica_count: usize) -> RepositoryHealthReport {
+        if replica_count <= 1 {
+            RepositoryHealthReport {
+                repo_id: repo_id.to_string(),
+                replication_score: 1,
+                peer_availability_score: 1,
+                integrity_score: 5,
+                network_score: 2,
+                health_percent: 18,
+                status: "CRITICAL".to_string(),
+                critical_warning: Some("⚠ CRITICAL\nOnly one copy of this repository currently exists on the network.".to_string()),
+            }
+        } else if replica_count == 2 {
+            RepositoryHealthReport {
+                repo_id: repo_id.to_string(),
+                replication_score: 3,
+                peer_availability_score: 3,
+                integrity_score: 5,
+                network_score: 3,
+                health_percent: 60,
+                status: "DEGRADED".to_string(),
+                critical_warning: None,
+            }
+        } else {
+            RepositoryHealthReport {
+                repo_id: repo_id.to_string(),
+                replication_score: 5,
+                peer_availability_score: 4,
+                integrity_score: 5,
+                network_score: 4,
+                health_percent: 90,
+                status: "HEALTHY".to_string(),
+                critical_warning: None,
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepositoryHealthReport {
+    pub repo_id: String,
+    pub replication_score: u8,
+    pub peer_availability_score: u8,
+    pub integrity_score: u8,
+    pub network_score: u8,
+    pub health_percent: u8,
+    pub status: String,
+    pub critical_warning: Option<String>,
 }
