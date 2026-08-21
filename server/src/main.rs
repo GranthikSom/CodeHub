@@ -170,6 +170,7 @@ async fn main() {
         .route("/api/v1/system/production-architecture", get(get_production_architecture_status))
         .route("/api/v1/system/technology-audit", get(get_technology_stack_audit_status))
         .route("/api/v1/system/product-positioning", get(get_product_positioning_status))
+        .route("/api/v1/system/p2p-protocol-spec", get(get_p2p_protocol_spec_status))
         
         .layer(cors);
 
@@ -1546,6 +1547,16 @@ async fn get_product_positioning_status() -> Json<ApiResponse<p2p_engine::Produc
     Json(ApiResponse {
         success: true,
         message: "CodeHub Product Value Proposition & 7-Pillar Differentiation Blueprint".to_string(),
+        data: Some(report),
+    })
+}
+
+async fn get_p2p_protocol_spec_status() -> Json<ApiResponse<p2p_engine::P2PProtocolArchitectureReport>> {
+    let report = p2p_engine::NativeP2PProtocolInspector::inspect_protocol_stack();
+
+    Json(ApiResponse {
+        success: true,
+        message: "5-Tier Git-Native P2P Protocol Stack Specification (PubSub Sync + Direct Out-of-Band P2P Chunk Streams)".to_string(),
         data: Some(report),
     })
 }

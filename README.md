@@ -70,6 +70,28 @@ CodeHub is a developer platform where repositories are distributed across a peer
 
 ---
 
+## ⚡ Git-Native P2P Protocol Stack Specification
+
+CodeHub avoids generic BitTorrent backends in favor of a 5-layer protocol tailored specifically for Git:
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│ Layer 5: CodeHub Custom Replication Engine (GossipSub + BitSwap)     │
+├────────────────────────────────────────────────────────────────────────┤
+│ Layer 4: Kademlia Peer Discovery & Provider Records (libp2p-kad DHT)  │
+├────────────────────────────────────────────────────────────────────────┤
+│ Layer 3: libp2p Transport Core (QUIC, Noise Encryption, Yamux Mux)    │
+├────────────────────────────────────────────────────────────────────────┤
+│ Layer 2: Content-Addressed Storage (SHA-256 Multihash & FastCDC Chunks)│
+├────────────────────────────────────────────────────────────────────────┤
+│ Layer 1: Git Object Model (Commits, Trees, Blobs, Tags, References)    │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+> **PubSub vs Direct Stream Architecture**: PubSub (`GossipSub`) is strictly utilized for lightweight swarm synchronization announcements (< 1KB). Binary chunk payloads are transferred out-of-band over direct P2P streams per official libp2p architectural guidelines.
+
+---
+
 ## ⚙️ Running Locally
 
 ### 1. Control Server

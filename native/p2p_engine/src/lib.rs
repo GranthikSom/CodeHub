@@ -22,6 +22,7 @@ pub mod seed_server_mesh;
 pub mod production_architecture;
 pub mod technology_stack_audit;
 pub mod product_differentiation;
+pub mod p2p_protocol_architecture;
 pub mod ffi_api;
 
 // Clean Modular Architecture Namespaces
@@ -53,4 +54,5 @@ pub use seed_server_mesh::*;
 pub use production_architecture::*;
 pub use technology_stack_audit::*;
 pub use product_differentiation::*;
+pub use p2p_protocol_architecture::*;
 pub use ffi_api::*;
