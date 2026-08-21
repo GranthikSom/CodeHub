@@ -605,46 +605,74 @@
 
     <!-- Frontend Logic -->
     <script>
-        const API_BASE = '/api/v1';
+        // Dynamic Server Host Detection (supports Port 8080, VS Code Live Server 5500, file:// protocol)
+        const SERVER_HOST = (window.location.origin.includes(':8080'))
+            ? window.location.origin
+            : 'http://localhost:8080';
+        const WS_HOST = (window.location.origin.includes(':8080'))
+            ? (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host
+            : 'ws://localhost:8080';
+        const API_BASE = `${SERVER_HOST}/api/v1`;
 
         // Initialize Live WebSockets Stream
         let ws;
         function initLiveUsersWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/api/v1/admin/ws`;
+            const wsUrl = `${WS_HOST}/api/v1/admin/ws`;
             
-            ws = new WebSocket(wsUrl);
-            
-            ws.onopen = () => {
-                const badge = document.getElementById('ws-status-badge');
-                if (badge) {
-                    badge.className = 'badge badge-green';
-                    badge.innerText = '⚡ Live WebSocket Active';
-                }
-            };
-            
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.event === 'users_live_update' && data.users) {
-                        renderUsersTable(data.users);
-                        if (data.total_users !== undefined) {
-                            document.getElementById('total-users-badge').innerText = `${data.total_users} Users Registered`;
-                        }
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    const badge = document.getElementById('ws-status-badge');
+                    if (badge) {
+                        badge.className = 'badge badge-green';
+                        badge.innerText = '⚡ Live WebSocket Active';
                     }
-                } catch (e) {
-                    console.error("WS Parse Error:", e);
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.event === 'users_live_update' && data.users) {
+                            renderUsersTable(data.users);
+                            if (data.total_users !== undefined) {
+                                document.getElementById('total-users-badge').innerText = `${data.total_users} Users Registered`;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("WS Parse Error:", e);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    const badge = document.getElementById('ws-status-badge');
+                    if (badge) {
+                        badge.className = 'badge badge-purple';
+                        badge.innerText = '🔄 Reconnecting WS...';
+                    }
+                    setTimeout(initLiveUsersWebSocket, 3000);
+                };
+
+                ws.onerror = (err) => {
+                    console.warn("WebSocket connection error:", err);
+                };
+            } catch (e) {
+                console.error("WebSocket init error:", e);
+            }
+        }
+
+        // Fetch User List via REST API Fallback (immediate initial display)
+        async function fetchUsersREST() {
+            try {
+                const res = await fetch(`${API_BASE}/users`);
+                const data = await res.json();
+                if (data.success && data.data) {
+                    renderUsersTable(data.data);
+                    document.getElementById('total-users-badge').innerText = `${data.data.length} Users Registered`;
                 }
-            };
-            
-            ws.onclose = () => {
-                const badge = document.getElementById('ws-status-badge');
-                if (badge) {
-                    badge.className = 'badge badge-purple';
-                    badge.innerText = '🔄 Reconnecting WS...';
-                }
-                setTimeout(initLiveUsersWebSocket, 3000);
-            };
+            } catch (err) {
+                console.error("Error fetching users via REST:", err);
+            }
         }
 
         function renderUsersTable(users) {
@@ -679,7 +707,7 @@
         // Check backend server health on load
         async function checkServerHealth() {
             try {
-                const res = await fetch('/health');
+                const res = await fetch(`${SERVER_HOST}/health`);
                 const data = await res.json();
                 if (data.success) {
                     document.getElementById('server-dot').style.backgroundColor = '#238636';
@@ -689,7 +717,7 @@
                 }
             } catch (err) {
                 document.getElementById('server-dot').style.backgroundColor = '#f85149';
-                document.getElementById('server-status-text').innerText = 'Control Server Offline';
+                document.getElementById('server-status-text').innerText = 'Control Server Offline (Check Port 8080)';
             }
         }
 
@@ -799,6 +827,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             checkServerHealth();
             fetchRepositories();
+            fetchUsersREST();
             initLiveUsersWebSocket();
         });
     </script>
