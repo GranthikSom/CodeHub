@@ -129,39 +129,42 @@ impl Blockstore {
                   child: ListView(
                     children: _mockFiles.keys.map((filePath) {
                       final isSelected = _selectedFile == filePath;
-                      return ListTile(
-                        dense: true,
-                        selected: isSelected,
-                        selectedTileColor: isDark
-                            ? const Color(0xFF1F6FEB).withValues(alpha: 0.15)
-                            : Colors.blue.shade50,
-                        leading: Icon(
-                          filePath.endsWith('.md')
-                              ? Icons.description
-                              : (filePath.endsWith('.toml')
-                                  ? Icons.settings
-                                  : Icons.code),
-                          size: 16,
-                          color: isSelected
-                              ? const Color(0xFF58A6FF)
-                              : (isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
-                        ),
-                        title: Text(
-                          filePath,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            fontFamily: 'monospace',
+                      return Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          dense: true,
+                          selected: isSelected,
+                          selectedTileColor: isDark
+                              ? const Color(0xFF1F6FEB).withValues(alpha: 0.15)
+                              : Colors.blue.shade50,
+                          leading: Icon(
+                            filePath.endsWith('.md')
+                                ? Icons.description
+                                : (filePath.endsWith('.toml')
+                                    ? Icons.settings
+                                    : Icons.code),
+                            size: 16,
                             color: isSelected
-                                ? (isDark ? Colors.white : Colors.blue.shade900)
-                                : (isDark ? const Color(0xFFC9D1D9) : Colors.black87),
+                                ? const Color(0xFF58A6FF)
+                                : (isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
                           ),
+                          title: Text(
+                            filePath,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontFamily: 'monospace',
+                              color: isSelected
+                                  ? (isDark ? Colors.white : Colors.blue.shade900)
+                                  : (isDark ? const Color(0xFFC9D1D9) : Colors.black87),
+                            ),
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _selectedFile = filePath;
+                            });
+                          },
                         ),
-                        onTap: () {
-                          setState(() {
-                            _selectedFile = filePath;
-                          });
-                        },
                       );
                     }).toList(),
                   ),
