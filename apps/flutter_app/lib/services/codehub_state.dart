@@ -120,6 +120,11 @@ class CodeHubState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addRepository(CodeRepository repo) {
+    _repositories.insert(0, repo);
+    notifyListeners();
+  }
+
   void setSeedWhileIdle(bool value) {
     _seedWhileIdle = value;
     notifyListeners();

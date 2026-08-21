@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/codehub_state.dart';
 import '../screens/auth_screen.dart';
+import 'create_repository_dialog.dart';
 
 class P2PNetworkHeader extends StatelessWidget {
   final CodeHubState state;
@@ -172,6 +173,26 @@ class P2PNetworkHeader extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // + New Repository Button
+              ElevatedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => CreateRepositoryDialog(state: state),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF238636),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+                icon: const Icon(Icons.add_rounded, size: 16),
+                label: const Text('New Repo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
               ),
 
               const SizedBox(width: 12),

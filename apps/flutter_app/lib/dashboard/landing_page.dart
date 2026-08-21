@@ -6,6 +6,7 @@ import '../widgets/repo_card.dart';
 import '../widgets/git_object_dag_view.dart';
 import '../widgets/local_storage_panel.dart';
 import '../widgets/network_topology_view.dart';
+import '../widgets/create_repository_dialog.dart';
 
 class Landingpage extends StatelessWidget {
   final CodeHubState state;
@@ -78,13 +79,34 @@ class Landingpage extends StatelessWidget {
                       : Colors.grey.shade700,
                 ),
               ),
-              Text(
-                '${filtered.length} Repositories Synced to Swarm',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF58A6FF),
-                ),
+              Row(
+                children: [
+                  Text(
+                    '${filtered.length} Repositories Synced to Swarm',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF58A6FF),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => CreateRepositoryDialog(state: state),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF238636),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    icon: const Icon(Icons.add, size: 14),
+                    label: const Text('New Repository', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
             ],
           ),
@@ -116,13 +138,34 @@ class Landingpage extends StatelessWidget {
                     : Colors.grey.shade700,
               ),
             ),
-            Text(
-              'Total Objects: ${state.totalSwarmObjects} Blobs/Trees',
-              style: const TextStyle(
-                fontSize: 12,
-                fontFamily: 'monospace',
-                color: Color(0xFFBC8CFF),
-              ),
+            Row(
+              children: [
+                Text(
+                  'Total Objects: ${state.totalSwarmObjects} Blobs/Trees',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    color: Color(0xFFBC8CFF),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => CreateRepositoryDialog(state: state),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF238636),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  icon: const Icon(Icons.add, size: 14),
+                  label: const Text('New Repository', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
           ],
         ),
