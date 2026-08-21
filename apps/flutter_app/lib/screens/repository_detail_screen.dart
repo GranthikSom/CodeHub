@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/branches_view.dart';
+import '../widgets/code_browser_view.dart';
 import '../widgets/git_object_dag_view.dart';
 import '../widgets/local_storage_panel.dart';
 import '../widgets/repository_network_view.dart';
@@ -38,7 +40,7 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this, initialIndex: 8); // Default to Network tab (USP)
+    _tabController = TabController(length: _tabs.length, vsync: this, initialIndex: 0); // Default to Code tab
   }
 
   @override
@@ -72,14 +74,14 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // 1. Code View
-          _buildPlaceholderTab(context, title: 'Code Explorer', icon: Icons.code, subtitle: 'lib/src/main.dart, Cargo.toml, README.md'),
+          // 1. Code View (Phase 1 Code Browser)
+          CodeBrowserView(repoName: widget.repoName, owner: widget.owner),
 
-          // 2. Commits (Git Object DAG View)
+          // 2. Commits (Phase 1 Commit History & Git Object DAG View)
           const GitObjectDagView(),
 
-          // 3. Branches
-          _buildPlaceholderTab(context, title: 'Branches', icon: Icons.alt_route, subtitle: 'main (default), feature/dht-routing, release/v1.0'),
+          // 3. Branches (Phase 1 Branch Manager & PRs)
+          BranchesView(repoName: widget.repoName, owner: widget.owner),
 
           // 4. Tags
           _buildPlaceholderTab(context, title: 'Tags & Signatures', icon: Icons.label_important, subtitle: 'v1.0.0, v0.9.4-beta'),
