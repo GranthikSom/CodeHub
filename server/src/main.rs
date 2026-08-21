@@ -10,10 +10,18 @@ use tower_http::cors::{Any, CorsLayer};
 
 pub mod api;
 pub mod auth;
+pub mod users;
 pub mod db;
+pub mod database;
 pub mod discovery;
 pub mod repository;
+pub mod repositories;
+pub mod permissions;
+pub mod issues;
+pub mod pull_requests;
 pub mod search;
+pub mod replication;
+pub mod notifications;
 pub mod p2p_node;
 
 use api::{ApiResponse, HealthStatus};
