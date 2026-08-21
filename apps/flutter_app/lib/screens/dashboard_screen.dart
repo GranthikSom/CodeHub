@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../dashboard/landing_page.dart';
 import '../services/codehub_state.dart';
+import 'explore_screen.dart';
+import 'activity_feed_screen.dart';
+import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -93,30 +96,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Landingpage(state: _state),
 
                     // 1. Explore Catalog
-                    _buildPlaceholderSection(
-                      context,
-                      title: 'Explore Global P2P Catalog',
-                      icon: Icons.explore,
-                      subtitle: 'Discover decentralized repositories seeded across participating swarm nodes',
-                    ),
+                    ExploreScreen(state: _state),
 
                     // 2. Activity Feed
-                    _buildPlaceholderSection(
-                      context,
-                      title: 'Live Activity Feed',
-                      icon: Icons.timeline,
-                      subtitle: 'Gossipsub pub/sub swarm commit announcements and replication events',
-                    ),
+                    ActivityFeedScreen(state: _state),
 
-                    // 3. Notifications
-                    _buildPlaceholderSection(
-                      context,
-                      title: 'System Notifications',
-                      icon: Icons.notifications,
-                      subtitle: 'Your local node is actively seeding 2 repositories to 14 peers',
-                    ),
+                    // 3. System Notifications & Alerts
+                    NotificationsScreen(state: _state),
 
-                    // 4. Settings
+                    // 4. Settings & Storage Control
                     _buildSettingsSection(context),
                   ],
                 ),
@@ -125,45 +113,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       }
-    );
-  }
-
-  Widget _buildPlaceholderSection(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required String subtitle,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 64, color: Colors.blueAccent),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.white60 : Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

@@ -8,6 +8,8 @@ import '../widgets/local_storage_panel.dart';
 import '../widgets/permissions_view.dart';
 import '../widgets/pull_requests_view.dart';
 import '../widgets/repository_network_view.dart';
+import '../widgets/tags_view.dart';
+import '../widgets/releases_view.dart';
 
 class RepositoryDetailScreen extends StatefulWidget {
   final String repoName;
@@ -86,8 +88,8 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
           // 3. Branches (Phase 1 Branch Manager & PRs)
           BranchesView(repoName: widget.repoName, owner: widget.owner),
 
-          // 4. Tags
-          _buildPlaceholderTab(context, title: 'Tags & Signatures', icon: Icons.label_important, subtitle: 'v1.0.0, v0.9.4-beta'),
+          // 4. Tags & Signatures (Phase 2 Signed Tags)
+          TagsView(repoName: widget.repoName, owner: widget.owner),
 
           // 5. Issues (Phase 2 Issue Tracker)
           IssuesView(repoName: widget.repoName, owner: widget.owner),
@@ -98,8 +100,8 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
           // 7. Members & Permissions (Phase 2 Key Permissions & Access Control)
           PermissionsView(repoName: widget.repoName, owner: widget.owner),
 
-          // 8. Releases
-          _buildPlaceholderTab(context, title: 'Releases & Assets', icon: Icons.rocket_launch, subtitle: 'v1.0.0 Stable Release — SHA256: 8f2a1b9c...'),
+          // 8. Releases & Binary Assets (Phase 2 Binary Assets)
+          ReleasesView(repoName: widget.repoName, owner: widget.owner),
 
           // 9. Network (USP Tab)
           RepositoryNetworkView(repoName: widget.repoName),
@@ -107,45 +109,6 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
           // 10. Storage
           const LocalStoragePanel(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderTab(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required String subtitle,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 64, color: Colors.blueAccent),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.white60 : Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
