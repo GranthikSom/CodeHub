@@ -9,11 +9,63 @@ use serde::{Deserialize, Serialize};
 use crate::blockstore::{Blockstore, GitObjectType};
 use crate::p2p_swarm::CodeHubSwarmEngine;
 use crate::storage_engine::LocalEngine;
+use crate::content_addressing::ContentAddressedStore;
 
 lazy_static! {
     static ref GLOBAL_ENGINE: Mutex<Option<CodeHubSwarmEngine>> = Mutex::new(None);
     static ref GLOBAL_BLOCKSTORE: Mutex<Option<Blockstore>> = Mutex::new(None);
     static ref GLOBAL_LOCAL_ENGINE: Mutex<Option<LocalEngine>> = Mutex::new(None);
+    static ref GLOBAL_CONTENT_STORE: Mutex<Option<ContentAddressedStore>> = Mutex::new(None);
+}
+
+/// Stores a payload using SHA-256 content addressing (deduplicates automatically)
+#[no_mangle]
+pub extern "C" fn codehub_content_put(payload_ptr: *const c_char) -> *mut c_char {
+    if payload_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+    let c_str = unsafe { CStr::from_ptr(payload_ptr) };
+    let payload = match c_str.to_str() {
+        Ok(s) => s.as_bytes(),
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    let objects_dir = match *guard {
+        Some(ref engine) => engine.objects_dir.clone(),
+        None => std::path::PathBuf::from("/tmp/codehub_objects"),
+    };
+
+    let store = ContentAddressedStore::new(objects_dir).unwrap();
+    match store.put_object(payload) {
+        Ok(meta) => {
+            let json_str = serde_json::to_string(&meta).unwrap_or_default();
+            CString::new(json_str).unwrap().into_raw()
+        }
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Checks if an object hash exists in the content-addressed blockstore
+#[no_mangle]
+pub extern "C" fn codehub_has_object(hash_ptr: *const c_char) -> i32 {
+    if hash_ptr.is_null() {
+        return 0;
+    }
+    let c_str = unsafe { CStr::from_ptr(hash_ptr) };
+    let hash = match c_str.to_str() {
+        Ok(s) => s,
+        Err(_) => return 0,
+    };
+
+    let guard = GLOBAL_LOCAL_ENGINE.lock().unwrap();
+    let objects_dir = match *guard {
+        Some(ref engine) => engine.objects_dir.clone(),
+        None => std::path::PathBuf::from("/tmp/codehub_objects"),
+    };
+
+    let store = ContentAddressedStore::new(objects_dir).unwrap();
+    if store.has_object(hash) { 1 } else { 0 }
 }
 
 #[derive(Serialize, Deserialize)]

@@ -24,6 +24,12 @@ typedef DartCreateRepo = int Function(Pointer<Utf8> repoName);
 typedef NativeGetStorageStats = Pointer<Utf8> Function();
 typedef DartGetStorageStats = Pointer<Utf8> Function();
 
+typedef NativeContentPut = Pointer<Utf8> Function(Pointer<Utf8> payload);
+typedef DartContentPut = Pointer<Utf8> Function(Pointer<Utf8> payload);
+
+typedef NativeHasObject = Int32 Function(Pointer<Utf8> hash);
+typedef DartHasObject = int Function(Pointer<Utf8> hash);
+
 /// Native Rust P2P Engine Dart FFI Interface
 class NativeP2PEngine {
   static DynamicLibrary? _lib;
@@ -36,6 +42,8 @@ class NativeP2PEngine {
   static DartInitLocalStorage? _initLocalStorage;
   static DartCreateRepo? _createRepo;
   static DartGetStorageStats? _getStorageStats;
+  static DartContentPut? _contentPut;
+  static DartHasObject? _hasObject;
 
   static bool get isNativeLoaded => _isLoaded;
 
@@ -72,6 +80,8 @@ class NativeP2PEngine {
         _initLocalStorage = _lib!.lookupFunction<NativeInitLocalStorage, DartInitLocalStorage>('codehub_init_local_storage_engine');
         _createRepo = _lib!.lookupFunction<NativeCreateRepo, DartCreateRepo>('codehub_create_repository');
         _getStorageStats = _lib!.lookupFunction<NativeGetStorageStats, DartGetStorageStats>('codehub_get_storage_stats_json');
+        _contentPut = _lib!.lookupFunction<NativeContentPut, DartContentPut>('codehub_content_put');
+        _hasObject = _lib!.lookupFunction<NativeHasObject, DartHasObject>('codehub_has_object');
 
         _isLoaded = true;
       }
@@ -145,6 +155,32 @@ class NativeP2PEngine {
       return resPtr.toDartString();
     } finally {
       _freeString!(resPtr);
+    }
+  }
+
+  /// Stores object using SHA-256 content addressing and automatic deduplication
+  static String? putContentAddressedObject(String payload) {
+    if (!_isLoaded || _contentPut == null || _freeString == null) return null;
+    final payloadPtr = payload.toNativeUtf8();
+    try {
+      final resPtr = _contentPut!(payloadPtr);
+      if (resPtr == nullptr) return null;
+      final resultStr = resPtr.toDartString();
+      _freeString!(resPtr);
+      return resultStr;
+    } finally {
+      calloc.free(payloadPtr);
+    }
+  }
+
+  /// Checks if object hash exists in content-addressed blockstore
+  static bool hasContentAddressedObject(String hash) {
+    if (!_isLoaded || _hasObject == null) return false;
+    final hashPtr = hash.toNativeUtf8();
+    try {
+      return _hasObject!(hashPtr) == 1;
+    } finally {
+      calloc.free(hashPtr);
     }
   }
 }
