@@ -86,7 +86,7 @@ pub fn get_bootstrap_peers() -> Vec<PeerDiscoveryNode> {
 pub fn get_rendezvous_peers(repo_id: &str) -> Vec<PeerDiscoveryNode> {
     let mut peers = get_bootstrap_peers();
     // Simulate repository specific peer lookup
-    for (i, peer) in peers.iter_mut().enumerate() {
+    for peer in peers.iter_mut() {
         peer.multiaddr = format!("{}/rendezvous/{}", peer.multiaddr, repo_id);
     }
     peers

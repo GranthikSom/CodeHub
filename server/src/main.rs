@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, Query},
     http::StatusCode,
-    routing::{delete, get, patch, post},
+    routing::{get, patch, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -426,6 +426,7 @@ async fn get_replication_status(
     })
 }
 
+#[allow(dead_code)]
 #[derive(serde::Deserialize)]
 struct KeyGrantPayload {
     target_user_id: String,
@@ -524,7 +525,7 @@ async fn search_repositories(Query(params): Query<SearchQuery>) -> Json<ApiRespo
     let lang_filter = params.language.map(|l| l.to_lowercase());
     let topic_filter = params.topic.map(|t| t.to_lowercase());
 
-    let mut all_repos = vec![
+    let all_repos = vec![
         RepoIndexItem {
             id: "repo_101".to_string(),
             name: "codehub-core-p2p".to_string(),
@@ -659,6 +660,7 @@ async fn create_issue(
     )
 }
 
+#[allow(dead_code)]
 #[derive(serde::Deserialize)]
 struct UpdateIssuePayload {
     status: Option<String>,
