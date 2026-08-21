@@ -17,6 +17,7 @@ pub mod git_dag;
 pub mod pull_request_engine;
 pub mod discovery;
 pub mod production_hardening;
+pub mod dedicated_storage_nodes;
 pub mod ffi_api;
 
 pub use blockstore::Blockstore;
@@ -34,4 +35,5 @@ pub use git_dag::*;
 pub use pull_request_engine::*;
 pub use discovery::*;
 pub use production_hardening::*;
+pub use dedicated_storage_nodes::*;
 pub use ffi_api::*;
