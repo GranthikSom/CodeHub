@@ -33,6 +33,9 @@ typedef DartHasObject = int Function(Pointer<Utf8> hash);
 typedef NativeChunkRepo = Pointer<Utf8> Function(Pointer<Utf8> repoId, Pointer<Utf8> payload);
 typedef DartChunkRepo = Pointer<Utf8> Function(Pointer<Utf8> repoId, Pointer<Utf8> payload);
 
+typedef NativeScheduleDownload = Pointer<Utf8> Function(Size totalChunks);
+typedef DartScheduleDownload = Pointer<Utf8> Function(int totalChunks);
+
 /// Native Rust P2P Engine Dart FFI Interface
 class NativeP2PEngine {
   static DynamicLibrary? _lib;
@@ -48,6 +51,7 @@ class NativeP2PEngine {
   static DartContentPut? _contentPut;
   static DartHasObject? _hasObject;
   static DartChunkRepo? _chunkRepo;
+  static DartScheduleDownload? _scheduleDownload;
 
   static bool get isNativeLoaded => _isLoaded;
 
@@ -87,6 +91,7 @@ class NativeP2PEngine {
         _contentPut = _lib!.lookupFunction<NativeContentPut, DartContentPut>('codehub_content_put');
         _hasObject = _lib!.lookupFunction<NativeHasObject, DartHasObject>('codehub_has_object');
         _chunkRepo = _lib!.lookupFunction<NativeChunkRepo, DartChunkRepo>('codehub_chunk_repository_payload');
+        _scheduleDownload = _lib!.lookupFunction<NativeScheduleDownload, DartScheduleDownload>('codehub_schedule_parallel_swarm_download');
 
         _isLoaded = true;
       }
@@ -203,6 +208,20 @@ class NativeP2PEngine {
     } finally {
       calloc.free(repoPtr);
       calloc.free(payloadPtr);
+    }
+  }
+
+  /// Schedules non-overlapping parallel stream chunk downloads across active swarm peers
+  static String? scheduleParallelSwarmDownload(int totalChunks) {
+    if (!_isLoaded || _scheduleDownload == null || _freeString == null) return null;
+    final resPtr = _scheduleDownload!(totalChunks);
+    if (resPtr == nullptr) return null;
+    try {
+      final resultStr = resPtr.toDartString();
+      _freeString!(resPtr);
+      return resultStr;
+    } catch (_) {
+      return null;
     }
   }
 }
