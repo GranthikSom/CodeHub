@@ -166,8 +166,9 @@ async fn main() {
         // 12. Dual-Role Server Embedded P2P Storage Peer & Multi-Tier Seed Mesh
         .route("/api/v1/system/peer-node", get(get_server_peer_node_status))
         .route("/api/v1/repositories/:id/replication-mesh", get(get_repository_replication_mesh))
-        // 13. Phase 16 Complete Final Production Architecture Blueprint
+        // 13. Phase 16 Complete Final Production Architecture Blueprint & Technology Audit
         .route("/api/v1/system/production-architecture", get(get_production_architecture_status))
+        .route("/api/v1/system/technology-audit", get(get_technology_stack_audit_status))
         
         .layer(cors);
 
@@ -1524,6 +1525,16 @@ async fn get_production_architecture_status() -> Json<ApiResponse<p2p_engine::Fi
     Json(ApiResponse {
         success: true,
         message: "Final Target Production Architecture Blueprint & Health Metrics Retrieved".to_string(),
+        data: Some(report),
+    })
+}
+
+async fn get_technology_stack_audit_status() -> Json<ApiResponse<p2p_engine::TechStackAuditReport>> {
+    let report = p2p_engine::TechnologyStackInspector::perform_audit();
+
+    Json(ApiResponse {
+        success: true,
+        message: "Production Technology Matrix Audit (Standard Infrastructure + P2P Core Innovations)".to_string(),
         data: Some(report),
     })
 }

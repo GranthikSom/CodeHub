@@ -20,6 +20,7 @@ pub mod production_hardening;
 pub mod dedicated_storage_nodes;
 pub mod seed_server_mesh;
 pub mod production_architecture;
+pub mod technology_stack_audit;
 pub mod ffi_api;
 
 // Clean Modular Architecture Namespaces
@@ -49,4 +50,5 @@ pub use production_hardening::*;
 pub use dedicated_storage_nodes::*;
 pub use seed_server_mesh::*;
 pub use production_architecture::*;
+pub use technology_stack_audit::*;
 pub use ffi_api::*;
