@@ -19,19 +19,34 @@ class _AuthScreenState extends State<AuthScreen> {
   final ApiService _api = ApiService();
 
   Future<void> _submitAuth() async {
-    setState(() {
-      _isLoading = true;
-    });
-
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
     final email = _emailController.text.trim();
 
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter both username and password'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    Map<String, dynamic> response;
     if (_isLoginMode) {
-      await _api.login(username: username, password: password);
+      response = await _api.login(username: username, password: password);
     } else {
-      await _api.register(username: username, email: email, password: password);
-      await _api.login(username: username, password: password);
+      final regRes = await _api.register(username: username, email: email, password: password);
+      if (regRes['success'] == false) {
+        response = regRes;
+      } else {
+        response = await _api.login(username: username, password: password);
+      }
     }
 
     if (!mounted) return;
@@ -40,9 +55,41 @@ class _AuthScreenState extends State<AuthScreen> {
       _isLoading = false;
     });
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
-    );
+    if (response['success'] == true) {
+      final message = response['message'] ?? 'Authenticated successfully';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(child: Text(message.toString())),
+            ],
+          ),
+          backgroundColor: const Color(0xFF238636),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    } else {
+      final errMsg = response['message'] ?? 'Authentication failed. Please check your credentials.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(child: Text(errMsg.toString())),
+            ],
+          ),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   @override

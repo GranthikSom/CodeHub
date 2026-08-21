@@ -41,7 +41,9 @@ pub struct AuthResponse {
     pub expires_in: u64,
 }
 
-/// Thread-safe in-memory User Database backing Axum auth handlers
+const DB_FILE_PATH: &str = "codehub_users.json";
+
+/// Thread-safe in-memory & file-persisted User Database backing Axum auth handlers
 #[derive(Clone)]
 pub struct UserStore {
     users_by_username: Arc<RwLock<HashMap<String, User>>>,
@@ -58,6 +60,16 @@ impl UserStore {
         let store = Self {
             users_by_username: Arc::new(RwLock::new(HashMap::new())),
         };
+
+        // Try loading persisted user database from disk
+        if std::path::Path::new(DB_FILE_PATH).exists() {
+            if let Ok(content) = std::fs::read_to_string(DB_FILE_PATH) {
+                if let Ok(map) = serde_json::from_str::<HashMap<String, User>>(&content) {
+                    *store.users_by_username.write().unwrap() = map;
+                    return store;
+                }
+            }
+        }
 
         // Seed default developer account for immediate out-of-the-box sign in
         let default_pass_hash = Argon2idHasher::hash_password("password123").hashed_password;
@@ -76,7 +88,16 @@ impl UserStore {
             .unwrap()
             .insert("granthiksom".to_string(), default_user);
 
+        store.persist();
         store
+    }
+
+    fn persist(&self) {
+        if let Ok(map) = self.users_by_username.read() {
+            if let Ok(json) = serde_json::to_string_pretty(&*map) {
+                let _ = std::fs::write(DB_FILE_PATH, json);
+            }
+        }
     }
 
     pub fn register(&self, payload: &RegisterPayload) -> Result<User, String> {
@@ -103,6 +124,9 @@ impl UserStore {
         };
 
         map.insert(key, user.clone());
+        drop(map);
+        self.persist();
+
         Ok(user)
     }
 
