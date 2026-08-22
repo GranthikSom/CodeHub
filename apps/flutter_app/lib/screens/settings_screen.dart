@@ -14,6 +14,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   int _selectedCategoryIndex = 0;
+  int _profileSubTab = 0; // 0: Profile Details, 1: Profile README.md, 2: Pinned Repos, 3: Live Preview
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -24,6 +25,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _deviceNameController;
   late TextEditingController _gitNameController;
   late TextEditingController _gitEmailController;
+
+  // GitHub Profile Customization Controllers
+  late TextEditingController _statusEmojiController;
+  late TextEditingController _statusTextController;
+  late TextEditingController _companyController;
+  late TextEditingController _locationController;
+  late TextEditingController _websiteController;
+  late TextEditingController _twitterController;
+  late TextEditingController _readmeController;
+  bool _enableProfileReadme = true;
+
+  final List<Map<String, dynamic>> _pinnedRepoItems = [
+    {
+      'id': 'codehub-engine',
+      'name': 'codehub-engine',
+      'desc': 'Sovereign P2P git replication & Kademlia DHT blockstore engine in Rust.',
+      'lang': 'Rust',
+      'langColor': const Color(0xFFDEA584),
+      'stars': 142,
+      'forks': 28,
+      'isPinned': true,
+    },
+    {
+      'id': 'libp2p-rust-core',
+      'name': 'libp2p-rust-core',
+      'desc': 'Custom Noise-TLS transport layer and NAT-PMP hole punching protocol stack.',
+      'lang': 'Rust',
+      'langColor': const Color(0xFFDEA584),
+      'stars': 98,
+      'forks': 14,
+      'isPinned': true,
+    },
+    {
+      'id': 'codehub-flutter-app',
+      'name': 'codehub-flutter-app',
+      'desc': 'High-performance Flutter Desktop GUI for managing P2P swarms & repositories.',
+      'lang': 'Dart',
+      'langColor': const Color(0xFF00B4AB),
+      'stars': 76,
+      'forks': 11,
+      'isPinned': true,
+    },
+    {
+      'id': 'sovereign-storage-cluster',
+      'name': 'sovereign-storage-cluster',
+      'desc': 'Multi-node dedicated storage cluster pinning daemon and garbage collection worker.',
+      'lang': 'Rust',
+      'langColor': const Color(0xFFDEA584),
+      'stars': 54,
+      'forks': 8,
+      'isPinned': true,
+    },
+    {
+      'id': 'dag-chunk-verifier',
+      'name': 'dag-chunk-verifier',
+      'desc': 'SHA-256 Merkle DAG chunk integrity verification and delta sync suite.',
+      'lang': 'C++',
+      'langColor': const Color(0xFFF34B7D),
+      'stars': 39,
+      'forks': 5,
+      'isPinned': false,
+    },
+  ];
 
   // Interactive Security Lists State
   final List<Map<String, String>> _sshKeys = [
@@ -68,7 +132,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'title': 'Account',
       'icon': Icons.person_outline,
       'color': const Color(0xFF58A6FF),
-      'subItems': ['Profile', 'Account', 'Email & Verification', 'Password', 'Connected Accounts'],
+      'subItems': ['Profile & README', 'Account', 'Email & Verification', 'Password', 'Connected Accounts'],
     },
     {
       'title': 'Security',
@@ -213,6 +277,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _deviceNameController = TextEditingController(text: "Soham's VivoBook Laptop (ASUS K3402ZA)");
     _gitNameController = TextEditingController(text: 'Soham Mondal');
     _gitEmailController = TextEditingController(text: 'soham@codehub.io');
+
+    // Profile Customization Initializers
+    _statusEmojiController = TextEditingController(text: '🚀');
+    _statusTextController = TextEditingController(text: 'Building P2P Sovereign Engine');
+    _companyController = TextEditingController(text: '@CodeHub-P2P');
+    _locationController = TextEditingController(text: 'Kolkata, India');
+    _websiteController = TextEditingController(text: 'https://codehub.io');
+    _twitterController = TextEditingController(text: '@GranthikSom');
+
+    _readmeController = TextEditingController(
+      text: '''# Hi there, I'm Soham 👋 (@GranthikSom)
+
+> Sovereign P2P Infrastructure Architect & Distributed Systems Engineer
+
+### 🚀 About Me
+- 🔭 Working on **CodeHub**: Decentralized Sovereign P2P Code Collaboration Platform.
+- ⚡ Deeply passionate about **Rust**, **libp2p**, **Kademlia DHT**, and **Flutter Desktop**.
+- 💬 Ask me about **DAG replication**, **chunk verification**, and **p2p swarm routing**.
+- 📫 Reach me at **soham@codehub.io** | ENS: **soham.eth**
+
+### 🛠️ Tech Stack & Tooling
+`Rust` `Go` `Dart/Flutter` `TypeScript` `libp2p` `IPFS` `WebSockets` `Linux Kernel`
+
+### 📊 Sovereign Swarm Contributions
+- **Seeded Objects**: 4,290 Chunks (17.2 GB)
+- **Replication Health**: 99.98%
+- **Swarm Peer Rank**: Top 1% Pioneer Seeder''',
+    );
   }
 
   @override
@@ -224,6 +316,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _deviceNameController.dispose();
     _gitNameController.dispose();
     _gitEmailController.dispose();
+
+    _statusEmojiController.dispose();
+    _statusTextController.dispose();
+    _companyController.dispose();
+    _locationController.dispose();
+    _websiteController.dispose();
+    _twitterController.dispose();
+    _readmeController.dispose();
     super.dispose();
   }
 
@@ -447,23 +547,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Divider(),
                   const SizedBox(height: 20),
 
-                  // Sub-Item Quick Navigation Chips
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: (currentCategory['subItems'] as List<String>).map((sub) {
-                      return Chip(
-                        label: Text(sub, style: const TextStyle(fontSize: 12)),
-                        avatar: Icon(Icons.subdirectory_arrow_right, size: 14, color: currentCategory['color']),
-                        backgroundColor: isDark ? const Color(0xFF161B22) : Colors.grey.shade100,
-                        side: BorderSide(
-                          color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 28),
-
                   // Category Specific Detail Form & Controls
                   _buildCategoryDetailView(context, currentCategory['title']),
                 ],
@@ -507,7 +590,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // 1. Account Settings View
+  // 1. Account Settings View (with GitHub-Style Profile & README.md Editor)
   // ---------------------------------------------------------------------------
   Widget _buildAccountSettings(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -515,15 +598,97 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('👤 Profile', 'Public details visible to peer collaborators.'),
+        // Profile Navigation Sub-Tabs
+        Row(
+          children: [
+            _buildSubTabButton(0, '👤 Profile Details'),
+            const SizedBox(width: 8),
+            _buildSubTabButton(1, '📝 Profile README.md'),
+            const SizedBox(width: 8),
+            _buildSubTabButton(2, '📌 Pinned Repositories'),
+            const SizedBox(width: 8),
+            _buildSubTabButton(3, '👁️ Live Profile Preview'),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // Sub-Tab Content Router
+        if (_profileSubTab == 0) _buildProfileDetailsTab(context, isDark),
+        if (_profileSubTab == 1) _buildProfileReadmeTab(context, isDark),
+        if (_profileSubTab == 2) _buildPinnedReposTab(context, isDark),
+        if (_profileSubTab == 3) _buildLiveProfilePreviewTab(context, isDark),
+      ],
+    );
+  }
+
+  Widget _buildSubTabButton(int index, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSelected = _profileSubTab == index;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          setState(() {
+            _profileSubTab = index;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF58A6FF).withValues(alpha: 0.15)
+                : (isDark ? const Color(0xFF161B22) : Colors.grey.shade100),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF58A6FF)
+                  : (isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected
+                  ? const Color(0xFF58A6FF)
+                  : (isDark ? const Color(0xFFC9D1D9) : Colors.black87),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 1a. Profile Details Form Tab
+  Widget _buildProfileDetailsTab(BuildContext context, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('👤 Profile Customization', 'Public details and social highlights shown on your sovereign profile.'),
         const SizedBox(height: 16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.blueAccent.withValues(alpha: 0.2),
-              child: const Text('SM', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 44,
+                  backgroundColor: Colors.blueAccent.withValues(alpha: 0.2),
+                  child: const Text('SM', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: Color(0xFF238636), shape: BoxShape.circle),
+                    child: const Icon(Icons.check, size: 14, color: Colors.white),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 20),
             Column(
@@ -531,17 +696,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 ElevatedButton.icon(
                   onPressed: () {
-                    _showNotification('Avatar updated successfully!');
+                    _showNotification('Avatar image updated!');
                   },
                   icon: const Icon(Icons.upload, size: 16),
-                  label: const Text('Change Avatar'),
+                  label: const Text('Change Avatar Image'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isDark ? const Color(0xFF21262D) : Colors.grey.shade200,
                     foregroundColor: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text('JPG, PNG or GIF. Max 5MB.', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
+                Text('PNG, JPG or SVG avatar. Max 5MB.', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54)),
               ],
             ),
           ],
@@ -549,10 +714,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 20),
         _buildFormInput('Display Name', _displayNameController),
         const SizedBox(height: 16),
-        _buildFormInput('Bio', _bioController, maxLines: 2),
+        Row(
+          children: [
+            SizedBox(
+              width: 80,
+              child: _buildFormInput('Emoji', _statusEmojiController),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildFormInput('Custom Status Message', _statusTextController),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildFormInput('Bio Description', _bioController, maxLines: 2),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(child: _buildFormInput('Company / Org', _companyController)),
+            const SizedBox(width: 16),
+            Expanded(child: _buildFormInput('Location', _locationController)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(child: _buildFormInput('Website / Blog URL', _websiteController)),
+            const SizedBox(width: 16),
+            Expanded(child: _buildFormInput('Twitter / X Handle', _twitterController)),
+          ],
+        ),
         const SizedBox(height: 16),
         _buildFormInput('Public Email', _emailController),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         ElevatedButton.icon(
           onPressed: () async {
             final res = await widget.state.api.updateMyProfile(
@@ -560,10 +754,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               bio: _bioController.text,
               email: _emailController.text,
             );
-            _showNotification(res['message'] ?? 'Profile updated successfully!');
+            _showNotification(res['message'] ?? 'Profile details saved!');
           },
           icon: const Icon(Icons.save, size: 16),
-          label: const Text('Save Profile Changes'),
+          label: const Text('Save Profile Details'),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF238636),
             foregroundColor: Colors.white,
@@ -571,24 +765,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 32),
 
-        _buildSectionHeader('Account & Identity', 'Username and ownership attributes.'),
-        const SizedBox(height: 16),
-        _buildFormInput('Username', TextEditingController(text: '@GranthikSom'), enabled: false),
-        const SizedBox(height: 16),
-        _buildFormInput('Account ID', TextEditingController(text: 'usr_9f83a2c077b10'), enabled: false),
-        const SizedBox(height: 32),
-
-        _buildSectionHeader('Email & Verification', 'Manage registered email addresses.'),
-        const SizedBox(height: 12),
-        _buildInfoCard(
-          icon: Icons.mark_email_read,
-          title: 'Primary Email: ${_emailController.text}',
-          subtitle: 'Verified • Received P2P security notifications.',
-          color: const Color(0xFF3FB950),
-        ),
-        const SizedBox(height: 32),
-
-        _buildSectionHeader('Connected Accounts', 'Linked identity providers and Web3 wallets.'),
+        _buildSectionHeader('Connected Identity Providers', 'Linked web3 wallets and accounts.'),
         const SizedBox(height: 12),
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -596,25 +773,542 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: const Text('GitHub Account Connected'),
           subtitle: const Text('@GranthikSom (Synced 42 Repositories)'),
           trailing: OutlinedButton(
-            onPressed: () {
-              _showNotification('GitHub identity synced.');
-            },
-            child: const Text('Sync Account'),
-          ),
-        ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.account_balance_wallet_outlined, color: Colors.orangeAccent),
-          title: const Text('Web3 Wallet / ENS Identity'),
-          subtitle: const Text('soham.eth (0x71C...49A)'),
-          trailing: OutlinedButton(
-            onPressed: () {
-              _showNotification('ENS identity verified.');
-            },
-            child: const Text('Manage Wallet'),
+            onPressed: () => _showNotification('GitHub account re-synced.'),
+            child: const Text('Sync GitHub'),
           ),
         ),
       ],
+    );
+  }
+
+  // 1b. Special Profile README.md Editor Tab
+  Widget _buildProfileReadmeTab(BuildContext context, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          '📝 Profile README.md (GranthikSom/GranthikSom)',
+          'Special repository README displayed prominently at the top of your public profile.',
+        ),
+        const SizedBox(height: 16),
+        SwitchListTile(
+          title: const Text('Enable Special Profile README.md'),
+          subtitle: const Text('Render GranthikSom/README.md on your sovereign profile landing page'),
+          value: _enableProfileReadme,
+          onChanged: (val) {
+            setState(() {
+              _enableProfileReadme = val;
+            });
+            _showNotification('Profile README ${val ? 'enabled' : 'disabled'}.');
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Quick Markdown Template Helpers
+        Text('Quick Markdown Snippets:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ActionChip(
+              avatar: const Icon(Icons.add, size: 14, color: Colors.blueAccent),
+              label: const Text('Insert Bio Header'),
+              onPressed: () {
+                _readmeController.text += '\n\n# Hi there 👋 I am ${_displayNameController.text}';
+                _showNotification('Bio header inserted!');
+              },
+            ),
+            ActionChip(
+              avatar: const Icon(Icons.add, size: 14, color: Colors.greenAccent),
+              label: const Text('Insert Tech Stack Badges'),
+              onPressed: () {
+                _readmeController.text += '\n\n### 🛠️ Tech Stack\n`Rust` `Go` `Dart` `Flutter` `libp2p` `IPFS`';
+                _showNotification('Tech Stack inserted!');
+              },
+            ),
+            ActionChip(
+              avatar: const Icon(Icons.add, size: 14, color: Colors.purpleAccent),
+              label: const Text('Insert Swarm Stats'),
+              onPressed: () {
+                _readmeController.text += '\n\n### 📊 Swarm Stats\n- **Seeded Chunks**: 4,290\n- **Health Rank**: 99.98%';
+                _showNotification('Swarm stats inserted!');
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // Markdown Code Editor & Live Preview Card
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Code Editor
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('README.md Source Editor', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _readmeController,
+                    maxLines: 16,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF161B22) : Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+                      ),
+                    ),
+                    onChanged: (val) {
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 20),
+
+            // Live Render Preview Box
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Live Profile README Preview', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87)),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 330,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0D1117) : Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.book_outlined, size: 16, color: Color(0xFF58A6FF)),
+                              const SizedBox(width: 8),
+                              Text('GranthikSom / README.md', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF58A6FF) : Colors.blue.shade700)),
+                              const Spacer(),
+                              const Icon(Icons.star_outline, size: 14, color: Colors.grey),
+                            ],
+                          ),
+                          const Divider(),
+                          const SizedBox(height: 8),
+                          Text(
+                            _readmeController.text,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.5,
+                              color: isDark ? const Color(0xFFC9D1D9) : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          onPressed: () {
+            _showNotification('Profile README.md saved & published to swarm!');
+          },
+          icon: const Icon(Icons.publish, size: 16),
+          label: const Text('Save & Commit README.md'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF238636),
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 1c. Pinned Repositories Tab
+  Widget _buildPinnedReposTab(BuildContext context, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          '📌 Pinned Repositories',
+          'Select up to 6 repositories to showcase on your profile page.',
+        ),
+        const SizedBox(height: 16),
+        ..._pinnedRepoItems.map((repo) {
+          final bool isPinned = repo['isPinned'];
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF161B22) : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.bookmark_outline, color: repo['langColor'], size: 20),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(repo['name'], style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: (repo['langColor'] as Color).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
+                            child: Text(repo['lang'], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: repo['langColor'])),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(repo['desc'], style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600)),
+                    ],
+                  ),
+                ),
+                Text('⭐ ${repo['stars']}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(width: 16),
+                Switch(
+                  value: isPinned,
+                  activeTrackColor: const Color(0xFF58A6FF),
+                  onChanged: (val) {
+                    setState(() {
+                      repo['isPinned'] = val;
+                    });
+                    _showNotification('${repo['name']} ${val ? 'pinned to' : 'unpinned from'} profile.');
+                  },
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  // 1d. Live GitHub-Style Public Profile Preview Tab
+  Widget _buildLiveProfilePreviewTab(BuildContext context, bool isDark) {
+    final pinned = _pinnedRepoItems.where((r) => r['isPinned'] == true).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('👁️ Public Profile Live Preview', 'Exact representation of how peer developers see your profile on CodeHub.'),
+        const SizedBox(height: 20),
+
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0D1117) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Column Sidebar (Avatar, Bio, Social Info, Badges)
+              SizedBox(
+                width: 260,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 70,
+                      backgroundColor: Colors.blueAccent.withValues(alpha: 0.2),
+                      child: const Text('SM', style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _displayNameController.text,
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                    ),
+                    Text(
+                      '@GranthikSom',
+                      style: TextStyle(fontSize: 15, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF161B22) : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_statusEmojiController.text, style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              _statusTextController.text,
+                              style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(_bioController.text, style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFFC9D1D9) : Colors.black87)),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        const Icon(Icons.people_outline, size: 16, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        RichText(
+                          text: TextSpan(
+                            style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700),
+                            children: const [
+                              TextSpan(text: '142 ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                              TextSpan(text: 'followers • '),
+                              TextSpan(text: '89 ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                              TextSpan(text: 'following'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 12),
+
+                    _buildProfileMetaItem(Icons.business, _companyController.text, isDark),
+                    _buildProfileMetaItem(Icons.location_on_outlined, _locationController.text, isDark),
+                    _buildProfileMetaItem(Icons.link, _websiteController.text, isDark),
+                    _buildProfileMetaItem(Icons.alternate_email, _twitterController.text, isDark),
+                    const SizedBox(height: 20),
+
+                    // Achievement Badges
+                    Text('Achievements', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87)),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildBadgeChip('🛠️ Early Adopter', Colors.amber),
+                        _buildBadgeChip('⚡ Swarm Seeder', Colors.greenAccent),
+                        _buildBadgeChip('🔐 Security Auditor', Colors.purpleAccent),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 32),
+
+              // Right Main Profile Display Area (README + Pinned Repos + Activity Grid)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Render Profile README.md
+                    if (_enableProfileReadme) ...[
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF161B22) : Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.book_outlined, size: 16, color: Color(0xFF58A6FF)),
+                                const SizedBox(width: 8),
+                                Text('GranthikSom / README.md', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF58A6FF) : Colors.blue.shade700)),
+                              ],
+                            ),
+                            const Divider(height: 20),
+                            Text(
+                              _readmeController.text,
+                              style: TextStyle(fontSize: 13, height: 1.5, color: isDark ? const Color(0xFFC9D1D9) : Colors.black87),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // Pinned Repositories Grid Header
+                    Row(
+                      children: [
+                        Text('Pinned Repositories', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                        const Spacer(),
+                        Text('Customize pins', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF58A6FF) : Colors.blue.shade700)),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Pinned Repositories 2-Column Grid
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 14,
+                        mainAxisSpacing: 14,
+                        childAspectRatio: 2.2,
+                      ),
+                      itemCount: pinned.length,
+                      itemBuilder: (context, idx) {
+                        final repo = pinned[idx];
+                        return Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF161B22) : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.bookmark_outline, size: 16, color: Color(0xFF8B949E)),
+                                  const SizedBox(width: 6),
+                                  Text(repo['name'], style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF58A6FF) : Colors.blue.shade700)),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: (isDark ? Colors.white10 : Colors.grey.shade200), borderRadius: BorderRadius.circular(4)),
+                                    child: const Text('Public', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Expanded(
+                                child: Text(
+                                  repo['desc'],
+                                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  CircleAvatar(radius: 4, backgroundColor: repo['langColor']),
+                                  const SizedBox(width: 6),
+                                  Text(repo['lang'], style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600)),
+                                  const SizedBox(width: 14),
+                                  const Icon(Icons.star_outline, size: 12, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text('${repo['stars']}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600)),
+                                  const SizedBox(width: 12),
+                                  const Icon(Icons.call_split, size: 12, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text('${repo['forks']}', style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Contribution Heatmap Section
+                    Text('1,420 contributions in the last year', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF161B22) : Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 3,
+                            runSpacing: 3,
+                            children: List.generate(120, (index) {
+                              final level = (index * 7 + 3) % 5;
+                              Color c = isDark ? const Color(0xFF161B22) : Colors.grey.shade200;
+                              if (level == 1) c = const Color(0xFF0E4429);
+                              if (level == 2) c = const Color(0xFF006D32);
+                              if (level == 3) c = const Color(0xFF26A641);
+                              if (level == 4) c = const Color(0xFF39D353);
+
+                              return Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(2)),
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text('Less ', style: TextStyle(fontSize: 10, color: isDark ? Colors.grey : Colors.black54)),
+                              Container(width: 8, height: 8, color: const Color(0xFF161B22)),
+                              const SizedBox(width: 2),
+                              Container(width: 8, height: 8, color: const Color(0xFF0E4429)),
+                              const SizedBox(width: 2),
+                              Container(width: 8, height: 8, color: const Color(0xFF006D32)),
+                              const SizedBox(width: 2),
+                              Container(width: 8, height: 8, color: const Color(0xFF26A641)),
+                              const SizedBox(width: 2),
+                              Container(width: 8, height: 8, color: const Color(0xFF39D353)),
+                              const SizedBox(width: 2),
+                              Text(' More', style: TextStyle(fontSize: 10, color: isDark ? Colors.grey : Colors.black54)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileMetaItem(IconData icon, String text, bool isDark) {
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFFC9D1D9) : Colors.black87),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadgeChip(String label, Color color) {
+    return Chip(
+      label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+      backgroundColor: color.withValues(alpha: 0.15),
+      side: BorderSide(color: color.withValues(alpha: 0.4)),
     );
   }
 
