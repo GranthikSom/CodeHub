@@ -126,6 +126,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _stealthMode = false;
   int _targetReplicaCount = 3;
   String _selectedAccentColor = 'Electric Blue';
+  bool _includePrivateContributions = true;
+  bool _includeSwarmContributions = true;
+  String _selectedContributionYear = '2026';
+  int _selectedTimelineFilter = 0; // 0: All, 1: Commits, 2: PRs, 3: Issues, 4: Seeding
 
   final List<Map<String, dynamic>> _categories = [
     {
@@ -777,7 +781,408 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Sync GitHub'),
           ),
         ),
+        const SizedBox(height: 32),
+
+        _buildContributionSection(context, isDark),
       ],
+    );
+  }
+
+  // 1a-2. GitHub Contribution Graph & Activity Section
+  Widget _buildContributionSection(BuildContext context, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          '📊 Contribution Activity & Settings',
+          'Configure contribution settings, private activity visibility, and view your 1-year contribution matrix.',
+        ),
+        const SizedBox(height: 16),
+
+        SwitchListTile(
+          title: const Text('Include Private Contributions on Profile'),
+          subtitle: const Text('Anonymously display activity count from private repositories & encrypted DAG swarms'),
+          value: _includePrivateContributions,
+          onChanged: (val) {
+            setState(() {
+              _includePrivateContributions = val;
+            });
+            _showNotification('Private contribution setting updated.');
+          },
+        ),
+        SwitchListTile(
+          title: const Text('Include P2P Swarm Seeding Activity'),
+          subtitle: const Text('Display blockstore chunk seeding & DAG synchronization activity in contribution graph'),
+          value: _includeSwarmContributions,
+          onChanged: (val) {
+            setState(() {
+              _includeSwarmContributions = val;
+            });
+            _showNotification('P2P Swarm activity setting updated.');
+          },
+        ),
+        const SizedBox(height: 24),
+
+        // 1-Year Contribution Heatmap Box (GitHub Style)
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161B22) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Heatmap Header with Year Selector & Total Count
+              Row(
+                children: [
+                  Text(
+                    '1,420 contributions in $_selectedContributionYear',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const Spacer(),
+                  DropdownButton<String>(
+                    value: _selectedContributionYear,
+                    dropdownColor: isDark ? const Color(0xFF161B22) : Colors.white,
+                    style: TextStyle(fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                    underline: const SizedBox.shrink(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _selectedContributionYear = val;
+                        });
+                      }
+                    },
+                    items: ['2026', '2025', '2024', '2023'].map((yr) {
+                      return DropdownMenuItem(value: yr, child: Text(yr));
+                    }).toList(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Month Labels Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  SizedBox(width: 24),
+                  Text('Jan', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Feb', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Mar', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Apr', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('May', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Jun', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Jul', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Aug', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Sep', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Oct', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Nov', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Dec', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                ],
+              ),
+              const SizedBox(height: 6),
+
+              // Heatmap Matrix (Day labels + 52-week green squares)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    children: const [
+                      SizedBox(height: 2),
+                      Text('Mon', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      SizedBox(height: 14),
+                      Text('Wed', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      SizedBox(height: 14),
+                      Text('Fri', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Wrap(
+                        direction: Axis.vertical,
+                        spacing: 3,
+                        runSpacing: 3,
+                        children: List.generate(365, (idx) {
+                          final level = (idx * 11 + 5) % 5;
+                          Color c = isDark ? const Color(0xFF0D1117) : Colors.grey.shade200;
+                          if (level == 1) c = const Color(0xFF0E4429);
+                          if (level == 2) c = const Color(0xFF006D32);
+                          if (level == 3) c = const Color(0xFF26A641);
+                          if (level == 4) c = const Color(0xFF39D353);
+
+                          return Tooltip(
+                            message: '${level * 3 + 1} contributions on Day $idx',
+                            child: Container(
+                              width: 11,
+                              height: 11,
+                              decoration: BoxDecoration(
+                                color: c,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Heatmap Legend
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text('Less ', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey : Colors.black54)),
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade200, borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 3),
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0xFF0E4429), borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 3),
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0xFF006D32), borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 3),
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0xFF26A641), borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 3),
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0xFF39D353), borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 3),
+                  Text(' More', style: TextStyle(fontSize: 11, color: isDark ? Colors.grey : Colors.black54)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+
+        // Contribution Activity Timeline Stream (GitHub Activity Feed)
+        Row(
+          children: [
+            Text(
+              'Contribution Activity Timeline',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            const Spacer(),
+            // Activity Filter Chips
+            Wrap(
+              spacing: 6,
+              children: [
+                _buildTimelineFilterChip(0, 'All'),
+                _buildTimelineFilterChip(1, '📦 Commits'),
+                _buildTimelineFilterChip(2, '🔀 Pull Requests'),
+                _buildTimelineFilterChip(3, '🐛 Issues'),
+                _buildTimelineFilterChip(4, '⚡ Seeding'),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Timeline Items Stream
+        _buildTimelineMonthGroup(
+          month: 'August 2026',
+          items: [
+            if (_selectedTimelineFilter == 0 || _selectedTimelineFilter == 1)
+              _buildTimelineActivityCard(
+                icon: Icons.commit_outlined,
+                iconColor: const Color(0xFF58A6FF),
+                title: 'Created 28 commits in 4 repositories',
+                details: [
+                  'codehub-engine: 14 commits (P2P swarm sync, Noise protocol layer)',
+                  'codehub-flutter-app: 8 commits (Settings UX, Profile customization)',
+                  'libp2p-rust-core: 4 commits (NAT-PMP port forwarding)',
+                  'sovereign-storage-cluster: 2 commits (Garbage collection trigger)',
+                ],
+                isDark: isDark,
+              ),
+            if (_selectedTimelineFilter == 0 || _selectedTimelineFilter == 2)
+              _buildTimelineActivityCard(
+                icon: Icons.call_split_outlined,
+                iconColor: const Color(0xFF3FB950),
+                title: 'Opened 6 pull requests in 3 repositories',
+                details: [
+                  'codehub-engine#42: Improve peer discovery protocol throughput',
+                  'codehub-engine#39: Fix Merkle DAG chunk integrity verification',
+                  'libp2p-rust-core#37: Add AES-256-GCM repository object encryption',
+                ],
+                isDark: isDark,
+              ),
+            if (_selectedTimelineFilter == 0 || _selectedTimelineFilter == 3)
+              _buildTimelineActivityCard(
+                icon: Icons.bug_report_outlined,
+                iconColor: const Color(0xFFD29922),
+                title: 'Opened 8 issues in 2 repositories',
+                details: [
+                  'codehub-engine#12: Kademlia DHT routing table lock contention under heavy seed load',
+                  'codehub-flutter-app#15: Flutter desktop background daemon battery optimization',
+                ],
+                isDark: isDark,
+              ),
+            if (_selectedTimelineFilter == 0 || _selectedTimelineFilter == 4)
+              _buildTimelineActivityCard(
+                icon: Icons.hub_outlined,
+                iconColor: const Color(0xFFBC8CFF),
+                title: 'Seeded 4,290 P2P Swarm Chunks (17.2 GB Data Served)',
+                details: [
+                  'Contributed active seeding bandwidth to 14 sovereign peer repositories.',
+                  'Maintained 99.98% swarm replication availability index.',
+                ],
+                isDark: isDark,
+              ),
+          ],
+          isDark: isDark,
+        ),
+
+        const SizedBox(height: 16),
+
+        _buildTimelineMonthGroup(
+          month: 'July 2026',
+          items: [
+            _buildTimelineActivityCard(
+              icon: Icons.create_new_folder_outlined,
+              iconColor: const Color(0xFF38BDF8),
+              title: 'Created 2 new sovereign repositories',
+              details: [
+                'dag-chunk-verifier (Public • C++)',
+                'sovereign-storage-cluster (Public • Rust)',
+              ],
+              isDark: isDark,
+            ),
+            _buildTimelineActivityCard(
+              icon: Icons.merge_type_outlined,
+              iconColor: const Color(0xFF8957E5),
+              title: 'Merged 12 pull requests in 5 repositories',
+              details: [
+                'Merged branch feature/settings-module into main',
+                'Merged branch fix/blockstore-leak into main',
+              ],
+              isDark: isDark,
+            ),
+          ],
+          isDark: isDark,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimelineFilterChip(int filterIndex, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSelected = _selectedTimelineFilter == filterIndex;
+
+    return ChoiceChip(
+      label: Text(label, style: const TextStyle(fontSize: 11)),
+      selected: isSelected,
+      selectedColor: const Color(0xFF58A6FF).withValues(alpha: 0.2),
+      backgroundColor: isDark ? const Color(0xFF161B22) : Colors.grey.shade100,
+      side: BorderSide(
+        color: isSelected ? const Color(0xFF58A6FF) : (isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+      ),
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _selectedTimelineFilter = filterIndex;
+          });
+        }
+      },
+    );
+  }
+
+  Widget _buildTimelineMonthGroup({required String month, required List<Widget> items, required bool isDark}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              month,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Divider(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...items,
+      ],
+    );
+  }
+
+  Widget _buildTimelineActivityCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required List<String> details,
+    required bool isDark,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12, left: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF161B22) : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 16, color: iconColor),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                ...details.map((detail) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(Icons.arrow_right, size: 16, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
+                        Expanded(
+                          child: Text(
+                            detail,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
