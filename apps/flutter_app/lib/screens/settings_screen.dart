@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/codehub_state.dart';
+import 'splash_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final CodeHubState state;
@@ -14,6 +16,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _selectedCategoryIndex = 0;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  // Form Controllers
+  late TextEditingController _displayNameController;
+  late TextEditingController _bioController;
+  late TextEditingController _emailController;
+  late TextEditingController _deviceNameController;
+  late TextEditingController _gitNameController;
+  late TextEditingController _gitEmailController;
+
+  // Interactive Security Lists State
+  final List<Map<String, String>> _sshKeys = [
+    {
+      'title': 'ed25519-sk-soham-laptop',
+      'fp': 'SHA256:4a8f9c9b1a203f4e5d6c7b8a901e9a',
+      'added': 'Added 3 days ago',
+    },
+    {
+      'title': 'id_rsa_workstation',
+      'fp': 'SHA256:99f1a2b3c4d5e6f7a8b9c0d1e2f3a4',
+      'added': 'Added 2 weeks ago',
+    },
+  ];
+
+  final List<Map<String, String>> _accessTokens = [
+    {
+      'name': 'codehub_pat_live_99831',
+      'scopes': 'repo:read, write:packages, swarm:pin',
+      'expires': 'Expires in 89 days',
+    },
+  ];
+
+  // Settings State Toggles
+  bool _p2pSwarmEnabled = true;
+  bool _upnpPortForwarding = true;
+  bool _autoReplicatePinned = true;
+  bool _prioritySeedOwner = true;
+  bool _runOnStartup = true;
+  bool _notifyPullRequests = true;
+  bool _notifyIssues = true;
+  bool _notifyP2PAlerts = true;
+  bool _notifySecurity = true;
+  bool _requireCommitSigning = true;
+  bool _publicProfileVisibility = true;
+  bool _stealthMode = false;
+  int _targetReplicaCount = 3;
+  String _selectedAccentColor = 'Electric Blue';
 
   final List<Map<String, dynamic>> _categories = [
     {
@@ -157,9 +205,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _displayNameController = TextEditingController(text: widget.state.api.currentUsername ?? 'Soham Mondal');
+    _bioController = TextEditingController(text: 'Sovereign P2P Infrastructure Developer & Systems Engineer.');
+    _emailController = TextEditingController(text: widget.state.api.currentEmail ?? 'soham@codehub.io');
+    _deviceNameController = TextEditingController(text: "Soham's VivoBook Laptop (ASUS K3402ZA)");
+    _gitNameController = TextEditingController(text: 'Soham Mondal');
+    _gitEmailController = TextEditingController(text: 'soham@codehub.io');
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
+    _displayNameController.dispose();
+    _bioController.dispose();
+    _emailController.dispose();
+    _deviceNameController.dispose();
+    _gitNameController.dispose();
+    _gitEmailController.dispose();
     super.dispose();
+  }
+
+  void _showNotification(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.redAccent : const Color(0xFF238636),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -454,7 +530,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    _showNotification('Avatar updated successfully!');
+                  },
                   icon: const Icon(Icons.upload, size: 16),
                   label: const Text('Change Avatar'),
                   style: ElevatedButton.styleFrom(
@@ -469,25 +547,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
         const SizedBox(height: 20),
-        _buildTextField('Display Name', 'Soham Mondal'),
+        _buildFormInput('Display Name', _displayNameController),
         const SizedBox(height: 16),
-        _buildTextField('Bio', 'Sovereign P2P Infrastructure Developer & Systems Engineer.'),
+        _buildFormInput('Bio', _bioController, maxLines: 2),
         const SizedBox(height: 16),
-        _buildTextField('Public Email', 'soham@codehub.io'),
+        _buildFormInput('Public Email', _emailController),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: () async {
+            final res = await widget.state.api.updateMyProfile(
+              displayName: _displayNameController.text,
+              bio: _bioController.text,
+              email: _emailController.text,
+            );
+            _showNotification(res['message'] ?? 'Profile updated successfully!');
+          },
+          icon: const Icon(Icons.save, size: 16),
+          label: const Text('Save Profile Changes'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF238636),
+            foregroundColor: Colors.white,
+          ),
+        ),
         const SizedBox(height: 32),
 
         _buildSectionHeader('Account & Identity', 'Username and ownership attributes.'),
         const SizedBox(height: 16),
-        _buildTextField('Username', '@GranthikSom', enabled: false),
+        _buildFormInput('Username', TextEditingController(text: '@GranthikSom'), enabled: false),
         const SizedBox(height: 16),
-        _buildTextField('Account ID', 'usr_9f83a2c077b10', enabled: false),
+        _buildFormInput('Account ID', TextEditingController(text: 'usr_9f83a2c077b10'), enabled: false),
         const SizedBox(height: 32),
 
         _buildSectionHeader('Email & Verification', 'Manage registered email addresses.'),
         const SizedBox(height: 12),
         _buildInfoCard(
           icon: Icons.mark_email_read,
-          title: 'Primary Email: soham@codehub.io',
+          title: 'Primary Email: ${_emailController.text}',
           subtitle: 'Verified • Received P2P security notifications.',
           color: const Color(0xFF3FB950),
         ),
@@ -500,14 +595,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           leading: const Icon(Icons.code, color: Colors.purpleAccent),
           title: const Text('GitHub Account Connected'),
           subtitle: const Text('@GranthikSom (Synced 42 Repositories)'),
-          trailing: OutlinedButton(onPressed: () {}, child: const Text('Disconnect')),
+          trailing: OutlinedButton(
+            onPressed: () {
+              _showNotification('GitHub identity synced.');
+            },
+            child: const Text('Sync Account'),
+          ),
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.account_balance_wallet_outlined, color: Colors.orangeAccent),
           title: const Text('Web3 Wallet / ENS Identity'),
           subtitle: const Text('soham.eth (0x71C...49A)'),
-          trailing: OutlinedButton(onPressed: () {}, child: const Text('Manage Wallet')),
+          trailing: OutlinedButton(
+            onPressed: () {
+              _showNotification('ENS identity verified.');
+            },
+            child: const Text('Manage Wallet'),
+          ),
         ),
       ],
     );
@@ -532,15 +637,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         _buildSectionHeader('🔑 SSH & Signing Keys', 'Keys authorized to push DAG commits to P2P swarm.'),
         const SizedBox(height: 12),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.vpn_key_outlined, color: Colors.blueAccent),
-          title: const Text('ed25519-sk-soham-laptop'),
-          subtitle: const Text('SHA256:4a8f9c...01e9a • Added 3 days ago'),
-          trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.redAccent), onPressed: () {}),
-        ),
+        ..._sshKeys.map((key) {
+          return ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.vpn_key_outlined, color: Colors.blueAccent),
+            title: Text(key['title']!),
+            subtitle: Text('${key['fp']} • ${key['added']}'),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              onPressed: () {
+                setState(() {
+                  _sshKeys.remove(key);
+                });
+                _showNotification('SSH Key removed.');
+              },
+            ),
+          );
+        }),
+        const SizedBox(height: 8),
         ElevatedButton.icon(
-          onPressed: () {},
+          onPressed: _showAddSshKeyDialog,
           icon: const Icon(Icons.add, size: 16),
           label: const Text('Add New SSH Key'),
         ),
@@ -548,11 +664,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         _buildSectionHeader('🎟️ Access Tokens & API Keys', 'Personal Access Tokens (PATs) for CLI & API engine.'),
         const SizedBox(height: 12),
-        _buildInfoCard(
-          icon: Icons.key_outlined,
-          title: 'Active PAT: codehub_pat_live_99831',
-          subtitle: 'Scopes: repo:read, write:packages, swarm:pin • Expires in 89 days',
-          color: const Color(0xFFBC8CFF),
+        ..._accessTokens.map((token) {
+          return _buildInfoCard(
+            icon: Icons.key_outlined,
+            title: token['name']!,
+            subtitle: 'Scopes: ${token['scopes']} • ${token['expires']}',
+            color: const Color(0xFFBC8CFF),
+          );
+        }),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: _showGenerateTokenDialog,
+          icon: const Icon(Icons.add, size: 16),
+          label: const Text('Generate New Access Token'),
         ),
       ],
     );
@@ -570,31 +694,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
         SwitchListTile(
           title: const Text('Enable Sovereign P2P Swarm Engine'),
           subtitle: const Text('Directly exchange repository objects with participating peer devices'),
-          value: true,
-          onChanged: (val) {},
+          value: _p2pSwarmEnabled,
+          onChanged: (val) {
+            setState(() {
+              _p2pSwarmEnabled = val;
+            });
+            _showNotification('P2P Swarm Engine ${val ? 'enabled' : 'disabled'}.');
+          },
         ),
         SwitchListTile(
           title: const Text('UPnP / NAT-PMP Port Forwarding'),
           subtitle: const Text('Automatically open TCP/UDP port 4001 on local router'),
-          value: true,
-          onChanged: (val) {},
+          value: _upnpPortForwarding,
+          onChanged: (val) {
+            setState(() {
+              _upnpPortForwarding = val;
+            });
+            _showNotification('UPnP Port Forwarding ${val ? 'enabled' : 'disabled'}.');
+          },
         ),
         const SizedBox(height: 24),
 
         _buildSectionHeader('🆔 Peer Identity Keypair', 'Your cryptographic Ed25519 node ID on Kademlia DHT.'),
         const SizedBox(height: 12),
-        _buildTextField('Node Peer ID', '12D3KooWControlRelayServer99aF81c', enabled: false),
+        _buildFormInput('Node Peer ID', TextEditingController(text: '12D3KooWControlRelayServer99aF81c'), enabled: false),
         const SizedBox(height: 12),
         Row(
           children: [
             OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.download_outlined, size: 16),
-              label: const Text('Export Private Key'),
+              onPressed: () {
+                Clipboard.setData(const ClipboardData(text: '12D3KooWControlRelayServer99aF81c'));
+                _showNotification('Peer ID copied to clipboard!');
+              },
+              icon: const Icon(Icons.copy, size: 16),
+              label: const Text('Copy Peer ID'),
             ),
             const SizedBox(width: 12),
             OutlinedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                _showNotification('Ed25519 Peer Identity keypair regenerated!');
+              },
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('Regenerate Peer ID'),
             ),
@@ -680,22 +819,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 16),
         _buildInfoCard(
           icon: Icons.health_and_safety_outlined,
-          title: 'Target Peer Replica Count: 3 Replicas Minimum',
+          title: 'Target Peer Replica Count: $_targetReplicaCount Replicas Minimum',
           subtitle: 'Auto-replication active across participating seeders.',
           color: const Color(0xFF38BDF8),
+        ),
+        const SizedBox(height: 20),
+        Text('Minimum Swarm Replica Target: $_targetReplicaCount Replicas'),
+        Slider(
+          value: _targetReplicaCount.toDouble(),
+          min: 1,
+          max: 10,
+          divisions: 9,
+          label: '$_targetReplicaCount Replicas',
+          onChanged: (val) {
+            setState(() {
+              _targetReplicaCount = val.toInt();
+            });
+          },
         ),
         const SizedBox(height: 24),
         SwitchListTile(
           title: const Text('Auto-Replicate Pinned Repositories'),
           subtitle: const Text('Background push object chunks when connected to high-speed Ethernet/Wi-Fi'),
-          value: true,
-          onChanged: (val) {},
+          value: _autoReplicatePinned,
+          onChanged: (val) {
+            setState(() {
+              _autoReplicatePinned = val;
+            });
+            _showNotification('Auto-replication ${val ? 'enabled' : 'disabled'}.');
+          },
         ),
         SwitchListTile(
           title: const Text('Priority Seed Owner Repositories'),
           subtitle: const Text('Give maximum upload bandwidth to your personal repositories'),
-          value: true,
-          onChanged: (val) {},
+          value: _prioritySeedOwner,
+          onChanged: (val) {
+            setState(() {
+              _prioritySeedOwner = val;
+            });
+            _showNotification('Priority seeding ${val ? 'enabled' : 'disabled'}.');
+          },
         ),
       ],
     );
@@ -710,15 +873,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         _buildSectionHeader('🖥️ Device Information & Resource Limits', 'Local machine characteristics and daemon options.'),
         const SizedBox(height: 16),
-        _buildTextField('Device Name', "Soham's VivoBook Laptop (ASUS K3402ZA)"),
-        const SizedBox(height: 16),
-        _buildTextField('Host Operating System', 'Linux Ubuntu 26.04 LTS (x86_64 Kernel 7.0.0)', enabled: false),
+        _buildFormInput('Device Name', _deviceNameController),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          onPressed: () {
+            _showNotification('Device name updated to "${_deviceNameController.text}".');
+          },
+          icon: const Icon(Icons.save, size: 16),
+          label: const Text('Update Device Name'),
+        ),
+        const SizedBox(height: 20),
+        _buildFormInput('Host Operating System', TextEditingController(text: 'Linux Ubuntu 26.04 LTS (x86_64 Kernel 7.0.0)'), enabled: false),
         const SizedBox(height: 24),
         SwitchListTile(
           title: const Text('Run Engine on System Startup'),
           subtitle: const Text('Start background P2P seeder service automatically on boot'),
-          value: true,
-          onChanged: (val) {},
+          value: _runOnStartup,
+          onChanged: (val) {
+            setState(() {
+              _runOnStartup = val;
+            });
+            _showNotification('Startup daemon ${val ? 'enabled' : 'disabled'}.');
+          },
         ),
         SwitchListTile(
           title: const Text('Pause Seeding on Battery Power'),
@@ -742,20 +918,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
         SwitchListTile(
           title: const Text('Pull Request & Code Review Alerts'),
           subtitle: const Text('Notify when someone requests review or merges a branch'),
-          value: true,
-          onChanged: (val) {},
+          value: _notifyPullRequests,
+          onChanged: (val) {
+            setState(() {
+              _notifyPullRequests = val;
+            });
+            _showNotification('PR notifications updated.');
+          },
         ),
         SwitchListTile(
           title: const Text('Issues & Direct Mentions (@username)'),
           subtitle: const Text('Notify when mentioned in repository discussions'),
-          value: true,
-          onChanged: (val) {},
+          value: _notifyIssues,
+          onChanged: (val) {
+            setState(() {
+              _notifyIssues = val;
+            });
+            _showNotification('Issue notifications updated.');
+          },
         ),
         SwitchListTile(
           title: const Text('P2P Swarm Network Alerts'),
           subtitle: const Text('Alert when repository replica count drops below health threshold'),
-          value: true,
-          onChanged: (val) {},
+          value: _notifyP2PAlerts,
+          onChanged: (val) {
+            setState(() {
+              _notifyP2PAlerts = val;
+            });
+            _showNotification('Swarm alerts updated.');
+          },
+        ),
+        SwitchListTile(
+          title: const Text('Security & SSH Alerts'),
+          subtitle: const Text('Alert on new key additions or login attempts'),
+          value: _notifySecurity,
+          onChanged: (val) {
+            setState(() {
+              _notifySecurity = val;
+            });
+            _showNotification('Security alerts updated.');
+          },
         ),
       ],
     );
@@ -779,15 +981,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 20),
         _buildSectionHeader('Accent Color Palette', 'Primary highlight color across navigation & buttons.'),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
           children: [
-            _buildColorChip(const Color(0xFF58A6FF), 'Electric Blue', true),
-            const SizedBox(width: 12),
-            _buildColorChip(const Color(0xFF3FB950), 'Emerald Green', false),
-            const SizedBox(width: 12),
-            _buildColorChip(const Color(0xFFBC8CFF), 'Cyber Purple', false),
-            const SizedBox(width: 12),
-            _buildColorChip(const Color(0xFFD29922), 'Amber', false),
+            _buildColorChip(const Color(0xFF58A6FF), 'Electric Blue'),
+            _buildColorChip(const Color(0xFF3FB950), 'Emerald Green'),
+            _buildColorChip(const Color(0xFFBC8CFF), 'Cyber Purple'),
+            _buildColorChip(const Color(0xFFD29922), 'Amber'),
+            _buildColorChip(const Color(0xFFF85149), 'Crimson'),
           ],
         ),
       ],
@@ -803,15 +1005,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         _buildSectionHeader('🧑💻 Git & CLI Configuration', 'Local Git integration and developer tools.'),
         const SizedBox(height: 16),
-        _buildTextField('Git User Name', 'Soham Mondal'),
+        _buildFormInput('Git User Name', _gitNameController),
         const SizedBox(height: 16),
-        _buildTextField('Git User Email', 'soham@codehub.io'),
+        _buildFormInput('Git User Email', _gitEmailController),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: () {
+            _showNotification('Git global config updated.');
+          },
+          icon: const Icon(Icons.save, size: 16),
+          label: const Text('Save Git Configuration'),
+        ),
         const SizedBox(height: 24),
         SwitchListTile(
           title: const Text('Require GPG / Ed25519 Commit Signing'),
           subtitle: const Text('Auto-sign all DAG commits created via CodeHub desktop interface'),
-          value: true,
-          onChanged: (val) {},
+          value: _requireCommitSigning,
+          onChanged: (val) {
+            setState(() {
+              _requireCommitSigning = val;
+            });
+            _showNotification('Commit signing requirement ${val ? 'enabled' : 'disabled'}.');
+          },
         ),
       ],
     );
@@ -829,14 +1044,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
         SwitchListTile(
           title: const Text('Public Profile Visibility'),
           subtitle: const Text('Allow peers to view your public repositories & profile info'),
-          value: true,
-          onChanged: (val) {},
+          value: _publicProfileVisibility,
+          onChanged: (val) {
+            setState(() {
+              _publicProfileVisibility = val;
+            });
+            _showNotification('Profile visibility updated.');
+          },
         ),
         SwitchListTile(
           title: const Text('Stealth Mode (Hide Peer Online Status)'),
           subtitle: const Text('Participate in swarm seeding without broadcasting node IP to public indexers'),
-          value: false,
-          onChanged: (val) {},
+          value: _stealthMode,
+          onChanged: (val) {
+            setState(() {
+              _stealthMode = val;
+            });
+            _showNotification('Stealth mode ${val ? 'activated' : 'deactivated'}.');
+          },
         ),
       ],
     );
@@ -859,9 +1084,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 20),
         OutlinedButton.icon(
-          onPressed: () {},
+          onPressed: () {
+            _showNotification('Temporary object cache cleared (340 MB freed).');
+          },
           icon: const Icon(Icons.delete_sweep, size: 16, color: Colors.orangeAccent),
           label: const Text('Clear Temporary Object Cache (340 MB)'),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () {
+            _showNotification('Exporting full user data archive (ZIP)...');
+          },
+          icon: const Icon(Icons.download, size: 16),
+          label: const Text('Export Data Package'),
         ),
       ],
     );
@@ -892,7 +1127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: const Text('Force logout across all registered desktop & web devices.', style: TextStyle(color: Colors.white60)),
                 trailing: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF85149), foregroundColor: Colors.white),
-                  onPressed: () {},
+                  onPressed: () => _confirmActionDialog('Revoke All Sessions', 'Are you sure you want to force logout across all active sessions?'),
                   child: const Text('Revoke Sessions'),
                 ),
               ),
@@ -903,7 +1138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: const Text('Deregister local peer node identity from P2P swarm.', style: TextStyle(color: Colors.white60)),
                 trailing: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF85149), foregroundColor: Colors.white),
-                  onPressed: () {},
+                  onPressed: () => _confirmActionDialog('Remove Local Device Node', 'This will stop seeding and unregister this device from the swarm.'),
                   child: const Text('Remove Device'),
                 ),
               ),
@@ -914,7 +1149,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: const Text('Permanently purge user identity, repositories, and credentials.', style: TextStyle(color: Colors.white60)),
                 trailing: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF85149), foregroundColor: Colors.white),
-                  onPressed: () {},
+                  onPressed: () => _confirmActionDialog('Delete Sovereign Account', 'CRITICAL WARNING: This action is permanent and cannot be undone!', onConfirm: () {
+                    widget.state.logoutUser();
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => SplashScreen(state: widget.state)),
+                    );
+                  }),
                   child: const Text('Delete Account'),
                 ),
               ),
@@ -926,8 +1166,129 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // Helper Widgets
+  // Dialogs & Helper Modals
   // ---------------------------------------------------------------------------
+  void _showAddSshKeyDialog() {
+    final titleCtrl = TextEditingController();
+    final keyCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Add New SSH Key'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                decoration: const InputDecoration(labelText: 'Key Title (e.g. Workstation Laptop)', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: keyCtrl,
+                maxLines: 4,
+                decoration: const InputDecoration(labelText: 'Public Key (ssh-ed25519 AAAAC3...)', border: OutlineInputBorder()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                if (titleCtrl.text.isNotEmpty && keyCtrl.text.isNotEmpty) {
+                  setState(() {
+                    _sshKeys.add({
+                      'title': titleCtrl.text,
+                      'fp': 'SHA256:${keyCtrl.text.hashCode.abs().toRadixString(16)}',
+                      'added': 'Added just now',
+                    });
+                  });
+                  Navigator.pop(ctx);
+                  _showNotification('SSH Key "${titleCtrl.text}" added!');
+                }
+              },
+              child: const Text('Add Key'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showGenerateTokenDialog() {
+    final tokenNameCtrl = TextEditingController(text: 'new_access_token');
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Generate Personal Access Token'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: tokenNameCtrl,
+                decoration: const InputDecoration(labelText: 'Token Name', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 16),
+              const CheckboxListTile(value: true, onChanged: null, title: Text('repo:read (Read repository objects)')),
+              const CheckboxListTile(value: true, onChanged: null, title: Text('write:packages (Push P2P DAG objects)')),
+              const CheckboxListTile(value: true, onChanged: null, title: Text('swarm:pin (Pin & auto-replicate)')),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                final newToken = 'codehub_pat_live_${DateTime.now().millisecondsSinceEpoch}';
+                setState(() {
+                  _accessTokens.add({
+                    'name': tokenNameCtrl.text,
+                    'scopes': 'repo:read, write:packages, swarm:pin',
+                    'expires': 'Expires in 90 days',
+                  });
+                });
+                Navigator.pop(ctx);
+                Clipboard.setData(ClipboardData(text: newToken));
+                _showNotification('Token generated & copied to clipboard: $newToken');
+              },
+              child: const Text('Generate Token'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmActionDialog(String title, String message, {VoidCallback? onConfirm}) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(title, style: const TextStyle(color: Colors.redAccent)),
+          content: Text(message),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.pop(ctx);
+                if (onConfirm != null) {
+                  onConfirm();
+                } else {
+                  _showNotification('$title performed successfully.');
+                }
+              },
+              child: const Text('Confirm'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Helper Form Inputs & Widgets
   Widget _buildSectionHeader(String title, String subtitle) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
@@ -953,7 +1314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildTextField(String label, String value, {bool enabled = true}) {
+  Widget _buildFormInput(String label, TextEditingController controller, {bool enabled = true, int maxLines = 1}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -967,9 +1328,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        TextFormField(
-          initialValue: value,
+        TextField(
+          controller: controller,
           enabled: enabled,
+          maxLines: maxLines,
           style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
           decoration: InputDecoration(
             filled: true,
@@ -1041,12 +1403,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildColorChip(Color color, String label, bool isSelected) {
-    return Chip(
-      avatar: CircleAvatar(backgroundColor: color, radius: 6),
-      label: Text(label),
-      backgroundColor: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
-      side: BorderSide(color: isSelected ? color : Colors.grey.shade600),
+  Widget _buildColorChip(Color color, String label) {
+    final isSelected = _selectedAccentColor == label;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedAccentColor = label;
+        });
+        _showNotification('Accent color changed to $label.');
+      },
+      child: Chip(
+        avatar: CircleAvatar(backgroundColor: color, radius: 6),
+        label: Text(label),
+        backgroundColor: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
+        side: BorderSide(color: isSelected ? color : Colors.grey.shade600),
+      ),
     );
   }
 
