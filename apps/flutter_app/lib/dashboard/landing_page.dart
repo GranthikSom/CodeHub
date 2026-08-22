@@ -55,6 +55,7 @@ class Landingpage extends StatelessWidget {
 
   Widget _buildOverviewTab(BuildContext context, CodeHubState state) {
     final filtered = state.filteredRepositories;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SingleChildScrollView(
       child: Column(
@@ -74,9 +75,7 @@ class Landingpage extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.8,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF8B949E)
-                      : Colors.grey.shade700,
+                  color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700,
                 ),
               ),
               Row(
@@ -120,6 +119,7 @@ class Landingpage extends StatelessWidget {
 
   Widget _buildReposTab(BuildContext context, CodeHubState state) {
     final filtered = state.filteredRepositories;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,9 +133,7 @@ class Landingpage extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.8,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF8B949E)
-                    : Colors.grey.shade700,
+                color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700,
               ),
             ),
             Row(

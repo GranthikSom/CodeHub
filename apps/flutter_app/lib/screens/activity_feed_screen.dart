@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/codehub_state.dart';
+import '../widgets/activity_feed_card.dart';
 
 class ActivityFeedScreen extends StatefulWidget {
   final CodeHubState state;
@@ -11,58 +12,119 @@ class ActivityFeedScreen extends StatefulWidget {
 }
 
 class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
-  final List<Map<String, dynamic>> _activities = [
-    {
-      'type': 'commit',
-      'user': 'GranthikSom',
-      'repo': 'codehub-core-p2p',
-      'action': 'pushed 3 commits to branch',
-      'branch': 'main',
-      'time': '10 mins ago',
-      'sha': '8f2a1b9c',
-      'msg': 'feat: implement delta sync calculation & commit DAG visualizer',
-    },
-    {
-      'type': 'replication',
-      'user': 'TokyoNodePeer',
-      'repo': 'flutter-dag-visualizer',
-      'action': 'completed 100% replication pin',
-      'branch': 'main',
-      'time': '25 mins ago',
-      'sha': '3c19d4f2',
-      'msg': 'Replicated 380 Git objects (42.1 MB) across 3 peer nodes',
-    },
-    {
-      'type': 'pr',
-      'user': 'SohamMondal',
-      'repo': 'codehub-core-p2p',
-      'action': 'opened pull request #201',
-      'branch': 'feature/dht-routing',
-      'time': '1 hour ago',
-      'sha': '1a72e8b9',
-      'msg': 'feat: implement Kademlia DHT peer discovery protocol',
-    },
-    {
-      'type': 'star',
-      'user': 'SanFranciscoPeer',
-      'repo': 'codehub-core-p2p',
-      'action': 'starred repository',
-      'branch': 'main',
-      'time': '2 hours ago',
-      'sha': 'root_c4b0c2a',
-      'msg': 'Added to pinned seeding favorites',
-    },
+  ActivityCategory _selectedCategory = ActivityCategory.all;
+
+  final List<ActivityItem> _allActivities = const [
+    ActivityItem(
+      id: 'act-1',
+      category: ActivityCategory.pushes,
+      typeLabel: 'Pushes',
+      title: 'Soham pushed 3 commits',
+      repoOrTarget: 'codehub-core-p2p',
+      timeAgo: '2 minutes ago',
+      shaOrMeta: 'main..3a4f89',
+      detail: 'feat: implement delta sync calculation & commit DAG visualizer',
+    ),
+    ActivityItem(
+      id: 'act-2',
+      category: ActivityCategory.prs,
+      typeLabel: 'PRs',
+      title: 'PR #24 opened by SohamMondal',
+      repoOrTarget: 'flutter-dag-visualizer',
+      timeAgo: '8 minutes ago',
+      shaOrMeta: 'PR #24',
+      detail: 'feat: add interactive DAG node graph view with live zooming',
+    ),
+    ActivityItem(
+      id: 'act-3',
+      category: ActivityCategory.replication,
+      typeLabel: 'Replication',
+      title: 'Repository replicated to Node #42',
+      repoOrTarget: 'codehub-core-p2p',
+      timeAgo: '12 minutes ago',
+      shaOrMeta: 'Node #42',
+      detail: '380 Git Blobs (42.1 MB) synchronized with 9-replica redundancy target',
+    ),
+    ActivityItem(
+      id: 'act-4',
+      category: ActivityCategory.peer,
+      typeLabel: 'Peer Events',
+      title: 'New peer joined your swarm',
+      repoOrTarget: 'Peer: 12D3KooWControlRelayServer',
+      timeAgo: '15 minutes ago',
+      shaOrMeta: 'libp2p DHT',
+      detail: 'Connected via Noise TLS encrypted transport on port 4001',
+    ),
+    ActivityItem(
+      id: 'act-5',
+      category: ActivityCategory.issues,
+      typeLabel: 'Issues',
+      title: 'Issue #18 closed',
+      repoOrTarget: 'kademlia-dht-relay',
+      timeAgo: '21 minutes ago',
+      shaOrMeta: 'Issue #18',
+      detail: 'Resolved routing table staleness on network reconnects',
+    ),
+    ActivityItem(
+      id: 'act-6',
+      category: ActivityCategory.commits,
+      typeLabel: 'Commits',
+      title: 'Granthik committed 8f2a1b9c',
+      repoOrTarget: 'codehub-core-p2p',
+      timeAgo: '34 minutes ago',
+      shaOrMeta: '8f2a1b9c',
+      detail: 'security: Argon2id zero-plain-password identity verification',
+    ),
+    ActivityItem(
+      id: 'act-7',
+      category: ActivityCategory.repo,
+      typeLabel: 'Repository',
+      title: 'New repository flutter-dag-visualizer created',
+      repoOrTarget: 'flutter-dag-visualizer',
+      timeAgo: '45 minutes ago',
+      shaOrMeta: 'SHA-256 Catalog',
+      detail: 'Initial root commit registered in global P2P content-addressed store',
+    ),
+    ActivityItem(
+      id: 'act-8',
+      category: ActivityCategory.replication,
+      typeLabel: 'Replication',
+      title: 'TokyoNodePeer completed 100% replication pin',
+      repoOrTarget: 'codehub-core-p2p',
+      timeAgo: '1 hour ago',
+      shaOrMeta: 'Pin Target',
+      detail: 'Seeding 14 active swarm peers over libp2p Gossipsub pub/sub channel',
+    ),
   ];
+
+  List<ActivityItem> get _filteredActivities {
+    if (_selectedCategory == ActivityCategory.all) {
+      return _allActivities;
+    }
+    return _allActivities.where((a) => a.category == _selectedCategory).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final categoryTabs = [
+      {'label': 'All Activity', 'cat': ActivityCategory.all, 'icon': Icons.timeline_rounded},
+      {'label': 'Pushes', 'cat': ActivityCategory.pushes, 'icon': Icons.upload_rounded},
+      {'label': 'Commits', 'cat': ActivityCategory.commits, 'icon': Icons.commit_rounded},
+      {'label': 'PRs', 'cat': ActivityCategory.prs, 'icon': Icons.merge_type_rounded},
+      {'label': 'Issues', 'cat': ActivityCategory.issues, 'icon': Icons.adjust_rounded},
+      {'label': 'Repository', 'cat': ActivityCategory.repo, 'icon': Icons.folder_outlined},
+      {'label': 'Peer Events', 'cat': ActivityCategory.peer, 'icon': Icons.hub_rounded},
+      {'label': 'Replication', 'cat': ActivityCategory.replication, 'icon': Icons.cloud_sync_rounded},
+    ];
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Section
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -74,7 +136,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
                       const Icon(Icons.timeline_rounded, color: Color(0xFFBC8CFF), size: 28),
                       const SizedBox(width: 10),
                       Text(
-                        'Live P2P Swarm Activity Feed',
+                        'Swarm Activity Feed',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -85,7 +147,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Real-time pub/sub replication announcements broadcast over libp2p Gossipsub channel.',
+                    'What happened while you were away? Pushes, PRs, issues, replication & peer mesh updates.',
                     style: TextStyle(
                       fontSize: 13,
                       color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600,
@@ -105,7 +167,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
                     Icon(Icons.sensors, color: Color(0xFF3FB950), size: 16),
                     SizedBox(width: 6),
                     Text(
-                      'Gossipsub PubSub Active',
+                      'Live Gossipsub Stream',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF3FB950)),
                     ),
                   ],
@@ -113,124 +175,69 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
 
-          Expanded(
-            child: ListView.builder(
-              itemCount: _activities.length,
-              itemBuilder: (context, index) {
-                final item = _activities[index];
-                IconData icon;
-                Color iconColor;
+          // Category Filter Chips Bar
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: categoryTabs.map((tab) {
+                final category = tab['cat'] as ActivityCategory;
+                final isSelected = _selectedCategory == category;
+                final icon = tab['icon'] as IconData;
 
-                switch (item['type']) {
-                  case 'commit':
-                    icon = Icons.commit;
-                    iconColor = const Color(0xFF58A6FF);
-                    break;
-                  case 'replication':
-                    icon = Icons.sync_rounded;
-                    iconColor = const Color(0xFF3FB950);
-                    break;
-                  case 'pr':
-                    icon = Icons.call_merge;
-                    iconColor = const Color(0xFFBC8CFF);
-                    break;
-                  case 'star':
-                  default:
-                    icon = Icons.star_border_rounded;
-                    iconColor = const Color(0xFFD29922);
-                    break;
-                }
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF161B22) : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: iconColor.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(icon, color: iconColor, size: 20),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            RichText(
-                              text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: isDark ? Colors.white : Colors.black87,
-                                ),
-                                children: [
-                                  TextSpan(
-                                    text: item['user'] as String,
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  TextSpan(text: ' ${item['action']} '),
-                                  TextSpan(
-                                    text: item['repo'] as String,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF58A6FF)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF21262D) : Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      item['sha'] as String,
-                                      style: const TextStyle(fontSize: 11, fontFamily: 'monospace', fontWeight: FontWeight.bold, color: Color(0xFF58A6FF)),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      item['msg'] as String,
-                                      style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        item['time'] as String,
-                        style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
-                      ),
-                    ],
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: FilterChip(
+                    showCheckmark: false,
+                    selected: isSelected,
+                    avatar: Icon(
+                      icon,
+                      size: 16,
+                      color: isSelected ? Colors.white : (isDark ? const Color(0xFF8B949E) : Colors.grey.shade700),
+                    ),
+                    label: Text(tab['label'] as String),
+                    labelStyle: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                    ),
+                    backgroundColor: isDark ? const Color(0xFF161B22) : Colors.grey.shade200,
+                    selectedColor: const Color(0xFF2F81F7),
+                    side: BorderSide(
+                      color: isSelected
+                          ? const Color(0xFF2F81F7)
+                          : (isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+                    ),
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                    },
                   ),
                 );
-              },
+              }).toList(),
             ),
+          ),
+          const SizedBox(height: 18),
+
+          // Feed List View
+          Expanded(
+            child: _filteredActivities.isEmpty
+                ? Center(
+                    child: Text(
+                      'No events in this category yet.',
+                      style: TextStyle(
+                        color: isDark ? const Color(0xFF8B949E) : Colors.grey,
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _filteredActivities.length,
+                    itemBuilder: (context, index) {
+                      return ActivityFeedCard(item: _filteredActivities[index]);
+                    },
+                  ),
           ),
         ],
       ),

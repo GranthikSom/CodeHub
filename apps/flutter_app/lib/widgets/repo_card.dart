@@ -121,9 +121,31 @@ class RepoCard extends StatelessWidget {
 
               const SizedBox(width: 16),
 
-              // Action Buttons: Pin & Explore DAG
+              // Action Buttons: Issues, Pin & Explore DAG
               Row(
                 children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => RepositoryDetailScreen(
+                            repoName: repo.name,
+                            owner: repo.owner,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.adjust_rounded, size: 14),
+                    label: const Text('Issues (18)'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF38BDF8),
+                      side: BorderSide(
+                        color: const Color(0xFF38BDF8).withValues(alpha: 0.5),
+                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   OutlinedButton.icon(
                     onPressed: () {
                       state.selectRepository(repo.id);
@@ -168,6 +190,32 @@ class RepoCard extends StatelessWidget {
           // P2P Replication Footer metadata
           Row(
             children: [
+              // Issues Metric Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.bug_report_outlined, size: 12, color: Color(0xFF38BDF8)),
+                    SizedBox(width: 4),
+                    Text(
+                      '18 Open Issues',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF38BDF8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
               // Root SHA Hash
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

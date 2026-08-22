@@ -4,7 +4,9 @@ import '../dashboard/landing_page.dart';
 import '../services/codehub_state.dart';
 import 'auth_screen.dart';
 import 'explore_screen.dart';
+import 'pull_requests_screen.dart';
 import 'activity_feed_screen.dart';
+import 'issues_screen.dart';
 import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -147,6 +149,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     label: Text('Explore'),
                   ),
                   NavigationRailDestination(
+                    icon: Icon(Icons.call_merge_outlined),
+                    selectedIcon: Icon(Icons.call_merge_rounded, color: Colors.blueAccent),
+                    label: Text('Pull Requests'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.bug_report_outlined),
+                    selectedIcon: Icon(Icons.bug_report, color: Colors.blueAccent),
+                    label: Text('Issues'),
+                  ),
+                  NavigationRailDestination(
                     icon: Icon(Icons.timeline_outlined),
                     selectedIcon: Icon(Icons.timeline, color: Colors.blueAccent),
                     label: Text('Activity'),
@@ -176,13 +188,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // 1. Explore Catalog
                     ExploreScreen(state: _state),
 
-                    // 2. Activity Feed
+                    // 2. Pull Requests Management
+                    PullRequestsScreen(state: _state),
+
+                    // 3. Issues Tracker
+                    IssuesScreen(state: _state),
+
+                    // 4. Activity Feed
                     ActivityFeedScreen(state: _state),
 
-                    // 3. System Notifications & Alerts
+                    // 5. System Notifications & Alerts
                     NotificationsScreen(state: _state),
 
-                    // 4. Settings & Storage Control
+                    // 6. Settings & Storage Control
                     _buildSettingsSection(context),
                   ],
                 ),

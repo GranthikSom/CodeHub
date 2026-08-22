@@ -4,12 +4,9 @@ import '../widgets/branches_view.dart';
 import '../widgets/code_browser_view.dart';
 import '../widgets/git_object_dag_view.dart';
 import '../widgets/issues_view.dart';
-import '../widgets/local_storage_panel.dart';
-import '../widgets/permissions_view.dart';
 import '../widgets/pull_requests_view.dart';
+import '../widgets/repo_tab_views.dart';
 import '../widgets/repository_network_view.dart';
-import '../widgets/tags_view.dart';
-import '../widgets/releases_view.dart';
 
 class RepositoryDetailScreen extends StatefulWidget {
   final String repoName;
@@ -31,21 +28,21 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
 
   final List<String> _tabs = [
     'Code',
-    'Commits',
-    'Branches',
-    'Tags',
     'Issues',
     'Pull Requests',
-    'Members',
-    'Releases',
-    'Network',
-    'Storage',
+    'Actions',
+    'Projects',
+    'Security',
+    'Insights',
+    'Commits',
+    'Branches',
+    'Swarm Network',
   ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this, initialIndex: 0); // Default to Code tab
+    _tabController = TabController(length: _tabs.length, vsync: this, initialIndex: 0);
   }
 
   @override
@@ -79,35 +76,35 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // 1. Code View (Phase 1 Code Browser)
+          // 1. Code View
           CodeBrowserView(repoName: widget.repoName, owner: widget.owner),
 
-          // 2. Commits (Phase 1 Commit History & Git Object DAG View)
-          const GitObjectDagView(),
-
-          // 3. Branches (Phase 1 Branch Manager & PRs)
-          BranchesView(repoName: widget.repoName, owner: widget.owner),
-
-          // 4. Tags & Signatures (Phase 2 Signed Tags)
-          TagsView(repoName: widget.repoName, owner: widget.owner),
-
-          // 5. Issues (Phase 2 Issue Tracker)
+          // 2. Issues Tracker
           IssuesView(repoName: widget.repoName, owner: widget.owner),
 
-          // 6. Pull Requests (Phase 2 Pull Requests)
+          // 3. Pull Requests
           PullRequestsView(repoName: widget.repoName, owner: widget.owner),
 
-          // 7. Members & Permissions (Phase 2 Key Permissions & Access Control)
-          PermissionsView(repoName: widget.repoName, owner: widget.owner),
+          // 4. Actions Workflows
+          ActionsView(repoName: widget.repoName, owner: widget.owner),
 
-          // 8. Releases & Binary Assets (Phase 2 Binary Assets)
-          ReleasesView(repoName: widget.repoName, owner: widget.owner),
+          // 5. Projects Kanban Board
+          ProjectsView(repoName: widget.repoName, owner: widget.owner),
 
-          // 9. Network (USP Tab)
+          // 6. Security Overview
+          SecurityView(repoName: widget.repoName, owner: widget.owner),
+
+          // 7. Insights Metrics
+          InsightsView(repoName: widget.repoName, owner: widget.owner),
+
+          // 8. Commits & Git DAG
+          const GitObjectDagView(),
+
+          // 9. Branches & Tags
+          BranchesView(repoName: widget.repoName, owner: widget.owner),
+
+          // 10. Swarm Network & Telemetry
           RepositoryNetworkView(repoName: widget.repoName),
-
-          // 10. Storage
-          const LocalStoragePanel(),
         ],
       ),
     );

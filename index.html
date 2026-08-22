@@ -380,6 +380,125 @@
             color: var(--text-muted);
             margin-top: 4px;
         }
+
+        /* Activity Feed Section Styles */
+        .activity-filter-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+        }
+
+        .filter-pill {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .filter-pill:hover, .filter-pill.active {
+            background-color: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 10px rgba(47, 129, 247, 0.3);
+        }
+
+        .activity-feed-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px 16px;
+            transition: border-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .activity-item:hover {
+            border-color: var(--accent-blue);
+            transform: translateX(2px);
+        }
+
+        .activity-bullet {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .bullet-pushes { background-color: #2f81f7; box-shadow: 0 0 8px #2f81f7; }
+        .bullet-commits { background-color: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+        .bullet-prs { background-color: #8957e5; box-shadow: 0 0 8px #8957e5; }
+        .bullet-issues { background-color: #f85149; box-shadow: 0 0 8px #f85149; }
+        .bullet-repo { background-color: #d29922; box-shadow: 0 0 8px #d29922; }
+        .bullet-peer { background-color: #238636; box-shadow: 0 0 8px #238636; }
+        .bullet-replication { background-color: #f0883e; box-shadow: 0 0 8px #f0883e; }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .activity-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .activity-target {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 6px;
+        }
+
+        .activity-detail-box {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .activity-meta-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(47, 129, 247, 0.15);
+            color: var(--accent-blue);
+        }
     </style>
 </head>
 <body>
@@ -538,6 +657,67 @@
                 <div class="console-box" id="audit-console" style="min-height: 285px;">// Click any action button to query Axum Server API...</div>
             </div>
 
+        </section>
+
+        <!-- Swarm Issues & Task Tracker Card -->
+        <section class="card">
+            <div class="section-title">
+                <div class="section-title-left">
+                    <span>🐛</span> Swarm Issues & Task Tracker
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="badge badge-blue">18 Open Issues</span>
+                    <span class="badge badge-purple">4 Assigned to You</span>
+                    <span class="badge badge-red">2 Needs Attention</span>
+                </div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+                Track bugs, feature requests, and community discussions across P2P repositories.
+            </p>
+
+            <!-- Issues Summary Metric Cards Row -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <div style="background: var(--bg-card-subtle, #0d1117); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color, #21262d); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Open Issues</span>
+                    <span style="font-size: 22px; font-weight: bold; color: #38bdf8;">18</span>
+                </div>
+                <div style="background: var(--bg-card-subtle, #0d1117); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color, #21262d); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Assigned to You</span>
+                    <span style="font-size: 22px; font-weight: bold; color: #a371f7;">4</span>
+                </div>
+                <div style="background: var(--bg-card-subtle, #0d1117); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color, #21262d); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Needs Attention</span>
+                    <span style="font-size: 22px; font-weight: bold; color: #f85149;">2</span>
+                </div>
+            </div>
+
+            <!-- Urgent Issues Highlight -->
+            <div style="margin-bottom: 16px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 12px 16px;">
+                <div style="font-size: 11px; font-weight: bold; letter-spacing: 0.6px; color: #38bdf8; margin-bottom: 8px;">HIGH PRIORITY ISSUES</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span><strong style="color: #38bdf8; font-family: monospace;">#124</strong> P2P sync timeout when seeding large chunk files</span>
+                        <span class="badge badge-red">codehub-core-p2p</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span><strong style="color: #38bdf8; font-family: monospace;">#121</strong> Windows node crash on Rabin fingerprint boundary calculation</span>
+                        <span class="badge badge-red">codehub-core-p2p</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                        <span><strong style="color: #38bdf8; font-family: monospace;">#118</strong> DAG rendering issue in Flutter graph visualizer</span>
+                        <span class="badge badge-purple">flutter-dag-visualizer</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div class="activity-filter-bar" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="filter-pill active">Open (18)</button>
+                <button class="filter-pill">Closed (5)</button>
+                <button class="filter-pill">Assigned to Me (4)</button>
+                <button class="filter-pill">Mentioned (2)</button>
+                <button class="filter-pill">Labels (#bug, #p2p-sync, #critical)</button>
+            </div>
         </section>
 
         <!-- Indexed Repositories Table -->
@@ -823,12 +1003,118 @@
             document.getElementById('audit-console').innerText = JSON.stringify(data, null, 2);
         }
 
+        // Activity Feed Dataset & Dynamic Rendering
+        const activityFeedData = [
+            {
+                category: 'pushes',
+                title: 'Soham pushed 3 commits',
+                target: 'codehub-core-p2p',
+                time: '2 minutes ago',
+                meta: 'main..3a4f89',
+                detail: 'feat: implement delta sync calculation & commit DAG visualizer'
+            },
+            {
+                category: 'prs',
+                title: 'PR #24 opened',
+                target: 'flutter-dag-visualizer',
+                time: '8 minutes ago',
+                meta: 'PR #24',
+                detail: 'feat: add interactive DAG node graph view'
+            },
+            {
+                category: 'replication',
+                title: 'Repository replicated to Node #42',
+                target: 'codehub-core-p2p',
+                time: '12 minutes ago',
+                meta: 'Node #42',
+                detail: '380 Git Blobs (42.1 MB) synchronized with 9-replica redundancy target'
+            },
+            {
+                category: 'peer',
+                title: 'New peer joined your swarm',
+                target: 'Peer: 12D3KooWControlRelayServer',
+                time: '15 minutes ago',
+                meta: 'libp2p DHT',
+                detail: 'Connected via Noise TLS encrypted transport on port 4001'
+            },
+            {
+                category: 'issues',
+                title: 'Issue #18 closed',
+                target: 'kademlia-dht-relay',
+                time: '21 minutes ago',
+                meta: 'Issue #18',
+                detail: 'Resolved routing table staleness on network reconnects'
+            },
+            {
+                category: 'commits',
+                title: 'Granthik committed 8f2a1b9c',
+                target: 'codehub-core-p2p',
+                time: '34 minutes ago',
+                meta: '8f2a1b9c',
+                detail: 'security: Argon2id zero-plain-password identity verification'
+            },
+            {
+                category: 'repo',
+                title: 'New repository flutter-dag-visualizer created',
+                target: 'flutter-dag-visualizer',
+                time: '45 minutes ago',
+                meta: 'Catalog',
+                detail: 'Initial root commit registered in global P2P content-addressed store'
+            }
+        ];
+
+        let activeFilter = 'all';
+
+        function renderActivityFeed() {
+            const container = document.getElementById('activity-feed-list');
+            if (!container) return;
+
+            const filtered = (activeFilter === 'all')
+                ? activityFeedData
+                : activityFeedData.filter(item => item.category === activeFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">No activity recorded in this category.</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => `
+                <div class="activity-item">
+                    <div class="activity-bullet bullet-${item.category}"></div>
+                    <div class="activity-content">
+                        <div class="activity-header">
+                            <div class="activity-title">${item.title}</div>
+                            <div class="activity-time">${item.time}</div>
+                        </div>
+                        <div class="activity-target">📦 ${item.target}</div>
+                        ${(item.meta || item.detail) ? `
+                            <div class="activity-detail-box">
+                                ${item.meta ? `<span class="activity-meta-tag">${item.meta}</span>` : ''}
+                                <span>${item.detail || ''}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterActivityFeed(category, btnElement) {
+            activeFilter = category;
+            const pills = document.querySelectorAll('.activity-filter-bar .filter-pill');
+            pills.forEach(p => p.classList.remove('active'));
+            if (btnElement) {
+                btnElement.classList.add('active');
+            }
+            renderActivityFeed();
+        }
+
         // Initial Load
         window.addEventListener('DOMContentLoaded', () => {
             checkServerHealth();
             fetchRepositories();
             fetchUsersREST();
             initLiveUsersWebSocket();
+            renderActivityFeed();
         });
     </script>
 </body>
