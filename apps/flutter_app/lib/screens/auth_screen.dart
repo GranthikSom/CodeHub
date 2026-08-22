@@ -110,38 +110,41 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Container(
               color: const Color(0xFF0D1117),
               padding: const EdgeInsets.all(48),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.hub, size: 64, color: Colors.blueAccent),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Welcome to CodeHub',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.hub, size: 64, color: Colors.blueAccent),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Welcome to CodeHub',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'A sovereign hybrid P2P platform. Your repositories are content-addressed SHA-256 objects replicated directly across participating devices.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white60,
-                      height: 1.5,
+                    const SizedBox(height: 12),
+                    const Text(
+                      'A sovereign hybrid P2P platform. Your repositories are content-addressed SHA-256 objects replicated directly across participating devices.',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white60,
+                        height: 1.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      _buildP2PBadge(Icons.shield, 'Noise TLS Encryption'),
-                      const SizedBox(width: 16),
-                      _buildP2PBadge(Icons.lan, 'Kademlia DHT'),
-                    ],
-                  ),
-                ],
+                    const SizedBox(height: 32),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 12,
+                      children: [
+                        _buildP2PBadge(Icons.shield, 'Noise TLS Encryption'),
+                        _buildP2PBadge(Icons.lan, 'Kademlia DHT'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -150,10 +153,11 @@ class _AuthScreenState extends State<AuthScreen> {
           Expanded(
             flex: 4,
             child: Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 400),
-                padding: const EdgeInsets.all(32),
-                child: Column(
+              child: SingleChildScrollView(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -250,6 +254,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ),
           ),
+        ),
         ],
       ),
     );
