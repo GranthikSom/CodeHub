@@ -891,41 +891,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    children: const [
-                      SizedBox(height: 2),
-                      Text('Mon', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      SizedBox(height: 14),
-                      Text('Wed', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      SizedBox(height: 14),
-                      Text('Fri', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    ],
+                  SizedBox(
+                    width: 28,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        SizedBox(height: 1),
+                        Text('Mon', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                        SizedBox(height: 12),
+                        Text('Wed', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                        SizedBox(height: 12),
+                        Text('Fri', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: Wrap(
-                        direction: Axis.vertical,
-                        spacing: 3,
-                        runSpacing: 3,
-                        children: List.generate(365, (idx) {
-                          final level = (idx * 11 + 5) % 5;
-                          Color c = isDark ? const Color(0xFF0D1117) : Colors.grey.shade200;
-                          if (level == 1) c = const Color(0xFF0E4429);
-                          if (level == 2) c = const Color(0xFF006D32);
-                          if (level == 3) c = const Color(0xFF26A641);
-                          if (level == 4) c = const Color(0xFF39D353);
+                      child: Row(
+                        children: List.generate(52, (weekIdx) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 3),
+                            child: Column(
+                              children: List.generate(7, (dayIdx) {
+                                final dayNumber = weekIdx * 7 + dayIdx;
+                                final level = (dayNumber * 11 + 5) % 5;
+                                Color c = isDark ? const Color(0xFF0D1117) : Colors.grey.shade200;
+                                if (level == 1) c = const Color(0xFF0E4429);
+                                if (level == 2) c = const Color(0xFF006D32);
+                                if (level == 3) c = const Color(0xFF26A641);
+                                if (level == 4) c = const Color(0xFF39D353);
 
-                          return Tooltip(
-                            message: '${level * 3 + 1} contributions on Day $idx',
-                            child: Container(
-                              width: 11,
-                              height: 11,
-                              decoration: BoxDecoration(
-                                color: c,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
+                                return Tooltip(
+                                  message: '${level * 3 + 1} contributions on Day $dayNumber',
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 3),
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: c,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                );
+                              }),
                             ),
                           );
                         }),
@@ -1640,23 +1650,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Wrap(
-                            spacing: 3,
-                            runSpacing: 3,
-                            children: List.generate(120, (index) {
-                              final level = (index * 7 + 3) % 5;
-                              Color c = isDark ? const Color(0xFF161B22) : Colors.grey.shade200;
-                              if (level == 1) c = const Color(0xFF0E4429);
-                              if (level == 2) c = const Color(0xFF006D32);
-                              if (level == 3) c = const Color(0xFF26A641);
-                              if (level == 4) c = const Color(0xFF39D353);
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: List.generate(48, (weekIdx) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 3),
+                                  child: Column(
+                                    children: List.generate(7, (dayIdx) {
+                                      final dayNumber = weekIdx * 7 + dayIdx;
+                                      final level = (dayNumber * 7 + 3) % 5;
+                                      Color c = isDark ? const Color(0xFF0D1117) : Colors.grey.shade200;
+                                      if (level == 1) c = const Color(0xFF0E4429);
+                                      if (level == 2) c = const Color(0xFF006D32);
+                                      if (level == 3) c = const Color(0xFF26A641);
+                                      if (level == 4) c = const Color(0xFF39D353);
 
-                              return Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(2)),
-                              );
-                            }),
+                                      return Container(
+                                        margin: const EdgeInsets.only(bottom: 3),
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(2)),
+                                      );
+                                    }),
+                                  ),
+                                );
+                              }),
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Row(
