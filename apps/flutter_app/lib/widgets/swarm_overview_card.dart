@@ -143,8 +143,10 @@ class SwarmOverviewCard extends StatelessWidget {
                 color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300,
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: state.nodes.map((node) {
                 final isLocal = node.isLocal;
                 return Row(
@@ -213,6 +215,7 @@ class SwarmOverviewCard extends StatelessWidget {
               }).toList(),
             ),
           ),
+        ),
         ],
       ),
     );
