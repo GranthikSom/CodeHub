@@ -8,6 +8,7 @@ import 'pull_requests_screen.dart';
 import 'activity_feed_screen.dart';
 import 'issues_screen.dart';
 import 'notifications_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final CodeHubState? state;
@@ -201,7 +202,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     NotificationsScreen(state: _state),
 
                     // 6. Settings & Storage Control
-                    _buildSettingsSection(context),
+                    SettingsScreen(state: _state),
                   ],
                 ),
               ),
@@ -209,45 +210,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       }
-    );
-  }
-
-  Widget _buildSettingsSection(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return ListView(
-      padding: const EdgeInsets.all(32),
-      children: [
-        Text(
-          'Settings & Preferences',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 24),
-        SwitchListTile(
-          title: const Text('Dark Mode Theme'),
-          subtitle: const Text('Toggle between dark and light UI color schemes'),
-          value: _state.themeMode == ThemeMode.dark,
-          onChanged: (val) {
-            _state.toggleThemeMode();
-          },
-        ),
-        const Divider(),
-        ListTile(
-          title: const Text('P2P Bootstrap Relay Node'),
-          subtitle: const Text('/dns4/p2p.codehub.com/tcp/4001/p2p/12D3KooWControlRelayServer'),
-          trailing: const Icon(Icons.edit_outlined),
-        ),
-        const Divider(),
-        ListTile(
-          title: const Text('Local Storage Quota Limit'),
-          subtitle: const Text('20 GB Allocated (72% Used)'),
-          trailing: const Icon(Icons.storage),
-        ),
-      ],
     );
   }
 }
