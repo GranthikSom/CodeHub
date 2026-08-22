@@ -4,6 +4,7 @@ import '../widgets/branches_view.dart';
 import '../widgets/code_browser_view.dart';
 import '../widgets/git_object_dag_view.dart';
 import '../widgets/issues_view.dart';
+import '../widgets/permissions_view.dart';
 import '../widgets/pull_requests_view.dart';
 import '../widgets/repo_tab_views.dart';
 import '../widgets/repository_network_view.dart';
@@ -37,6 +38,7 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
     'Commits',
     'Branches',
     'Swarm Network',
+    'Settings (Access)',
   ];
 
   @override
@@ -105,6 +107,9 @@ class _RepositoryDetailScreenState extends State<RepositoryDetailScreen>
 
           // 10. Swarm Network & Telemetry
           RepositoryNetworkView(repoName: widget.repoName),
+
+          // 11. Settings ➔ Access & Permissions
+          PermissionsView(repoName: widget.repoName, owner: widget.owner),
         ],
       ),
     );
