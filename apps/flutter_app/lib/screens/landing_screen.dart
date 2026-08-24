@@ -441,9 +441,11 @@ class _LandingScreenState extends State<LandingScreen> {
                                       const SizedBox(height: 12),
                                       _buildStepDot(true, forestGreenPrimary),
                                       _buildStepLine(50, beigeBorder),
+                                      if (_isSignUpMode) ...[
+                                        _buildStepDot(true, forestGreenPrimary),
+                                        _buildStepLine(50, beigeBorder),
+                                      ],
                                       _buildStepDot(_isSignUpMode, forestGreenPrimary),
-                                      _buildStepLine(50, beigeBorder),
-                                      _buildStepDot(false, forestGreenPrimary),
                                     ],
                                   ),
                                   const SizedBox(width: 16),
@@ -453,28 +455,30 @@ class _LandingScreenState extends State<LandingScreen> {
                                         TextField(
                                           controller: _usernameController,
                                           style: const TextStyle(color: darkForestText, fontSize: 15, fontWeight: FontWeight.w500),
-                                          decoration: const InputDecoration(
-                                            labelText: 'Username',
-                                            labelStyle: TextStyle(color: sageGreyText),
-                                            hintText: '@cyberduck',
-                                            hintStyle: TextStyle(color: Colors.black26),
-                                            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: beigeBorder)),
-                                            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: deepSageAccent, width: 2)),
+                                          decoration: InputDecoration(
+                                            labelText: _isSignUpMode ? 'Username' : 'Username / Email',
+                                            labelStyle: const TextStyle(color: sageGreyText),
+                                            hintText: _isSignUpMode ? '@cyberduck' : 'Username or email address',
+                                            hintStyle: const TextStyle(color: Colors.black26),
+                                            enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: beigeBorder)),
+                                            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: deepSageAccent, width: 2)),
                                           ),
                                         ),
-                                        const SizedBox(height: 16),
-                                        TextField(
-                                          controller: _emailController,
-                                          style: const TextStyle(color: darkForestText, fontSize: 15, fontWeight: FontWeight.w500),
-                                          decoration: const InputDecoration(
-                                            labelText: 'Email Address',
-                                            labelStyle: TextStyle(color: sageGreyText),
-                                            hintText: 'cyberduck@codehub.com',
-                                            hintStyle: TextStyle(color: Colors.black26),
-                                            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: beigeBorder)),
-                                            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: deepSageAccent, width: 2)),
+                                        if (_isSignUpMode) ...[
+                                          const SizedBox(height: 16),
+                                          TextField(
+                                            controller: _emailController,
+                                            style: const TextStyle(color: darkForestText, fontSize: 15, fontWeight: FontWeight.w500),
+                                            decoration: const InputDecoration(
+                                              labelText: 'Email Address',
+                                              labelStyle: TextStyle(color: sageGreyText),
+                                              hintText: 'cyberduck@codehub.com',
+                                              hintStyle: TextStyle(color: Colors.black26),
+                                              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: beigeBorder)),
+                                              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: deepSageAccent, width: 2)),
+                                            ),
                                           ),
-                                        ),
+                                        ],
                                         const SizedBox(height: 16),
                                         TextField(
                                           controller: _passwordController,

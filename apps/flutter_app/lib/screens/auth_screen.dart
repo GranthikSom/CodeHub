@@ -214,10 +214,10 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: 24),
                     TextField(
                       controller: _usernameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Username',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person_outline),
+                      decoration: InputDecoration(
+                        labelText: _isLoginMode ? 'Username / Email' : 'Username',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.person_outline),
                       ),
                     ),
                     if (!_isLoginMode) ...[

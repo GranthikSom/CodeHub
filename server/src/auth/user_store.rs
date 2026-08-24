@@ -145,11 +145,23 @@ impl UserStore {
         let key = payload.username.to_lowercase();
         let map = self.users_by_username.read().map_err(|e| e.to_string())?;
 
+        // 1. Try finding by username
         if let Some(user) = map.get(&key) {
             if Argon2idHasher::verify_password(&payload.password, &user.password_hash) {
                 return Ok(user.clone());
             } else {
                 return Err("Invalid password provided for user account.".to_string());
+            }
+        }
+
+        // 2. Try finding by email
+        for user in map.values() {
+            if user.email.to_lowercase() == key {
+                if Argon2idHasher::verify_password(&payload.password, &user.password_hash) {
+                    return Ok(user.clone());
+                } else {
+                    return Err("Invalid password provided for user account.".to_string());
+                }
             }
         }
 
