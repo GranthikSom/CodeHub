@@ -1,0 +1,125 @@
+// CodeHub Control Plane Prisma Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(uuid())
+  username     String       @unique @db.VarChar(64)
+  email        String       @unique @db.VarChar(255)
+  passwordHash String       @map("password_hash")
+  publicKey    String       @map("public_key")
+  displayName  String?      @map("display_name") @db.VarChar(128)
+  avatarUrl    String?      @map("avatar_url")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  repositories Repository[]
+  peers        Peer[]
+  issues       Issue[]
+  pullRequests PullRequest[]
+
+  @@map("users")
+}
+
+model Repository {
+  id             String           @id @default(uuid())
+  ownerId        String           @map("owner_id")
+  name           String           @db.VarChar(128)
+  fullName       String           @unique @map("full_name") @db.VarChar(256)
+  description    String?
+  visibility     String?          @default("public") @db.VarChar(32)
+  defaultBranch  String?          @default("main") @map("default_branch") @db.VarChar(64)
+  language       String?          @default("Rust") @db.VarChar(64)
+  starsCount     Int              @default(0) @map("stars_count")
+  forksCount     Int              @default(0) @map("forks_count")
+  issuesCount    Int              @default(0) @map("issues_count")
+  sizeBytes      BigInt           @default(1024) @map("size_bytes")
+  objectCount    Int              @default(1) @map("object_count")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @default(now()) @map("updated_at")
+  lastCommitHash String?          @default("a81c4e97d2f831b2") @map("last_commit_hash") @db.VarChar(64)
+  owner          User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tags           RepositoryTag[]
+  peers          RepositoryPeer[]
+  issues         Issue[]
+  pullRequests   PullRequest[]
+
+  @@unique([ownerId, name])
+  @@map("repositories")
+}
+
+model RepositoryTag {
+  repositoryId String     @map("repository_id")
+  tag          String     @db.VarChar(64)
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@id([repositoryId, tag])
+  @@map("repository_tags")
+}
+
+model RepositoryPeer {
+  repositoryId String     @map("repository_id")
+  peerId       String     @map("peer_id") @db.VarChar(128)
+  status       String?    @default("online") @db.VarChar(32)
+  lastSeen     DateTime   @default(now()) @map("last_seen")
+  storageBytes BigInt     @default(0) @map("storage_bytes")
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@id([repositoryId, peerId])
+  @@map("repository_peers")
+}
+
+model OutboxEvent {
+  id            String    @id @default(uuid())
+  aggregateType String    @map("aggregate_type") @db.VarChar(64)
+  aggregateId   String    @map("aggregate_id") @db.VarChar(128)
+  eventType     String    @map("event_type") @db.VarChar(64)
+  payload       Json
+  status        String?   @default("PENDING") @db.VarChar(32)
+  retryCount    Int       @default(0) @map("retry_count")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  processedAt   DateTime? @map("processed_at")
+
+  @@map("outbox_events")
+}
+
+model Peer {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  peerId    String   @unique @map("peer_id") @db.VarChar(128)
+  publicKey String   @map("public_key")
+  lastSeen  DateTime @default(now()) @map("last_seen")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("peers")
+}
+
+model Issue {
+  id           String     @id @default(uuid())
+  repositoryId String     @map("repository_id")
+  authorId     String     @map("author_id")
+  title        String     @db.VarChar(256)
+  body         String?
+  status       String?    @default("open") @db.VarChar(32)
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("issues")
+}
+
+model PullRequest {
+  id           String     @id @default(uuid())
+  repositoryId String     @map("repository_id")
+  authorId     String     @map("author_id")
+  sourceBranch String     @map("source_branch") @db.VarChar(128)
+  targetBranch String     @map("target_branch") @db.VarChar(128)
+  status       String?    @default("open") @db.VarChar(32)
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("pull_requests")
+}

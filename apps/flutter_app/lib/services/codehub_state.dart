@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/p2p_node.dart';
 import '../models/git_object.dart';
 import '../models/repository_model.dart';
 import '../native/native_bindings.dart';
 import 'api_service.dart';
+import '../config/api_config.dart';
+
 
 enum ActiveTab { overview, repos, dagExplorer, networkTopology, storageSettings }
 
@@ -17,6 +21,20 @@ class CodeHubState extends ChangeNotifier {
   String? _selectedRepoId;
   GitObject? _selectedGitObject;
   ThemeMode _themeMode = ThemeMode.dark;
+
+  // Real-Time Event Bus & Live Explore Toast State
+  String? _latestLiveEventMessage;
+  DateTime? _latestLiveEventTime;
+  WebSocket? _eventSocket;
+
+  String? get latestLiveEventMessage => _latestLiveEventMessage;
+  DateTime? get latestLiveEventTime => _latestLiveEventTime;
+
+  void dismissLiveEventMessage() {
+    _latestLiveEventMessage = null;
+    notifyListeners();
+  }
+
 
   // Storage Management & Seeding State
   StoragePreset _selectedStoragePreset = StoragePreset.custom;
@@ -223,9 +241,84 @@ class CodeHubState extends ChangeNotifier {
     NativeP2PEngine.initialize();
     _initializeData();
     _startTelemetrySimulation();
+    _connectWebSocketEventBus();
+  }
+
+  void _connectWebSocketEventBus() async {
+    try {
+      try {
+        _eventSocket = await WebSocket.connect(ApiConfig.socketWsUrl);
+      } catch (_) {
+        _eventSocket = await WebSocket.connect('ws://127.0.0.1:8080/api/v1/events/ws');
+      }
+
+      _eventSocket?.listen((data) {
+        try {
+          final json = jsonDecode(data as String) as Map<String, dynamic>;
+          final evt = json['event'] ?? json['type'];
+          if (evt == 'repository_created' || evt == 'repository.created') {
+
+            final repoMap = json['repository'] as Map<String, dynamic>?;
+            if (repoMap != null) {
+              final repoId = (repoMap['id'] ?? 'repo_${DateTime.now().millisecondsSinceEpoch}').toString();
+              if (!_repositories.any((r) => r.id == repoId)) {
+                final owner = repoMap['owner']?.toString() ?? 'User A';
+                final name = repoMap['name']?.toString() ?? 'new-p2p-repo';
+                final desc = repoMap['description']?.toString() ?? 'Real-time broadcast repository';
+                final commitHash = repoMap['root_commit_hash']?.toString() ?? 'commit_live_broadcast';
+
+                final newRepo = CodeRepository(
+                  id: repoId,
+                  name: name,
+                  owner: owner,
+                  description: desc,
+                  defaultBranch: 'main',
+                  tags: repoMap['topics'] != null
+                      ? List<String>.from(repoMap['topics'] as List)
+                      : const ['rust', 'p2p'],
+                  totalSizeMb: 1.25,
+                  seedNodeIds: const ['peer_broadcaster_01', 'peer_tokyo'],
+                  replicaCount: 3,
+                  totalObjects: 12,
+                  rootCommitHash: commitHash,
+                  lastUpdated: DateTime.now(),
+                  isPinnedLocally: false,
+                  localReplicationProgress: 0.0,
+                  stars: 1,
+                  forks: 0,
+                  rootCommit: GitObject(
+                    hash: commitHash,
+                    type: GitObjectType.commit,
+                    name: 'Initial live commit',
+                    sizeBytes: 850,
+                    replicaNodeIds: const ['peer_broadcaster_01'],
+                    author: owner,
+                    timestamp: DateTime.now(),
+                  ),
+                );
+
+                _repositories.insert(0, newRepo);
+                _latestLiveEventMessage = '⚡ Live Swarm Event: User $owner created repository "$name" (Saved to PostgreSQL & broadcast live via Redis / Socket.IO)';
+                _latestLiveEventTime = DateTime.now();
+                notifyListeners();
+              }
+            }
+          }
+        } catch (e) {
+          // parse error
+        }
+      }, onError: (err) {
+        Timer(const Duration(seconds: 5), _connectWebSocketEventBus);
+      }, onDone: () {
+        Timer(const Duration(seconds: 5), _connectWebSocketEventBus);
+      });
+    } catch (e) {
+      Timer(const Duration(seconds: 5), _connectWebSocketEventBus);
+    }
   }
 
   void setActiveTab(ActiveTab tab) {
+
     _activeTab = tab;
     notifyListeners();
   }
@@ -314,8 +407,10 @@ class CodeHubState extends ChangeNotifier {
   @override
   void dispose() {
     _telemetryTimer?.cancel();
+    _eventSocket?.close();
     super.dispose();
   }
+
 
   void _initializeData() {
     // 1. Initial Nodes

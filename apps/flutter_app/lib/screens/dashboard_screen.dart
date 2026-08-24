@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../dashboard/landing_page.dart';
 import '../services/codehub_state.dart';
-import 'auth_screen.dart';
+import 'landing_screen.dart';
 import 'explore_screen.dart';
 import 'pull_requests_screen.dart';
 import 'activity_feed_screen.dart';
 import 'issues_screen.dart';
+import 'live_chat_screen.dart';
 import 'notifications_screen.dart';
 import 'settings_screen.dart';
 
@@ -101,7 +102,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => AuthScreen(state: _state)),
+                            MaterialPageRoute(builder: (_) => LandingScreen(state: _state)),
                           );
                         },
                         icon: const Icon(Icons.login, size: 18),
@@ -165,6 +166,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     label: Text('Activity'),
                   ),
                   NavigationRailDestination(
+                    icon: Badge(
+                      label: Text('3'),
+                      backgroundColor: Colors.blueAccent,
+                      child: Icon(Icons.chat_bubble_outline),
+                    ),
+                    selectedIcon: Icon(Icons.chat_bubble, color: Colors.blueAccent),
+                    label: Text('Live Chat'),
+                  ),
+                  NavigationRailDestination(
                     icon: Icon(Icons.notifications_outlined),
                     selectedIcon: Icon(Icons.notifications, color: Colors.blueAccent),
                     label: Text('Alerts'),
@@ -198,10 +208,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // 4. Activity Feed
                     ActivityFeedScreen(state: _state),
 
-                    // 5. System Notifications & Alerts
+                    // 5. Live Swarm Chat
+                    LiveChatScreen(state: _state),
+
+                    // 6. System Notifications & Alerts
                     NotificationsScreen(state: _state),
 
-                    // 6. Settings & Storage Control
+                    // 7. Settings & Storage Control
                     SettingsScreen(state: _state),
                   ],
                 ),

@@ -1,0 +1,31 @@
+{
+  "name": "codehub-control-plane",
+  "version": "1.0.0",
+  "description": "CodeHub Sovereign P2P Platform Production Control Plane API",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts"
+  },
+
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/jwt": "^8.0.1",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.26.2",
+    "ioredis": "^5.4.1",
+    "pg": "^8.11.5",
+    "socket.io": "^4.7.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.12.7",
+    "@types/pg": "^8.11.5",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
+}

@@ -6,14 +6,16 @@ import '../services/codehub_state.dart';
 
 class AuthScreen extends StatefulWidget {
   final CodeHubState? state;
-  const AuthScreen({super.key, this.state});
+  final bool isLoginMode;
+
+  const AuthScreen({super.key, this.state, this.isLoginMode = true});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  bool _isLoginMode = true;
+  late bool _isLoginMode;
   bool _isLoading = false;
   final _usernameController = TextEditingController(text: 'GranthikSom');
   final _emailController = TextEditingController(text: 'soham@codehub.p2p');
@@ -22,6 +24,12 @@ class _AuthScreenState extends State<AuthScreen> {
   final ApiService _fallbackApi = ApiService();
 
   ApiService get _api => widget.state?.api ?? _fallbackApi;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLoginMode = widget.isLoginMode;
+  }
 
   Future<void> _submitAuth() async {
     final username = _usernameController.text.trim();
@@ -72,28 +80,52 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
       );
 
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => DashboardScreen(state: widget.state)),
-        );
-      }
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => DashboardScreen(state: widget.state)),
+        (route) => false,
+      );
     } else {
       final errMsg = response['message'] ?? 'Authentication failed. Please check your credentials.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(child: Text(errMsg.toString())),
-            ],
+      final isAlreadyRegistered = errMsg.toString().toLowerCase().contains('already registered') ||
+          errMsg.toString().toLowerCase().contains('already exists');
+
+      if (isAlreadyRegistered && !_isLoginMode) {
+        setState(() {
+          _isLoginMode = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    "Account '$username' already exists. Switched to Sign In mode.",
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF238636),
+            duration: const Duration(seconds: 4),
           ),
-          backgroundColor: Colors.redAccent,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text(errMsg.toString())),
+              ],
+            ),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 

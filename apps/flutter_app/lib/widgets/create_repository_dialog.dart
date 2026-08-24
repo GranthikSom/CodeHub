@@ -66,6 +66,19 @@ class _CreateRepositoryDialogState extends State<CreateRepositoryDialog> {
       ),
     );
 
+    // 1. Post repository to CodeHub API -> PostgreSQL -> Event Bus / Redis
+    await widget.state.api.createRepository(
+      id: newRepo.id,
+      name: newRepo.name,
+      owner: newRepo.owner,
+      description: newRepo.description,
+      rootCommitHash: newRepo.rootCommitHash,
+      totalObjects: newRepo.totalObjects,
+      topics: newRepo.tags,
+      isPrivate: _isPrivate,
+    );
+
+    // 2. Local state update
     widget.state.addRepository(newRepo);
 
     if (!mounted) return;
@@ -79,10 +92,11 @@ class _CreateRepositoryDialogState extends State<CreateRepositoryDialog> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF238636),
-        content: Text('Repository "$repoName" created and initialized on P2P Swarm!'),
+        content: Text('Repository "$repoName" created & broadcast live via Redis Event Bus to P2P Swarm!'),
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

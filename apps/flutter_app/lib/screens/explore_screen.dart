@@ -167,7 +167,98 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          // Live Architecture Event Toast Banner
+          if (widget.state.latestLiveEventMessage != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1F6FEB), Color(0xFF238636)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blueAccent.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.bolt, color: Colors.amber, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.state.latestLiveEventMessage!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+                    onPressed: () => widget.state.dismissLiveEventMessage(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Pipeline Status Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF161B22) : Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  const Icon(Icons.hub_outlined, color: Color(0xFF58A6FF), size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Real-Time Swarm Pipeline:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'User A → CodeHub API → PostgreSQL → Redis Event Bus → Socket.IO → Live Explore Page',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? const Color(0xFF3FB950) : const Color(0xFF238636),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3FB950),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text('Connected', style: TextStyle(fontSize: 11, color: Color(0xFF3FB950))),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
 
           // Category Filters
           Row(

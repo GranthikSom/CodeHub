@@ -73,3 +73,47 @@ pub struct PullRequestRecord {
     pub target_branch: String,
     pub status: String, // 'open', 'merged', 'closed'
 }
+
+use std::sync::RwLock;
+
+pub struct RepositoryDbStore {
+    repos: RwLock<Vec<RepositoryRecord>>,
+}
+
+impl RepositoryDbStore {
+    pub fn new() -> Self {
+        let initial_repos = vec![
+            RepositoryRecord {
+                id: "repo_101".to_string(),
+                owner_id: "GranthikSom".to_string(),
+                name: "codehub-core-p2p".to_string(),
+                description: Some("Decentralized P2P Git Objectstore".to_string()),
+                visibility: "public".to_string(),
+                created_at: "2026-08-20T10:00:00Z".to_string(),
+            },
+            RepositoryRecord {
+                id: "repo_102".to_string(),
+                owner_id: "SohamMondal".to_string(),
+                name: "flutter-torrent-ui".to_string(),
+                description: Some("Sovereign Flutter Desktop UI".to_string()),
+                visibility: "public".to_string(),
+                created_at: "2026-08-21T12:00:00Z".to_string(),
+            },
+        ];
+        Self {
+            repos: RwLock::new(initial_repos),
+        }
+    }
+
+    pub fn insert_repository(&self, record: RepositoryRecord) -> RepositoryRecord {
+        let mut guard = self.repos.write().unwrap();
+        guard.insert(0, record.clone());
+        record
+    }
+
+    pub fn get_all_repositories(&self) -> Vec<RepositoryRecord> {
+        let guard = self.repos.read().unwrap();
+        guard.clone()
+    }
+}
+

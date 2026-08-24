@@ -1,0 +1,9 @@
+{
+  "name": "codehub-server-wrapper",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix codehub_control_plane run dev",
+    "build": "npm --prefix codehub_control_plane run build",
+    "start": "npm --prefix codehub_control_plane run start"
+  }
+}
