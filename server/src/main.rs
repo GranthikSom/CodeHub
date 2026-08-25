@@ -446,14 +446,26 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
         payload.id.clone()
     };
 
+    let owner_str = if payload.owner.is_empty() { "GranthikSom".to_string() } else { payload.owner.clone() };
+    let full_name_str = format!("{}/{}", owner_str, payload.name);
+
     let record = db::RepositoryRecord {
         id: repo_id.clone(),
-        owner_id: if payload.owner.is_empty() { "GranthikSom".to_string() } else { payload.owner.clone() },
+        owner_id: owner_str,
         name: payload.name.clone(),
+        full_name: full_name_str,
         description: payload.description.clone(),
         visibility: if payload.is_private { "private".to_string() } else { "public".to_string() },
+        discoverability: if payload.is_private { "private".to_string() } else { "public".to_string() },
+        default_branch: "main".to_string(),
+        language: if payload.language.is_empty() { "Rust".to_string() } else { payload.language.clone() },
         status: "active".to_string(),
         created_at: "2026-08-25T18:25:00Z".to_string(),
+        updated_at: "2026-08-25T18:25:00Z".to_string(),
+        last_commit_hash: if payload.root_commit_hash.is_empty() { format!("commit_{}", repo_id) } else { payload.root_commit_hash.clone() },
+        size_bytes: 1024000,
+        object_count: payload.total_objects as u64,
+        deleted_at: None,
     };
 
     repo_store.insert_repository(record);
@@ -1874,10 +1886,19 @@ mod tests {
             id: "repo_pub_1".to_string(),
             owner_id: "GranthikSom".to_string(),
             name: "public-open-repo".to_string(),
+            full_name: "GranthikSom/public-open-repo".to_string(),
             description: Some("Public repo".to_string()),
             visibility: "public".to_string(),
+            discoverability: "public".to_string(),
+            default_branch: "main".to_string(),
+            language: "Rust".to_string(),
             status: "active".to_string(),
             created_at: "2026-08-25T18:00:00Z".to_string(),
+            updated_at: "2026-08-25T18:00:00Z".to_string(),
+            last_commit_hash: "commit_pub_1".to_string(),
+            size_bytes: 1000,
+            object_count: 10,
+            deleted_at: None,
         });
 
         // 2. Add a private repo (must be excluded at DB level)
@@ -1885,10 +1906,19 @@ mod tests {
             id: "repo_priv_1".to_string(),
             owner_id: "GranthikSom".to_string(),
             name: "private-secret-repo".to_string(),
+            full_name: "GranthikSom/private-secret-repo".to_string(),
             description: Some("Private repo".to_string()),
             visibility: "private".to_string(),
+            discoverability: "private".to_string(),
+            default_branch: "main".to_string(),
+            language: "Rust".to_string(),
             status: "active".to_string(),
             created_at: "2026-08-25T18:00:00Z".to_string(),
+            updated_at: "2026-08-25T18:00:00Z".to_string(),
+            last_commit_hash: "commit_priv_1".to_string(),
+            size_bytes: 1000,
+            object_count: 10,
+            deleted_at: None,
         });
 
         // 3. Add a deleted repo (must be excluded at DB level)
@@ -1896,10 +1926,19 @@ mod tests {
             id: "repo_del_1".to_string(),
             owner_id: "GranthikSom".to_string(),
             name: "deleted-repo".to_string(),
+            full_name: "GranthikSom/deleted-repo".to_string(),
             description: Some("Deleted repo".to_string()),
             visibility: "public".to_string(),
+            discoverability: "public".to_string(),
+            default_branch: "main".to_string(),
+            language: "Rust".to_string(),
             status: "deleted".to_string(),
             created_at: "2026-08-25T18:00:00Z".to_string(),
+            updated_at: "2026-08-25T18:00:00Z".to_string(),
+            last_commit_hash: "commit_del_1".to_string(),
+            size_bytes: 1000,
+            object_count: 10,
+            deleted_at: Some("2026-08-25T18:05:00Z".to_string()),
         });
 
         // 4. Add a pending repo (must be excluded at DB level)
@@ -1907,10 +1946,19 @@ mod tests {
             id: "repo_pend_1".to_string(),
             owner_id: "GranthikSom".to_string(),
             name: "pending-repo".to_string(),
+            full_name: "GranthikSom/pending-repo".to_string(),
             description: Some("Pending repo".to_string()),
             visibility: "public".to_string(),
+            discoverability: "public".to_string(),
+            default_branch: "main".to_string(),
+            language: "Rust".to_string(),
             status: "pending".to_string(),
             created_at: "2026-08-25T18:00:00Z".to_string(),
+            updated_at: "2026-08-25T18:00:00Z".to_string(),
+            last_commit_hash: "commit_pend_1".to_string(),
+            size_bytes: 1000,
+            object_count: 10,
+            deleted_at: None,
         });
 
         // Query explore index

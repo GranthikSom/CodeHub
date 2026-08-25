@@ -3,23 +3,35 @@
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(64) PRIMARY KEY,
     username VARCHAR(64) UNIQUE NOT NULL,
+    display_name VARCHAR(128),
+    avatar_url TEXT,
+    bio TEXT,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     peer_id VARCHAR(128) NOT NULL,
     role VARCHAR(32) DEFAULT 'developer',
     status VARCHAR(32) DEFAULT 'active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS repositories (
     id VARCHAR(64) PRIMARY KEY,
     owner_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(128) NOT NULL,
+    full_name VARCHAR(256) UNIQUE NOT NULL,
     description TEXT,
     visibility VARCHAR(32) DEFAULT 'public',
+    discoverability VARCHAR(32) DEFAULT 'public',
+    default_branch VARCHAR(64) DEFAULT 'main',
+    language VARCHAR(64) DEFAULT 'Rust',
     status VARCHAR(32) DEFAULT 'active',
-    root_commit_hash VARCHAR(64),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_commit_hash VARCHAR(64),
+    size_bytes BIGINT DEFAULT 0,
+    object_count BIGINT DEFAULT 0,
+    deleted_at TIMESTAMP WITH TIME ZONE NULL,
     CONSTRAINT unique_owner_repo UNIQUE(owner_id, name)
 );
 
@@ -32,4 +44,4 @@ CREATE TABLE IF NOT EXISTS outbox_events (
 );
 
 -- Index for high-performance public Explore index queries
-CREATE INDEX IF NOT EXISTS idx_explore_repositories ON repositories(visibility, status) WHERE visibility = 'public' AND status = 'active';
+CREATE INDEX IF NOT EXISTS idx_explore_repositories ON repositories(visibility, discoverability, status) WHERE visibility = 'public' AND discoverability = 'public' AND status = 'active' AND deleted_at IS NULL;
