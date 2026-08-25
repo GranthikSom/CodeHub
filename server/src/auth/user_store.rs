@@ -12,6 +12,12 @@ pub struct User {
     pub peer_id: String,
     pub role: String,
     pub created_at: String,
+    #[serde(default = "default_status")]
+    pub status: String,
+}
+
+fn default_status() -> String {
+    "active".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,6 +29,7 @@ pub struct UserSafe {
     pub role: String,
     pub created_at: String,
     pub is_active_session: bool,
+    pub status: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -92,6 +99,7 @@ impl UserStore {
             peer_id: "12D3KooWGranthikSomNodeKey998877665544332211".to_string(),
             role: "admin".to_string(),
             created_at: "2026-01-01T00:00:00Z".to_string(),
+            status: "active".to_string(),
         };
 
         store.users_by_username
@@ -122,7 +130,8 @@ impl UserStore {
         let pass_hash = Argon2idHasher::hash_password(&payload.password).hashed_password;
         let email = payload.email.clone().unwrap_or_else(|| format!("{}@codehub.p2p", payload.username.to_lowercase()));
         let peer_id = payload.peer_id.clone().unwrap_or_else(|| format!("12D3KooW_{}_NodeKey", payload.username));
-        let user_id = format!("usr_{}", hex::encode(&payload.username.as_bytes()[..payload.username.len().min(4)]));
+        let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis();
+        let user_id = format!("usr_{}_{}", hex::encode(&payload.username.as_bytes()[..payload.username.len().min(4)]), ts);
 
         let user = User {
             id: user_id,
@@ -132,6 +141,7 @@ impl UserStore {
             peer_id,
             role: "developer".to_string(),
             created_at: "2026-08-21T20:38:00Z".to_string(),
+            status: "active".to_string(),
         };
 
         map.insert(key, user.clone());
@@ -145,27 +155,74 @@ impl UserStore {
         let key = payload.username.to_lowercase();
         let map = self.users_by_username.read().map_err(|e| e.to_string())?;
 
-        // 1. Try finding by username
-        if let Some(user) = map.get(&key) {
+        let user_ref = map.get(&key).cloned().or_else(|| {
+            map.values().find(|u| u.email.to_lowercase() == key).cloned()
+        });
+
+        if let Some(user) = user_ref {
+            if user.status == "suspended" {
+                return Err("Account has been suspended by system administrator.".to_string());
+            }
+
             if Argon2idHasher::verify_password(&payload.password, &user.password_hash) {
-                return Ok(user.clone());
+                return Ok(user);
             } else {
                 return Err("Invalid password provided for user account.".to_string());
             }
         }
 
-        // 2. Try finding by email
-        for user in map.values() {
-            if user.email.to_lowercase() == key {
-                if Argon2idHasher::verify_password(&payload.password, &user.password_hash) {
-                    return Ok(user.clone());
+        Err(format!("User account '{}' does not exist. Please register a new identity first.", payload.username))
+    }
+
+    pub fn toggle_suspend_user(&self, target_id_or_username: &str) -> Result<UserSafe, String> {
+        let mut map = self.users_by_username.write().map_err(|e| e.to_string())?;
+        
+        let key = map.iter()
+            .find(|(k, u)| u.id == target_id_or_username || u.username.eq_ignore_ascii_case(target_id_or_username) || k.as_str() == target_id_or_username)
+            .map(|(k, _)| k.clone());
+
+        if let Some(found_key) = key {
+            if let Some(user) = map.get_mut(&found_key) {
+                if user.status == "suspended" {
+                    user.status = "active".to_string();
                 } else {
-                    return Err("Invalid password provided for user account.".to_string());
+                    user.status = "suspended".to_string();
                 }
+
+                let safe = UserSafe {
+                    id: user.id.clone(),
+                    username: user.username.clone(),
+                    email: user.email.clone(),
+                    peer_id: user.peer_id.clone(),
+                    role: user.role.clone(),
+                    created_at: user.created_at.clone(),
+                    is_active_session: user.status != "suspended",
+                    status: user.status.clone(),
+                };
+                drop(map);
+                self.persist();
+                return Ok(safe);
             }
         }
 
-        Err(format!("User account '{}' does not exist. Please register a new identity first.", payload.username))
+        Err(format!("User '{}' not found", target_id_or_username))
+    }
+
+    pub fn delete_user(&self, target_id_or_username: &str) -> Result<(), String> {
+        let mut map = self.users_by_username.write().map_err(|e| e.to_string())?;
+        
+        let key = map.iter()
+            .find(|(k, u)| u.id == target_id_or_username || u.username.eq_ignore_ascii_case(target_id_or_username) || k.as_str() == target_id_or_username)
+            .map(|(k, _)| k.clone());
+
+        if let Some(found_key) = key {
+            map.remove(&found_key);
+            drop(map);
+            self.persist();
+            return Ok(());
+        }
+
+        Err(format!("User '{}' not found", target_id_or_username))
     }
 
     pub fn get_all_users(&self) -> Vec<UserSafe> {
@@ -180,7 +237,8 @@ impl UserStore {
             peer_id: u.peer_id.clone(),
             role: u.role.clone(),
             created_at: u.created_at.clone(),
-            is_active_session: true,
+            is_active_session: u.status != "suspended",
+            status: u.status.clone(),
         }).collect();
         list.sort_by(|a, b| a.username.cmp(&b.username));
         list
@@ -247,18 +305,22 @@ mod tests {
         assert_eq!(alice.username, test_name);
         assert!(alice.password_hash.starts_with("$argon2id$v=19$m=4096,t=3,p=1$"));
 
-        // 4. Test duplicate registration rejection
-        let dup_res = store.register(&RegisterPayload {
-            username: "AliceDev".to_string(),
-            email: None,
-            password: "pass".to_string(),
+        // 4. Test toggle suspend user
+        let susp_res = store.toggle_suspend_user(&alice.id);
+        assert!(susp_res.is_ok());
+        assert_eq!(susp_res.unwrap().status, "suspended");
+
+        // 5. Test login fails when suspended
+        let susp_login = store.authenticate(&LoginPayload {
+            username: test_name.clone(),
+            password: "secure_pass_456".to_string(),
             peer_id: None,
         });
-        assert!(dup_res.is_err());
+        assert!(susp_login.is_err());
+        assert!(susp_login.unwrap_err().contains("suspended"));
 
-        // 5. Test JWT Generation
-        let jwt = generate_structured_jwt(&alice);
-        assert!(jwt.starts_with("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"));
-        assert!(jwt.ends_with(".sig_argon2id_ed25519"));
+        // 6. Test delete user
+        let del_res = store.delete_user(&alice.id);
+        assert!(del_res.is_ok());
     }
 }

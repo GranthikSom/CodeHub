@@ -97,7 +97,11 @@ async fn main() {
         // 2. Users routes
         .route("/api/v1/users", get(list_all_users_admin))
         .route("/api/v1/users/me", patch(update_my_profile))
-        .route("/api/v1/users/:username", get(get_user_profile))
+        .route(
+            "/api/v1/users/:id",
+            get(get_user_profile).delete(delete_user_admin),
+        )
+        .route("/api/v1/users/:id/suspend", post(toggle_suspend_user_admin))
         
         // 2b. Admin Real-Time WebSocket & Event Bus routes
         .route("/api/v1/admin/ws", get(admin_ws_handler))
@@ -152,9 +156,9 @@ async fn main() {
         // 9. Stars, Followers, Watchers, Notifications routes
         .route("/api/v1/repositories/:id/star", post(star_repository).delete(unstar_repository))
         .route("/api/v1/repositories/:id/stargazers", get(list_stargazers))
-        .route("/api/v1/users/:username/follow", post(follow_user).delete(unfollow_user))
-        .route("/api/v1/users/:username/followers", get(list_followers))
-        .route("/api/v1/users/:username/following", get(list_following))
+        .route("/api/v1/users/:id/follow", post(follow_user).delete(unfollow_user))
+        .route("/api/v1/users/:id/followers", get(list_followers))
+        .route("/api/v1/users/:id/following", get(list_following))
         .route("/api/v1/repositories/:id/watch", post(watch_repository).delete(unwatch_repository))
         .route("/api/v1/notifications", get(list_notifications))
         .route("/api/v1/notifications/:id/read", patch(mark_notification_read))
@@ -1771,6 +1775,52 @@ async fn list_all_users_admin() -> Json<ApiResponse<Vec<auth::UserSafe>>> {
         message: format!("Retrieved {} registered user records from persistent database", users.len()),
         data: Some(users),
     })
+}
+
+async fn toggle_suspend_user_admin(Path(id): Path<String>) -> (StatusCode, Json<ApiResponse<auth::UserSafe>>) {
+    let store = get_user_store();
+    match store.toggle_suspend_user(&id) {
+        Ok(user) => {
+            let msg = format!("User '{}' status updated to '{}'", user.username, user.status);
+            let _ = get_event_bus().send(serde_json::json!({
+                "event": "user_status_changed",
+                "user_id": user.id,
+                "status": user.status
+            }).to_string());
+            (StatusCode::OK, Json(ApiResponse {
+                success: true,
+                message: msg,
+                data: Some(user),
+            }))
+        }
+        Err(err) => (StatusCode::NOT_FOUND, Json(ApiResponse {
+            success: false,
+            message: err,
+            data: None,
+        }))
+    }
+}
+
+async fn delete_user_admin(Path(id): Path<String>) -> (StatusCode, Json<ApiResponse<()>>) {
+    let store = get_user_store();
+    match store.delete_user(&id) {
+        Ok(_) => {
+            let _ = get_event_bus().send(serde_json::json!({
+                "event": "user_deleted",
+                "user_id": id
+            }).to_string());
+            (StatusCode::OK, Json(ApiResponse {
+                success: true,
+                message: format!("User '{}' removed successfully", id),
+                data: None,
+            }))
+        }
+        Err(err) => (StatusCode::NOT_FOUND, Json(ApiResponse {
+            success: false,
+            message: err,
+            data: None,
+        }))
+    }
 }
 
 async fn admin_ws_handler(ws: WebSocketUpgrade) -> impl axum::response::IntoResponse {

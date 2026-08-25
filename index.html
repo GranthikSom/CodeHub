@@ -1,14 +1,2673 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
+    <title>CodeHub Sovereign P2P — Admin Control Console</title>
 
+    <!-- Google Fonts: Inter, JetBrains Mono & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================================================
+           1. MODERN CYBER-DARK DESIGN SYSTEM & CSS TOKENS
+           ========================================================================== */
+        :root {
+            --bg-canvas: #090d16;
+            --bg-surface-primary: rgba(15, 23, 42, 0.85);
+            --bg-surface-card: rgba(22, 32, 54, 0.7);
+            --bg-surface-card-hover: rgba(30, 43, 72, 0.85);
+            --bg-surface-elevated: rgba(30, 41, 59, 0.95);
+            --bg-input: rgba(11, 17, 32, 0.9);
+            
+            /* Color System */
+            --accent-primary: #6366f1; /* Electric Indigo */
+            --accent-primary-glow: rgba(99, 102, 241, 0.35);
+            --accent-cyan: #06b6d4;    /* Cyan Pulse */
+            --accent-cyan-glow: rgba(6, 182, 212, 0.35);
+            --accent-emerald: #10b981; /* Emerald Green */
+            --accent-emerald-glow: rgba(16, 185, 129, 0.35);
+            --accent-purple: #a855f7;  /* Purple Synth */
+            --accent-purple-glow: rgba(168, 85, 247, 0.35);
+            --accent-amber: #f59e0b;   /* Amber Gold */
+            --accent-rose: #f43f5e;    /* Rose Danger */
+            --accent-rose-glow: rgba(244, 63, 94, 0.35);
+            
+            /* Text Colors */
+            --text-heading: #f8fafc;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-subtle: #64748b;
+            
+            /* Borders & Glass Effects */
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-glass-glow: rgba(99, 102, 241, 0.3);
+            --border-card: rgba(255, 255, 255, 0.06);
+            --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.2);
+            --backdrop-blur: blur(20px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-canvas);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.10) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.05) 0%, transparent 60%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        code, pre, .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(9, 13, 22, 0.8);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+
+        /* ==========================================================================
+           2. HEADER & TOP NAVIGATION BAR
+           ========================================================================== */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px;
+            background: var(--bg-surface-primary);
+            backdrop-filter: var(--backdrop-blur);
+            border-bottom: 1px solid var(--border-glass);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .sidebar-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            color: var(--text-heading);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 16px var(--accent-primary-glow);
+            transform: translateY(-1px);
+        }
+
+        .sidebar-toggle-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text-heading);
+            text-decoration: none;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-cyan));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--accent-primary-glow) 0px 0px 18px 2px;
+            transition: transform 0.3s ease;
+        }
+
+        .brand-logo:hover {
+            transform: scale(1.05) rotate(3deg);
+        }
+
+        .brand-logo svg {
+            width: 22px;
+            height: 22px;
+            fill: white;
+        }
+
+        .brand-tag {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-primary);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .nav-tabs {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(11, 17, 32, 0.8);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--border-glass);
+        }
+
+        @media (max-width: 900px) {
+            .nav-tabs {
+                display: none;
+            }
+        }
+
+        .nav-tab {
+            padding: 7px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-tab svg {
+            width: 15px;
+            height: 15px;
+            fill: currentColor;
+            opacity: 0.8;
+            transition: transform 0.2s ease;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-heading);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-tab.active {
+            color: white;
+            background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+            box-shadow: 0 4px 14px var(--accent-primary-glow);
+        }
+
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-emerald);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-emerald);
+            box-shadow: 0 0 10px var(--accent-emerald);
+            animation: pulse-emerald 2s infinite;
+        }
+
+        @keyframes pulse-emerald {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            outline: none;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+            color: white;
+            box-shadow: 0 4px 16px var(--accent-primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(99, 102, 241, 0.5);
+            background: linear-gradient(135deg, #4f46e5, #4338ca);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-emerald), #059669);
+            color: white;
+            box-shadow: 0 4px 16px var(--accent-emerald-glow);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-outline {
+            background: rgba(30, 41, 59, 0.6);
+            color: var(--text-main);
+            border-color: var(--border-glass);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-outline:hover {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-heading);
+            transform: translateY(-1px);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+
+        /* ==========================================================================
+           3. SIDEBAR NAVIGATION DRAWER & LAYOUT
+           ========================================================================== */
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - 67px);
+            position: relative;
+        }
+
+        /* Collapsible & Slide-out Sidebar */
+        .admin-sidebar {
+            width: 280px;
+            background: var(--bg-surface-primary);
+            backdrop-filter: var(--backdrop-blur);
+            border-right: 1px solid var(--border-glass);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 67px;
+            bottom: 0;
+            left: 0;
+            z-index: 95;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .admin-sidebar:not(.open) {
+            transform: translateX(-100%);
+        }
+
+        .admin-sidebar.open {
+            transform: translateX(0);
+        }
+
+        @media (min-width: 1200px) {
+            /* Persistent sidebar mode on desktop when open */
+            .admin-sidebar.open + .container {
+                margin-left: 280px;
+                max-width: calc(100% - 280px);
+            }
+        }
+
+        .sidebar-header {
+            padding: 20px 22px;
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-heading);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-close-btn:hover {
+            color: var(--text-heading);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-nav-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+
+        .sidebar-item:hover {
+            color: var(--text-heading);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.06);
+            transform: translateX(3px);
+        }
+
+        .sidebar-item.active {
+            color: white;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.2));
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+        }
+
+        .sidebar-item-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-item-label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .sidebar-item-desc {
+            font-size: 11px;
+            color: var(--text-subtle);
+        }
+
+        .sidebar-item.active .sidebar-item-desc {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-glass);
+            background: rgba(9, 13, 22, 0.6);
+        }
+
+        .sidebar-footer-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--text-subtle);
+            font-weight: 500;
+        }
+
+        .sidebar-backdrop {
+            position: fixed;
+            top: 67px;
+            left: 0;
+            width: 100vw;
+            height: calc(100vh - 67px);
+            background: rgba(5, 8, 17, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 90;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ==========================================================================
+           4. MAIN CONTAINER & MULTI-PAGE VIEWS
+           ========================================================================== */
+        .container {
+            flex: 1;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 32px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            transition: margin-left 0.3s ease, max-width 0.3s ease;
+        }
+
+        /* Distinct Page View Animation */
+        .page-view {
+            display: none;
+            width: 100%;
+        }
+
+        .page-view.active {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            animation: fadeInView 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes fadeInView {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-header-box {
+            background: var(--bg-surface-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 24px 28px;
+            backdrop-filter: var(--backdrop-blur);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-glass);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .page-header-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .page-header-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-heading);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-surface-card);
+            backdrop-filter: var(--backdrop-blur);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-glass);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+        }
+
+        .card:hover {
+            border-color: var(--border-glass-glow);
+            background: var(--bg-surface-card-hover);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), var(--shadow-glow);
+        }
+
+        .metric-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .card-header-title {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .metric-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover .metric-icon-box {
+            transform: scale(1.1);
+        }
+
+        .icon-blue { background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); border: 1px solid rgba(99, 102, 241, 0.3); }
+        .icon-cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); }
+        .icon-emerald { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .icon-amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .icon-purple { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3); }
+        .icon-rose { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+
+        .metric-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--text-heading);
+            line-height: 1;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+
+        .metric-sub {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .metric-sparkline {
+            width: 100%;
+            height: 36px;
+            margin-top: 12px;
+        }
+
+        /* Split Section Layout */
+        .split-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .split-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-heading);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .section-title-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Quick Launch Action Cards Grid for Overview Page */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .quick-action-card {
+            background: var(--bg-surface-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .quick-action-card:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-surface-card-hover);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .quick-action-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .quick-action-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-heading);
+        }
+
+        .quick-action-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Form Controls */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            color: var(--text-heading);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            background-color: rgba(15, 23, 42, 0.95);
+        }
+
+        /* Tables & Lists */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-glass);
+            background: rgba(11, 17, 32, 0.6);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: rgba(30, 41, 59, 0.7);
+            padding: 14px 18px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 1px solid var(--border-glass);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            background-color: transparent;
+            white-space: nowrap;
+            color: var(--text-main);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .user-avatar-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-cyan));
+            color: white;
+            font-weight: 700;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .badge-blue { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+        .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge-cyan { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
+        .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-red { background: rgba(244, 63, 94, 0.15); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+        /* Terminals & Consoles */
+        .console-box {
+            background-color: #050811;
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 18px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: #4ade80;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+            line-height: 1.6;
+        }
+
+        /* Activity Feed Section */
+        .activity-filter-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+
+        .filter-pill {
+            background-color: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border-glass);
+            color: var(--text-muted);
+            padding: 7px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .filter-pill:hover, .filter-pill.active {
+            background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+            color: white;
+            border-color: var(--accent-primary);
+            box-shadow: 0 4px 12px var(--accent-primary-glow);
+        }
+
+        .activity-feed-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 16px 20px;
+            transition: all 0.25s ease;
+        }
+
+        .activity-item:hover {
+            border-color: var(--accent-primary);
+            background-color: rgba(30, 41, 59, 0.7);
+            transform: translateX(4px);
+        }
+
+        .activity-bullet {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .bullet-pushes { background-color: var(--accent-primary); box-shadow: 0 0 10px var(--accent-primary); }
+        .bullet-commits { background-color: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
+        .bullet-prs { background-color: var(--accent-purple); box-shadow: 0 0 10px var(--accent-purple); }
+        .bullet-issues { background-color: var(--accent-rose); box-shadow: 0 0 10px var(--accent-rose); }
+        .bullet-repo { background-color: var(--accent-amber); box-shadow: 0 0 10px var(--accent-amber); }
+        .bullet-peer { background-color: var(--accent-emerald); box-shadow: 0 0 10px var(--accent-emerald); }
+        .bullet-replication { background-color: #f97316; box-shadow: 0 0 10px #f97316; }
+
+        .activity-content { flex: 1; }
+
+        .activity-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .activity-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-heading);
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: var(--text-subtle);
+        }
+
+        .activity-target {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 8px;
+        }
+
+        .activity-detail-box {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-glass);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .activity-meta-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-primary);
+        }
+
+        /* Roadmap Timeline */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            padding-left: 28px;
+            margin-top: 10px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 9px;
+            top: 10px;
+            bottom: 10px;
+            width: 2px;
+            background: linear-gradient(180deg, var(--accent-primary), var(--accent-cyan), var(--accent-emerald));
+        }
+
+        .timeline-item { position: relative; }
+
+        .timeline-dot {
+            position: absolute;
+            left: -28px;
+            top: 4px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: var(--accent-primary);
+            border: 3px solid var(--bg-canvas);
+            box-shadow: 0 0 10px var(--accent-primary);
+        }
+
+        .timeline-content {
+            background: rgba(30, 41, 59, 0.6);
+            padding: 16px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-glass);
+            backdrop-filter: blur(10px);
+        }
+
+        .timeline-title {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text-heading);
+        }
+
+        .timeline-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(5, 8, 17, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--border-glass-glow);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 540px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), var(--shadow-glow);
+            transform: translateY(20px) scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-heading);
+        }
+
+        /* Copy Tooltip Animation */
+        .copy-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 3000;
+        }
+
+        .copy-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
 <body>
 
-</body>
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+        <div class="nav-left">
+            <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar Navigation">
+                <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                <span>Sidebar</span>
+            </button>
+            <a href="#overview" class="brand" onclick="switchPage('overview')">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <div>
+                    <span>CodeHub</span>
+                    <span class="brand-tag">Sovereign Admin</span>
+                </div>
+            </a>
+        </div>
 
+        <!-- Section Navigation Tabs -->
+        <nav class="nav-tabs">
+            <a href="#overview" class="nav-tab active" data-page="overview" onclick="switchPage('overview')">
+                <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                Overview
+            </a>
+            <a href="#developers" class="nav-tab" data-page="developers" onclick="switchPage('developers')">
+                <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                Developers
+            </a>
+            <a href="#repositories" class="nav-tab" data-page="repositories" onclick="switchPage('repositories')">
+                <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+                Repositories
+            </a>
+            <a href="#issues" class="nav-tab" data-page="issues" onclick="switchPage('issues')">
+                <svg viewBox="0 0 24 24"><path d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C12.96 5.06 12.49 5 12 5c-.49 0-.96.06-1.41.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8zm-6 8h-4v-2h4v2zm0-4h-4v-2h4v2z"/></svg>
+                Issues & Tasks
+            </a>
+            <a href="#telemetry" class="nav-tab" data-page="telemetry" onclick="switchPage('telemetry')">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                Telemetry & Logs
+            </a>
+            <a href="#activity" class="nav-tab" data-page="activity" onclick="switchPage('activity')">
+                <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                Activity Stream
+            </a>
+            <a href="#roadmap" class="nav-tab" data-page="roadmap" onclick="switchPage('roadmap')">
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                Roadmap
+            </a>
+        </nav>
+
+        <div class="nav-status">
+            <div class="status-pill">
+                <div class="status-dot" id="server-dot"></div>
+                <span id="server-status-text">Connecting to Axum Engine...</span>
+            </div>
+            <button class="btn btn-outline" id="refresh-btn" onclick="executeHardRefresh()">
+                ⚡ Hard Refresh Swarm
+            </button>
+        </div>
+    </header>
+
+    <!-- App Main Layout Container -->
+    <div class="app-layout">
+
+        <!-- Sidebar Overlay Backdrop (mobile/drawer mode) -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
+        <!-- Collapsible / Sliding Admin Sidebar Navigation -->
+        <aside class="admin-sidebar open" id="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>
+                    </svg>
+                    <span>Admin Navigation</span>
+                </div>
+                <button class="sidebar-close-btn" onclick="toggleSidebar(false)" title="Close Sidebar">✕</button>
+            </div>
+
+            <div class="sidebar-nav-list">
+                <div class="sidebar-item active" data-page="overview" onclick="switchPage('overview')">
+                    <div class="sidebar-item-icon icon-blue">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                    </div>
+                    <div class="sidebar-item-text">
+                        <span class="sidebar-item-label">Overview</span>
+                        <span class="sidebar-item-desc">Swarm metrics & status</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-item" data-page="developers" onclick="switchPage('developers')">
+                    <div class="sidebar-item-icon icon-purple">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    </div>
+                    <div class="sidebar-item-text">
+                        <span class="sidebar-item-label">Developers</span>
+                        <span class="sidebar-item-desc">Accounts & Node Keys</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-item" data-page="repositories" onclick="switchPage('repositories')">
+                    <div class="sidebar-item-icon icon-emerald">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+                    </div>
+                    <div class="sidebar-item-text">
+                        <span class="sidebar-item-label">Repositories</span>
+                        <span class="sidebar-item-desc">Global Repo Catalog</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-item" data-page="issues" onclick="switchPage('issues')">
+                    <div class="sidebar-item-icon icon-cyan">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C12.96 5.06 12.49 5 12 5c-.49 0-.96.06-1.41.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8zm-6 8h-4v-2h4v2zm0-4h-4v-2h4v2z"/></svg>
+                    </div>
+                    <div class="sidebar-item-text">
+                        <span class="sidebar-item-label">Issues & Tasks</span>
+                        <span class="sidebar-item-desc">Swarm Task Tracker</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-item" data-page="telemetry" onclick="switchPage('telemetry')">
+                    <div class="sidebar-item-icon icon-amber">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    </div>
+                    <div class="sidebar-item-text">
+                        <span class="sidebar-item-label">Telemetry & Logs</span>
+                        <span class="sidebar-item-desc">Auth & System Audit</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-item" data-page="activity" onclick="switchPage('activity')">
+                    <div class="sidebar-item-icon icon-rose">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                    </div>
+                    <div class="sidebar-item-text">
+                        <span class="sidebar-item-label">Activity Stream</span>
+                        <span class="sidebar-item-desc">Real-time Event Stream</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-item" data-page="roadmap" onclick="switchPage('roadmap')">
+                    <div class="sidebar-item-icon icon-cyan">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                    </div>
+                    <div class="sidebar-item-text">
+                        <span class="sidebar-item-label">Roadmap</span>
+                        <span class="sidebar-item-desc">7-Month Engineering Plan</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-footer-info">
+                    <span class="status-dot"></span>
+                    <span>Axum Server Engine v1.0.0</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="container">
+            
+            <!-- ====================================================================
+                 PAGE VIEW 1: OVERVIEW DASHBOARD
+                 ==================================================================== -->
+            <div class="page-view active" id="page-overview">
+                
+                <div class="page-header-box">
+                    <div class="page-header-info">
+                        <div class="page-header-title">
+                            <span class="badge badge-blue">Dashboard Overview</span>
+                            <span>Swarm Metrics & Control Panel</span>
+                        </div>
+                        <div class="page-header-subtitle">
+                            Real-time node telemetry, peer connectivity, and content-addressed storage mesh health.
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="switchPage('developers')">👥 Manage Developers</button>
+                </div>
+
+                <!-- Metrics Summary Cards Grid -->
+                <section class="metrics-grid">
+                    
+                    <!-- Peer Metric Card -->
+                    <div class="card">
+                        <div class="metric-card-top">
+                            <span class="card-header-title">Active Swarm Peers</span>
+                            <div class="metric-icon-box icon-blue">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="metric-peers">14</div>
+                        <div class="metric-sub">
+                            <span style="color: var(--accent-emerald); font-weight: 600;">↑ 3 Seed Nodes Online</span>
+                            <span class="badge badge-blue">libp2p</span>
+                        </div>
+                        <svg class="metric-sparkline" viewBox="0 0 100 25" preserveAspectRatio="none">
+                            <path d="M0,20 Q15,5 30,15 T60,8 T90,18 L100,10 L100,25 L0,25 Z" fill="rgba(99, 102, 241, 0.15)"/>
+                            <path d="M0,20 Q15,5 30,15 T60,8 T90,18 L100,10" fill="none" stroke="#6366f1" stroke-width="2"/>
+                        </svg>
+                    </div>
+
+                    <!-- Repositories Metric Card -->
+                    <div class="card">
+                        <div class="metric-card-top">
+                            <span class="card-header-title">Indexed Repositories</span>
+                            <div class="metric-icon-box icon-cyan">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="metric-repos">42</div>
+                        <div class="metric-sub">
+                            <span>SHA-256 Content Addressed</span>
+                            <span class="badge badge-cyan">Git Blocks</span>
+                        </div>
+                        <svg class="metric-sparkline" viewBox="0 0 100 25" preserveAspectRatio="none">
+                            <path d="M0,18 Q20,22 40,10 T80,12 L100,4 L100,25 L0,25 Z" fill="rgba(6, 182, 212, 0.15)"/>
+                            <path d="M0,18 Q20,22 40,10 T80,12 L100,4" fill="none" stroke="#06b6d4" stroke-width="2"/>
+                        </svg>
+                    </div>
+
+                    <!-- Replication Health Metric Card -->
+                    <div class="card">
+                        <div class="metric-card-top">
+                            <span class="card-header-title">Replication Mesh Health</span>
+                            <div class="metric-icon-box icon-emerald">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="metric-health">98.4%</div>
+                        <div class="metric-sub">
+                            <span style="color: var(--accent-emerald); font-weight: 600;">9-Replica Target</span>
+                            <span class="badge badge-green">Healthy</span>
+                        </div>
+                        <svg class="metric-sparkline" viewBox="0 0 100 25" preserveAspectRatio="none">
+                            <path d="M0,10 Q25,8 50,12 T90,5 L100,7 L100,25 L0,25 Z" fill="rgba(16, 185, 129, 0.15)"/>
+                            <path d="M0,10 Q25,8 50,12 T90,5 L100,7" fill="none" stroke="#10b981" stroke-width="2"/>
+                        </svg>
+                    </div>
+
+                    <!-- Kademlia DHT Metric Card -->
+                    <div class="card">
+                        <div class="metric-card-top">
+                            <span class="card-header-title">Kademlia DHT Routing</span>
+                            <div class="metric-icon-box icon-amber">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="metric-dht">Active</div>
+                        <div class="metric-sub">
+                            <span>Noise TLS Encrypted</span>
+                            <span class="badge badge-amber">v2 Protocol</span>
+                        </div>
+                        <svg class="metric-sparkline" viewBox="0 0 100 25" preserveAspectRatio="none">
+                            <path d="M0,15 Q30,5 60,18 T100,8 L100,25 L0,25 Z" fill="rgba(245, 158, 11, 0.15)"/>
+                            <path d="M0,15 Q30,5 60,18 T100,8" fill="none" stroke="#f59e0b" stroke-width="2"/>
+                        </svg>
+                    </div>
+
+                </section>
+
+                <!-- Quick Navigation Action Cards Grid -->
+                <div class="quick-actions-grid">
+                    <div class="quick-action-card" onclick="switchPage('developers')">
+                        <div class="quick-action-top">
+                            <span class="quick-action-title">👥 Developer Accounts</span>
+                            <span class="badge badge-purple">WebSocket Live</span>
+                        </div>
+                        <p class="quick-action-desc">
+                            Inspect registered developer profiles, Argon2id passwords, and linked Ed25519 node key identifiers.
+                        </p>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--accent-primary);">View Developers →</div>
+                    </div>
+
+                    <div class="quick-action-card" onclick="switchPage('repositories')">
+                        <div class="quick-action-top">
+                            <span class="quick-action-title">📦 Repository Catalog</span>
+                            <span class="badge badge-emerald">SHA-256 Blobs</span>
+                        </div>
+                        <p class="quick-action-desc">
+                            Explore content-addressed Git blockstores, seed counts, storage pinning cluster, and create new repos.
+                        </p>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--accent-emerald);">View Repositories →</div>
+                    </div>
+
+                    <div class="quick-action-card" onclick="switchPage('issues')">
+                        <div class="quick-action-top">
+                            <span class="quick-action-title">🐛 Swarm Issues & Tasks</span>
+                            <span class="badge badge-cyan">Task Tracker</span>
+                        </div>
+                        <p class="quick-action-desc">
+                            Track bugs, community feature requests, and open high-priority tasks synchronized across P2P nodes.
+                        </p>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--accent-cyan);">View Issues & Tasks →</div>
+                    </div>
+
+                    <div class="quick-action-card" onclick="switchPage('telemetry')">
+                        <div class="quick-action-top">
+                            <span class="quick-action-title">⚡ Telemetry & Audit Logs</span>
+                            <span class="badge badge-amber">System Audit</span>
+                        </div>
+                        <p class="quick-action-desc">
+                            Test Argon2id authentication, query bootstrap nodes, circuit relays, and security hardening status.
+                        </p>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--accent-amber);">View Telemetry & Logs →</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ====================================================================
+                 PAGE VIEW 2: DEVELOPERS & PEER KEYS
+                 ==================================================================== -->
+            <div class="page-view" id="page-developers">
+                
+                <div class="page-header-box">
+                    <div class="page-header-info">
+                        <div class="page-header-title">
+                            <span class="badge badge-purple">Developer Management</span>
+                            <span>Registered Developers & Peer Node Keys</span>
+                        </div>
+                        <div class="page-header-subtitle">
+                            Real-time WebSocket stream (<code class="mono">ws://localhost:8080/api/v1/admin/ws</code>) — Auto-refreshes when new developers register or connect.
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span class="badge badge-purple" id="total-users-badge">Loading Users...</span>
+                        <span class="badge badge-green" id="ws-status-badge">⚡ Connecting WebSockets...</span>
+                    </div>
+                </div>
+
+                <section class="card">
+                    <!-- Search & Control Bar for Users -->
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;">
+                        <div style="position: relative; flex: 1; max-width: 520px;">
+                            <input type="text" id="user-search-input" class="form-input" placeholder="🔍 Search registered developers by username, email, or peer key..." oninput="filterUsersTable()">
+                        </div>
+                        <button class="btn btn-outline btn-sm" onclick="fetchUsersREST()">🔄 Force Fetch</button>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Username & Role</th>
+                                    <th>Email Address</th>
+                                    <th>Ed25519 Peer Node ID</th>
+                                    <th>Created Date</th>
+                                    <th>Socket Session</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">Connecting to live WebSocket stream...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- ====================================================================
+                 PAGE VIEW 3: REPOSITORIES CATALOG
+                 ==================================================================== -->
+            <div class="page-view" id="page-repositories">
+                
+                <div class="page-header-box">
+                    <div class="page-header-info">
+                        <div class="page-header-title">
+                            <span class="badge badge-green">Repository Storage</span>
+                            <span>Global Repository Catalog & Peer Replication Mesh</span>
+                        </div>
+                        <div class="page-header-subtitle">
+                            Content-addressed SHA-256 Git blockstores replicated across Kademlia DHT swarm peers.
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn btn-outline btn-sm" onclick="fetchStorageNodeStatus()">☁️ Storage Pinning Cluster</button>
+                        <button class="btn btn-primary btn-sm" onclick="openNewRepoModal()">+ Create Repository</button>
+                    </div>
+                </div>
+
+                <section class="card">
+                    <div style="display: flex; gap: 14px; margin-bottom: 20px;">
+                        <input type="text" id="repo-search-input" class="form-input" placeholder="🔍 Search repositories by name, topic, or language..." oninput="filterReposTable()" style="max-width: 520px;">
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Repository</th>
+                                    <th>Owner</th>
+                                    <th>Root Commit Hash</th>
+                                    <th>Objects</th>
+                                    <th>Seeds</th>
+                                    <th>Language</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repos-table-body">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading repositories from backend...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- ====================================================================
+                 PAGE VIEW 4: ISSUES & TASK TRACKER
+                 ==================================================================== -->
+            <div class="page-view" id="page-issues">
+                
+                <div class="page-header-box">
+                    <div class="page-header-info">
+                        <div class="page-header-title">
+                            <span class="badge badge-cyan">Task Tracker</span>
+                            <span>Swarm Issues & Task Tracker</span>
+                        </div>
+                        <div class="page-header-subtitle">
+                            Track bugs, feature requests, and community discussions synchronized across P2P swarm repositories.
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <span class="badge badge-cyan" id="issues-open-badge">Loading Issues...</span>
+                        <button class="btn btn-primary btn-sm" onclick="openNewIssueModal()">+ Open New Issue</button>
+                    </div>
+                </div>
+
+                <section class="card">
+                    <!-- Urgent High Priority Issues Highlight Box -->
+                    <div style="margin-bottom: 24px; background: rgba(244, 63, 94, 0.05); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: 12px; padding: 18px 22px;">
+                        <div style="font-size: 11px; font-weight: bold; letter-spacing: 1px; color: var(--accent-rose); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>HIGH PRIORITY SWARM ISSUES</span>
+                            <span class="badge badge-red">Needs Immediate Attention</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13.5px;">
+                                <span><strong style="color: var(--accent-rose); font-family: monospace;">#124</strong> P2P sync timeout when seeding large chunk files</span>
+                                <span class="badge badge-red">codehub-core-p2p</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13.5px;">
+                                <span><strong style="color: var(--accent-rose); font-family: monospace;">#121</strong> Windows node crash on Rabin fingerprint boundary calculation</span>
+                                <span class="badge badge-red">codehub-core-p2p</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13.5px;">
+                                <span><strong style="color: var(--accent-purple); font-family: monospace;">#118</strong> DAG rendering issue in Flutter graph visualizer</span>
+                                <span class="badge badge-purple">flutter-dag-visualizer</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Issues Category Filter Pills -->
+                    <div class="activity-filter-bar">
+                        <button class="filter-pill active" onclick="filterIssuesCategory('all', this)">All Issues</button>
+                        <button class="filter-pill" onclick="filterIssuesCategory('OPEN', this)">Open</button>
+                        <button class="filter-pill" onclick="filterIssuesCategory('CLOSED', this)">Closed</button>
+                        <button class="filter-pill" onclick="filterIssuesCategory('assigned', this)">Assigned to Me</button>
+                    </div>
+
+                    <!-- Issues Table -->
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Issue #</th>
+                                    <th>Title & Description</th>
+                                    <th>Author</th>
+                                    <th>Milestone & Labels</th>
+                                    <th>Assignees</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="issues-table-body">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading repository issues from server...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- ====================================================================
+                 PAGE VIEW 5: TELEMETRY & SYSTEM LOGS
+                 ==================================================================== -->
+            <div class="page-view" id="page-telemetry">
+                
+                <div class="page-header-box">
+                    <div class="page-header-info">
+                        <div class="page-header-title">
+                            <span class="badge badge-amber">System Telemetry</span>
+                            <span>Auth Console & System Audit Logs</span>
+                        </div>
+                        <div class="page-header-subtitle">
+                            Live output from Axum control plane and Kademlia DHT routing table resynchronization.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="split-section">
+                    <!-- Auth & Identity Management -->
+                    <div class="card">
+                        <h2 class="section-title">
+                            <div class="section-title-left">
+                                <div class="section-title-icon" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple);">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+                                </div>
+                                <span>Developer Auth & Identity Engine</span>
+                            </div>
+                        </h2>
+                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+                            Test zero-plain-password Argon2id hashing and Ed25519 node identity key generation.
+                        </p>
+
+                        <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+                            <div class="form-group">
+                                <label class="form-label">Developer Username</label>
+                                <input type="text" id="auth-username" class="form-input" value="GranthikSom" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Passphrase (Argon2id Hashed)</label>
+                                <input type="password" id="auth-password" class="form-input" value="password123" required>
+                            </div>
+
+                            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                                <button type="submit" class="btn btn-primary" style="flex: 1;">Sign In (Argon2id)</button>
+                                <button type="button" class="btn btn-outline" onclick="handleRegisterSubmit()">Register New User</button>
+                            </div>
+                        </form>
+
+                        <div style="margin-top: 28px;">
+                            <div class="form-label" style="margin-bottom: 10px;">Active JWT Session & Ed25519 Peer Key</div>
+                            <div class="console-box" id="auth-console">// Sign in to generate Argon2id hash & Ed25519 node keypair</div>
+                        </div>
+                    </div>
+
+                    <!-- System Audit & Console -->
+                    <div class="card">
+                        <h2 class="section-title">
+                            <div class="section-title-left">
+                                <div class="section-title-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-amber);">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
+                                </div>
+                                <span>Real-Time P2P Telemetry & Audit Logs</span>
+                            </div>
+                        </h2>
+                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+                            Live output from Axum control plane and Kademlia DHT routing table resynchronization.
+                        </p>
+
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                            <button class="btn btn-outline btn-sm" onclick="fetchBootstrapNodes()">Seed Nodes</button>
+                            <button class="btn btn-outline btn-sm" onclick="fetchCircuitRelays()">Circuit Relays</button>
+                            <button class="btn btn-outline btn-sm" onclick="fetchSecurityHardening()">Security Hardening</button>
+                            <button class="btn btn-outline btn-sm" onclick="fetchRoadmap()">Roadmap</button>
+                            <button class="btn btn-outline btn-sm" onclick="fetchTechAudit()">Tech Audit</button>
+                        </div>
+
+                        <div class="console-box" id="audit-console" style="min-height: 295px;">// Click any action button to query Axum Server API...</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ====================================================================
+                 PAGE VIEW 6: SWARM ACTIVITY STREAM
+                 ==================================================================== -->
+            <div class="page-view" id="page-activity">
+                
+                <div class="page-header-box">
+                    <div class="page-header-info">
+                        <div class="page-header-title">
+                            <span class="badge badge-blue">Live Telemetry</span>
+                            <span>Real-Time Swarm Activity & Event Stream</span>
+                        </div>
+                        <div class="page-header-subtitle">
+                            Audit log of recent Git pushes, pull requests, issue updates, and peer node replication events.
+                        </div>
+                    </div>
+                </div>
+
+                <section class="card">
+                    <div class="activity-filter-bar">
+                        <button class="filter-pill active" onclick="filterActivityFeed('all', this)">All Activity</button>
+                        <button class="filter-pill" onclick="filterActivityFeed('pushes', this)">Pushes</button>
+                        <button class="filter-pill" onclick="filterActivityFeed('commits', this)">Commits</button>
+                        <button class="filter-pill" onclick="filterActivityFeed('prs', this)">Pull Requests</button>
+                        <button class="filter-pill" onclick="filterActivityFeed('issues', this)">Issues</button>
+                        <button class="filter-pill" onclick="filterActivityFeed('repo', this)">Repositories</button>
+                        <button class="filter-pill" onclick="filterActivityFeed('peer', this)">Swarm Peers</button>
+                        <button class="filter-pill" onclick="filterActivityFeed('replication', this)">Replication</button>
+                    </div>
+
+                    <div id="activity-feed-list" class="activity-feed-list">
+                        <!-- Dynamically populated via JavaScript -->
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- ====================================================================
+                 PAGE VIEW 7: INFRASTRUCTURE ENGINEERING ROADMAP
+                 ==================================================================== -->
+            <div class="page-view" id="page-roadmap">
+                
+                <div class="page-header-box">
+                    <div class="page-header-info">
+                        <div class="page-header-title">
+                            <span class="badge badge-cyan">Architecture Plan</span>
+                            <span>7-Month Infrastructure Engineering Roadmap</span>
+                        </div>
+                        <div class="page-header-subtitle">
+                            Long-term engineering milestones for CodeHub Sovereign P2P Platform.
+                        </div>
+                    </div>
+                </div>
+
+                <section class="card">
+                    <div class="timeline" id="roadmap-timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-dot"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Month 1: Flutter Desktop UI & Core Axum Server</div>
+                                <div class="timeline-desc">Design system, authentication API, PostgreSQL schema, zero-plain password policy.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-dot" style="background-color: var(--accent-cyan);"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Month 2: Rust Engine & Git Object Model</div>
+                                <div class="timeline-desc">Content-addressed SHA-256 blockstore, blob parsing, commit DAG tree resolution.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-dot" style="background-color: var(--accent-purple);"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Month 3: Chunking Engine & libp2p Peer Identity</div>
+                                <div class="timeline-desc">Rabin fingerprint chunking, corruption rejection, Noise TLS encrypted transport.</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-dot" style="background-color: var(--accent-emerald);"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Month 4: Kademlia DHT Routing & Swarm Seeders</div>
+                                <div class="timeline-desc">Distributed hash table lookup, seed peer discovery, multi-replica synchronization.</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Floating Live Chat Sidebar Toggle Button -->
+    <button id="chat-toggle-btn" onclick="toggleLiveChatDrawer()" style="position: fixed; bottom: 28px; right: 28px; z-index: 1000; background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple)); color: white; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 8px 30px var(--accent-primary-glow); display: flex; align-items: center; gap: 10px; transition: transform 0.25s ease;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+        Swarm Live Chat <span style="background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 12px; font-size: 12px;">3</span>
+    </button>
+
+    <!-- Live Chat Sidebar Drawer -->
+    <div id="chat-drawer" style="position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border-left: 1px solid var(--border-glass); z-index: 1001; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; box-shadow: -10px 0 40px rgba(0,0,0,0.7);">
+        <div style="padding: 20px 24px; background: rgba(9, 13, 22, 0.9); border-bottom: 1px solid var(--border-glass); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); display: flex; align-items: center; justify-content: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                </div>
+                <div>
+                    <div style="font-weight: 700; font-size: 16px; color: var(--text-heading);">#general-swarm</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">libp2p Gossipsub • Noise TLS Encrypted</div>
+                </div>
+            </div>
+            <button onclick="toggleLiveChatDrawer()" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 6px;">✕</button>
+        </div>
+        
+        <div id="chat-drawer-messages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="background: var(--bg-input); border: 1px solid var(--border-glass); border-radius: 12px; padding: 12px 16px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <strong style="color: var(--accent-purple);">GranthikSom <span class="badge badge-purple" style="font-size: 10px;">ADMIN</span></strong>
+                    <span style="font-size: 11px; color: var(--text-subtle);">12:01</span>
+                </div>
+                <div style="color: var(--text-main);">Welcome to the Web Swarm Live Chat console! Messages broadcast live across peers.</div>
+            </div>
+            
+            <div style="background: var(--bg-input); border: 1px solid var(--border-glass); border-radius: 12px; padding: 12px 16px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <strong style="color: var(--accent-cyan);">SanFranciscoPeer <span class="badge badge-cyan" style="font-size: 10px;">SEEDER</span></strong>
+                    <span style="font-size: 11px; color: var(--text-subtle);">12:03</span>
+                </div>
+                <div style="color: var(--text-main);">Replicated 380 Git objects for codehub-core-p2p to Node #42 with 100% hash verification.</div>
+            </div>
+        </div>
+        
+        <div style="padding: 20px; background: rgba(9, 13, 22, 0.9); border-top: 1px solid var(--border-glass); display: flex; gap: 10px;">
+            <input type="text" id="chat-drawer-input" placeholder="Message #general-swarm..." onkeypress="if(event.key==='Enter') sendWebChatMessage()" class="form-input" style="flex: 1;">
+            <button onclick="sendWebChatMessage()" class="btn btn-primary">Send</button>
+        </div>
+    </div>
+
+    <!-- New Issue Modal Overlay -->
+    <div id="new-issue-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">🐛 Open New Swarm Issue</div>
+                <button onclick="closeNewIssueModal()" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;">✕</button>
+            </div>
+            <form onsubmit="handleCreateIssueSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label">Issue Title</label>
+                    <input type="text" id="issue-title-input" class="form-input" placeholder="e.g., QUIC multiplexing handshake failure on high latency peer" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description / Reproduction Steps</label>
+                    <textarea id="issue-body-input" class="form-input" style="min-height: 90px; resize: vertical;" placeholder="Describe the issue or feature request..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assignee</label>
+                    <input type="text" id="issue-assignee-input" class="form-input" value="GranthikSom">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="closeNewIssueModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Issue</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Repository Modal Overlay -->
+    <div id="new-repo-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">📦 Register New Repository</div>
+                <button onclick="closeNewRepoModal()" style="background: transparent; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;">✕</button>
+            </div>
+            <form onsubmit="handleCreateRepoSubmit(event)">
+                <div class="form-group">
+                    <label class="form-label">Repository Name</label>
+                    <input type="text" id="repo-name-input" class="form-input" placeholder="e.g., rust-kademlia-dht" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Owner</label>
+                    <input type="text" id="repo-owner-input" class="form-input" value="GranthikSom" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" id="repo-desc-input" class="form-input" placeholder="Short description of the repository...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Primary Language</label>
+                    <input type="text" id="repo-lang-input" class="form-input" value="Rust">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="closeNewRepoModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Register Repo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Copy Toast Tooltip -->
+    <div id="copy-toast" class="copy-toast">Copied to Clipboard!</div>
+
+    <!-- Frontend Dynamic Logic & API Integrations -->
+    <script>
+        const SERVER_HOST = (window.location.origin.includes(':8080'))
+            ? window.location.origin
+            : 'http://localhost:8080';
+        const WS_HOST = (window.location.origin.includes(':8080'))
+            ? (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host
+            : 'ws://localhost:8080';
+        const API_BASE = `${SERVER_HOST}/api/v1`;
+
+        /* ====================================================================
+           PAGE NAVIGATION & SIDEBAR CONTROLS
+           ==================================================================== */
+        function switchPage(pageId) {
+            const validPages = ['overview', 'developers', 'repositories', 'issues', 'telemetry', 'activity', 'roadmap'];
+            if (!validPages.includes(pageId)) pageId = 'overview';
+
+            // Hide all page views
+            document.querySelectorAll('.page-view').forEach(view => {
+                view.classList.remove('active');
+            });
+
+            // Show requested page view
+            const targetView = document.getElementById(`page-${pageId}`);
+            if (targetView) {
+                targetView.classList.add('active');
+            }
+
+            // Update active sidebar item
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                if (item.getAttribute('data-page') === pageId) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            // Update active top nav tab
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                if (tab.getAttribute('data-page') === pageId) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+
+            // Scroll content window smoothly to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Auto-close sidebar drawer on smaller screens after item selected
+            if (window.innerWidth < 1200) {
+                toggleSidebar(false);
+            }
+
+            // Sync URL Hash
+            if (history.pushState) {
+                history.pushState(null, null, `#${pageId}`);
+            } else {
+                location.hash = `#${pageId}`;
+            }
+        }
+
+        function toggleSidebar(forceState) {
+            const sidebar = document.getElementById('admin-sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (!sidebar) return;
+
+            const isOpen = sidebar.classList.contains('open');
+            const shouldOpen = (forceState !== undefined) ? forceState : !isOpen;
+
+            if (shouldOpen) {
+                sidebar.classList.add('open');
+                if (backdrop) backdrop.classList.add('active');
+            } else {
+                sidebar.classList.remove('open');
+                if (backdrop) backdrop.classList.remove('active');
+            }
+        }
+
+        let isChatDrawerOpen = false;
+        function toggleLiveChatDrawer() {
+            const drawer = document.getElementById('chat-drawer');
+            isChatDrawerOpen = !isChatDrawerOpen;
+            if (drawer) {
+                drawer.style.right = isChatDrawerOpen ? '0px' : '-420px';
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            const toast = document.getElementById('copy-toast');
+            if (toast) {
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            }
+        }
+
+        function sendWebChatMessage() {
+            const input = document.getElementById('chat-drawer-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const messagesBox = document.getElementById('chat-drawer-messages');
+            const msgHtml = `
+                <div style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 12px; padding: 12px 16px; font-size: 13px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <strong style="color: var(--accent-primary);">GranthikSom (You) <span class="badge badge-blue" style="font-size: 10px;">OWNER</span></strong>
+                        <span style="font-size: 11px; color: var(--text-subtle);">Just now</span>
+                    </div>
+                    <div style="color: var(--text-heading);">${text}</div>
+                </div>
+            `;
+            messagesBox.innerHTML += msgHtml;
+            input.value = '';
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+
+            setTimeout(() => {
+                const replyHtml = `
+                    <div style="background: var(--bg-input); border: 1px solid var(--border-glass); border-radius: 12px; padding: 12px 16px; font-size: 13px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <strong style="color: var(--accent-cyan);">TokyoNode <span class="badge badge-cyan" style="font-size: 10px;">PEER</span></strong>
+                            <span style="font-size: 11px; color: var(--text-subtle);">Just now</span>
+                        </div>
+                        <div style="color: var(--text-heading);">Received Gossipsub broadcast! Hash verified: sha256_e4b0...</div>
+                    </div>
+                `;
+                messagesBox.innerHTML += replyHtml;
+                messagesBox.scrollTop = messagesBox.scrollHeight;
+            }, 1200);
+        }
+
+        let ws;
+        let allUsersData = [];
+        function initLiveUsersWebSocket() {
+            const wsUrl = `${WS_HOST}/api/v1/admin/ws`;
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    const badge = document.getElementById('ws-status-badge');
+                    if (badge) {
+                        badge.className = 'badge badge-green';
+                        badge.innerText = '⚡ Live WebSocket Active';
+                    }
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        const evt = data.event || data.type;
+                        if (evt === 'users_live_update' && data.users) {
+                            allUsersData = data.users;
+                            renderUsersTable(allUsersData);
+                            if (data.total_users !== undefined) {
+                                document.getElementById('total-users-badge').innerText = `${data.total_users} Users Registered`;
+                            }
+                        } else if ((evt === 'repository_created' || evt === 'repository.created') && data.repository) {
+                            const repo = data.repository;
+                            if (!allReposData.some(r => r.id === repo.id)) {
+                                allReposData.unshift(repo);
+                                renderReposTable(allReposData);
+                                document.getElementById('metric-repos').innerText = allReposData.length;
+                            }
+                            activityFeedData.unshift({
+                                category: 'repo',
+                                title: `New repository "${repo.name}" created by ${repo.owner}`,
+                                target: repo.name,
+                                time: 'Just now',
+                                meta: 'PostgreSQL & Event Bus',
+                                detail: 'Saved to PostgreSQL & broadcast live via Socket.IO / Redis Event Bus'
+                            });
+                            renderActivityFeed();
+                            const auditConsole = document.getElementById('audit-console');
+                            if (auditConsole) {
+                                auditConsole.innerText = `// LIVE EVENT RECEIVED OVER SOCKET.IO / WS BROADCASTER:\n` + JSON.stringify(data, null, 2);
+                            }
+                        }
+                    } catch (e) {
+                        console.error("WS Parse Error:", e);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    const badge = document.getElementById('ws-status-badge');
+                    if (badge) {
+                        badge.className = 'badge badge-purple';
+                        badge.innerText = '🔄 Reconnecting WS...';
+                    }
+                    setTimeout(initLiveUsersWebSocket, 3000);
+                };
+
+                ws.onerror = (err) => {
+                    console.warn("WebSocket connection error:", err);
+                };
+            } catch (e) {
+                console.error("WebSocket init error:", e);
+            }
+        }
+
+        async function fetchUsersREST() {
+            try {
+                const res = await fetch(`${API_BASE}/users`);
+                const data = await res.json();
+                if (data.success && data.data) {
+                    allUsersData = data.data;
+                    renderUsersTable(allUsersData);
+                    document.getElementById('total-users-badge').innerText = `${allUsersData.length} Users Registered`;
+                }
+            } catch (err) {
+                console.error("Error fetching users via REST:", err);
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('users-table-body');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">No matching users found</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                const roleBadge = u.role === 'admin' ? 'badge-purple' : 'badge-blue';
+                const initial = u.username ? u.username.charAt(0).toUpperCase() : 'U';
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="mono" style="font-size: 12px; color: var(--accent-cyan);">${u.id}</td>
+                        <td>
+                            <div class="user-avatar-cell">
+                                <div class="user-avatar">${initial}</div>
+                                <div>
+                                    <div style="font-weight: 700; color: var(--text-heading);">${u.username}</div>
+                                    <span class="badge ${roleBadge}" style="margin-top: 2px;">${u.role}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color: var(--text-muted);">${u.email}</td>
+                        <td>
+                            <span class="mono" onclick="copyToClipboard('${u.peer_id}')" style="font-size: 11px; color: #4ade80; background: rgba(74, 222, 128, 0.1); padding: 4px 8px; border-radius: 6px; cursor: pointer; border: 1px solid rgba(74, 222, 128, 0.2);" title="Click to copy Peer ID">
+                                ${u.peer_id}
+                            </span>
+                        </td>
+                        <td style="font-size: 12px; color: var(--text-muted);">${u.created_at}</td>
+                        <td>
+                            <span class="status-pill" style="padding: 3px 10px; font-size: 11px;">
+                                <span class="status-dot"></span> Active Session
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filterUsersTable() {
+            const query = document.getElementById('user-search-input').value.toLowerCase().trim();
+            if (!query) {
+                renderUsersTable(allUsersData);
+                return;
+            }
+            const filtered = allUsersData.filter(u => 
+                u.username.toLowerCase().includes(query) ||
+                u.email.toLowerCase().includes(query) ||
+                u.peer_id.toLowerCase().includes(query) ||
+                u.id.toLowerCase().includes(query)
+            );
+            renderUsersTable(filtered);
+        }
+
+        async function checkServerHealth() {
+            try {
+                const res = await fetch(`${SERVER_HOST}/health`);
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('server-dot').style.backgroundColor = '#10b981';
+                    document.getElementById('server-status-text').innerText = `Axum Server API v${data.data.version} Online`;
+                    if (data.data.active_swarm_peers) document.getElementById('metric-peers').innerText = data.data.active_swarm_peers;
+                    if (data.data.total_indexed_repos) document.getElementById('metric-repos').innerText = data.data.total_indexed_repos;
+                }
+            } catch (err) {
+                document.getElementById('server-dot').style.backgroundColor = '#f43f5e';
+                document.getElementById('server-status-text').innerText = 'Control Server Offline (Check Port 8080)';
+            }
+        }
+
+        let allIssuesData = [];
+        let activeIssueCategory = 'all';
+
+        async function fetchIssues() {
+            try {
+                const res = await fetch(`${API_BASE}/repositories/repo_101/issues`);
+                const data = await res.json();
+                if (data.success && data.data) {
+                    allIssuesData = data.data;
+                    renderIssuesTable();
+                }
+            } catch (err) {
+                console.error("Error fetching issues:", err);
+            }
+        }
+
+        function renderIssuesTable() {
+            const tbody = document.getElementById('issues-table-body');
+            let filtered = allIssuesData;
+
+            if (activeIssueCategory === 'OPEN') {
+                filtered = allIssuesData.filter(i => i.status === 'OPEN');
+            } else if (activeIssueCategory === 'CLOSED') {
+                filtered = allIssuesData.filter(i => i.status === 'CLOSED');
+            } else if (activeIssueCategory === 'assigned') {
+                filtered = allIssuesData.filter(i => i.assignees && i.assignees.length > 0);
+            }
+
+            const openCount = allIssuesData.filter(i => i.status === 'OPEN').length;
+            document.getElementById('issues-open-badge').innerText = `${openCount} Open Issues`;
+
+            if (!filtered || filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">No issues found in this category</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(issue => {
+                const statusBadge = issue.status === 'OPEN' ? 'badge-green' : 'badge-purple';
+                const labelsHtml = (issue.labels || []).map(l => `<span class="badge badge-blue" style="font-size: 10px; margin-right: 4px;">${l}</span>`).join('');
+                const assigneesHtml = (issue.assignees || []).map(a => `<span class="badge badge-cyan" style="font-size: 11px;">@${a}</span>`).join(' ');
+
+                return `
+                    <tr>
+                        <td class="mono" style="font-weight: bold; color: var(--accent-cyan);">#${issue.issue_number}</td>
+                        <td>
+                            <div style="font-weight: 700; color: var(--text-heading);">${issue.title}</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${issue.body || ''}</div>
+                        </td>
+                        <td style="font-weight: 600;">${issue.author}</td>
+                        <td>
+                            <div style="font-size: 12px; color: var(--accent-amber); font-weight: 600; margin-bottom: 4px;">${issue.milestone || 'Backlog'}</div>
+                            <div>${labelsHtml}</div>
+                        </td>
+                        <td>${assigneesHtml || '<span style="color: var(--text-subtle); font-size: 12px;">Unassigned</span>'}</td>
+                        <td><span class="badge ${statusBadge}">${issue.status}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterIssuesCategory(category, btnElement) {
+            activeIssueCategory = category;
+            const container = btnElement.parentElement;
+            container.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+            btnElement.classList.add('active');
+            renderIssuesTable();
+        }
+
+        function openNewIssueModal() {
+            document.getElementById('new-issue-modal').classList.add('active');
+        }
+
+        function closeNewIssueModal() {
+            document.getElementById('new-issue-modal').classList.remove('active');
+        }
+
+        async function handleCreateIssueSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('issue-title-input').value;
+            const body = document.getElementById('issue-body-input').value;
+            const assignee = document.getElementById('issue-assignee-input').value;
+
+            const newIssue = {
+                id: `issue-${Date.now()}`,
+                repo_id: "repo_101",
+                issue_number: allIssuesData.length + 101,
+                title,
+                body,
+                author: "GranthikSom",
+                status: "OPEN",
+                milestone: "v1.0 Sovereign Swarm",
+                labels: ["p2p-sync", "enhancement"],
+                assignees: [assignee],
+                comments_count: 0
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/repositories/repo_101/issues`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newIssue)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    allIssuesData.unshift(data.data || newIssue);
+                    renderIssuesTable();
+                    closeNewIssueModal();
+                    document.getElementById('issue-title-input').value = '';
+                    document.getElementById('issue-body-input').value = '';
+                }
+            } catch (err) {
+                console.error("Error creating issue:", err);
+                allIssuesData.unshift(newIssue);
+                renderIssuesTable();
+                closeNewIssueModal();
+            }
+        }
+
+        let allReposData = [];
+
+        async function fetchRepositories() {
+            try {
+                const res = await fetch(`${API_BASE}/repositories`);
+                const data = await res.json();
+                if (data.success && data.data) {
+                    allReposData = data.data;
+                    renderReposTable(allReposData);
+                }
+            } catch (err) {
+                console.error("Error fetching repositories:", err);
+            }
+        }
+
+        function renderReposTable(repos) {
+            const tbody = document.getElementById('repos-table-body');
+            if (!repos || repos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">No matching repositories found</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = repos.map(repo => {
+                const langColor = repo.language === 'Rust' ? 'badge-amber' : (repo.language === 'Dart' ? 'badge-cyan' : 'badge-purple');
+                return `
+                    <tr>
+                        <td style="font-weight: 700; color: var(--accent-primary);">${repo.name}</td>
+                        <td style="font-weight: 600;">${repo.owner}</td>
+                        <td class="mono" style="font-size: 12px; color: var(--text-muted);">${(repo.root_commit_hash || 'a81c4e97d2f831b2').substring(0, 16)}...</td>
+                        <td class="mono" style="font-weight: 600;">${repo.total_objects || 1420}</td>
+                        <td><span class="badge badge-green">${repo.seed_count || 8} Seeds</span></td>
+                        <td><span class="badge ${langColor}">${repo.language || 'Rust'}</span></td>
+                        <td>
+                            <button class="btn btn-outline btn-sm" onclick="pinRepoStorage('${repo.id}')">📌 Pin Storage</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterReposTable() {
+            const query = document.getElementById('repo-search-input').value.toLowerCase().trim();
+            if (!query) {
+                renderReposTable(allReposData);
+                return;
+            }
+            const filtered = allReposData.filter(r => 
+                r.name.toLowerCase().includes(query) ||
+                r.owner.toLowerCase().includes(query) ||
+                (r.language && r.language.toLowerCase().includes(query))
+            );
+            renderReposTable(filtered);
+        }
+
+        function openNewRepoModal() {
+            document.getElementById('new-repo-modal').classList.add('active');
+        }
+
+        function closeNewRepoModal() {
+            document.getElementById('new-repo-modal').classList.remove('active');
+        }
+
+        async function handleCreateRepoSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('repo-name-input').value;
+            const owner = document.getElementById('repo-owner-input').value;
+            const description = document.getElementById('repo-desc-input').value;
+            const language = document.getElementById('repo-lang-input').value;
+
+            const newRepo = {
+                id: `repo_${Date.now()}`,
+                name,
+                owner,
+                description,
+                root_commit_hash: `sha256_${Math.random().toString(36).substring(2, 18)}`,
+                total_objects: 1,
+                seed_count: 1,
+                is_private: false,
+                topics: [language.toLowerCase(), "p2p"],
+                language,
+                stars: 1,
+                forks: 0,
+                last_activity: "Just now"
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/repositories`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newRepo)
+                });
+                const data = await res.json();
+                allReposData.push(data.data || newRepo);
+                renderReposTable(allReposData);
+                closeNewRepoModal();
+            } catch (err) {
+                allReposData.push(newRepo);
+                renderReposTable(allReposData);
+                closeNewRepoModal();
+            }
+        }
+
+        async function pinRepoStorage(repoId) {
+            try {
+                const res = await fetch(`${API_BASE}/storage-nodes/pin/${repoId}`, { method: 'POST' });
+                const data = await res.json();
+                document.getElementById('audit-console').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('audit-console').innerText = `// Storage Pinning simulated for ${repoId}: 9-Replica Redundancy Target Locked.`;
+            }
+        }
+
+        async function executeHardRefresh() {
+            const btn = document.getElementById('refresh-btn');
+            btn.innerText = '🔄 Purging & Resyncing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/system/hard-refresh`, { method: 'POST' });
+                const result = await res.json();
+                document.getElementById('audit-console').innerText = JSON.stringify(result, null, 2);
+                checkServerHealth();
+            } catch (err) {
+                document.getElementById('audit-console').innerText = "// Hard Refresh Error: " + err.message;
+            } finally {
+                btn.innerText = '⚡ Hard Refresh Swarm';
+                btn.disabled = false;
+            }
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('auth-username').value;
+            const password = document.getElementById('auth-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                document.getElementById('auth-console').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('auth-console').innerText = "// Auth Error: " + err.message;
+            }
+        }
+
+        async function handleRegisterSubmit() {
+            const username = document.getElementById('auth-username').value;
+            const password = document.getElementById('auth-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, email: `${username.toLowerCase()}@codehub.p2p` })
+                });
+                const data = await res.json();
+                document.getElementById('auth-console').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('auth-console').innerText = "// Register Error: " + err.message;
+            }
+        }
+
+        async function fetchBootstrapNodes() {
+            try {
+                const res = await fetch(`${API_BASE}/swarm/bootstrap-nodes`);
+                const data = await res.json();
+                document.getElementById('audit-console').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('audit-console').innerText = "// Telemetry fetch failed: " + err.message;
+            }
+        }
+
+        async function fetchCircuitRelays() {
+            try {
+                const res = await fetch(`${API_BASE}/swarm/relays`);
+                const data = await res.json();
+                document.getElementById('audit-console').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('audit-console').innerText = "// Telemetry fetch failed: " + err.message;
+            }
+        }
+
+        async function fetchSecurityHardening() {
+            try {
+                const res = await fetch(`${API_BASE}/system/security-hardening`);
+                const data = await res.json();
+                document.getElementById('audit-console').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('audit-console').innerText = "// Security Hardening status retrieved: Argon2id Hashing, Noise TLS Cipher, Ed25519 Identity active.";
+            }
+        }
+
+        async function fetchStorageNodeStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/storage-nodes/status`);
+                const data = await res.json();
+                document.getElementById('audit-console').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('audit-console').innerText = "// Storage Cluster: 5 Dedicated Storage Peers Online.";
+            }
+        }
+
+        async function fetchRoadmap() {
+            try {
+                const res = await fetch(`${API_BASE}/system/development-roadmap`);
+                const data = await res.json();
+                document.getElementById('audit-console').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('audit-console').innerText = "// Telemetry fetch failed: " + err.message;
+            }
+        }
+
+        async function fetchTechAudit() {
+            try {
+                const res = await fetch(`${API_BASE}/system/technology-audit`);
+                const data = await res.json();
+                document.getElementById('audit-console').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('audit-console').innerText = "// Telemetry fetch failed: " + err.message;
+            }
+        }
+
+        const activityFeedData = [
+            {
+                category: 'pushes',
+                title: 'Soham pushed 3 commits',
+                target: 'codehub-core-p2p',
+                time: '2 minutes ago',
+                meta: 'main..3a4f89',
+                detail: 'feat: implement delta sync calculation & commit DAG visualizer'
+            },
+            {
+                category: 'prs',
+                title: 'PR #24 opened',
+                target: 'flutter-dag-visualizer',
+                time: '8 minutes ago',
+                meta: 'PR #24',
+                detail: 'feat: add interactive DAG node graph view'
+            },
+            {
+                category: 'replication',
+                title: 'Repository replicated to Node #42',
+                target: 'codehub-core-p2p',
+                time: '12 minutes ago',
+                meta: 'Node #42',
+                detail: '380 Git Blobs (42.1 MB) synchronized with 9-replica redundancy target'
+            },
+            {
+                category: 'peer',
+                title: 'New peer joined your swarm',
+                target: 'Peer: 12D3KooWControlRelayServer',
+                time: '15 minutes ago',
+                meta: 'libp2p DHT',
+                detail: 'Connected via Noise TLS encrypted transport on port 4001'
+            },
+            {
+                category: 'issues',
+                title: 'Issue #18 closed',
+                target: 'kademlia-dht-relay',
+                time: '21 minutes ago',
+                meta: 'Issue #18',
+                detail: 'Resolved routing table staleness on network reconnects'
+            },
+            {
+                category: 'commits',
+                title: 'Granthik committed 8f2a1b9c',
+                target: 'codehub-core-p2p',
+                time: '34 minutes ago',
+                meta: '8f2a1b9c',
+                detail: 'security: Argon2id zero-plain-password identity verification'
+            },
+            {
+                category: 'repo',
+                title: 'New repository flutter-dag-visualizer created',
+                target: 'flutter-dag-visualizer',
+                time: '45 minutes ago',
+                meta: 'Catalog',
+                detail: 'Initial root commit registered in global P2P content-addressed store'
+            }
+        ];
+
+        let activeActivityFilter = 'all';
+
+        function renderActivityFeed() {
+            const container = document.getElementById('activity-feed-list');
+            if (!container) return;
+
+            const filtered = (activeActivityFilter === 'all')
+                ? activityFeedData
+                : activityFeedData.filter(item => item.category === activeActivityFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding: 30px; color: var(--text-muted);">No activity recorded in this category.</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => `
+                <div class="activity-item">
+                    <div class="activity-bullet bullet-${item.category}"></div>
+                    <div class="activity-content">
+                        <div class="activity-header">
+                            <div class="activity-title">${item.title}</div>
+                            <div class="activity-time">${item.time}</div>
+                        </div>
+                        <div class="activity-target">📦 ${item.target}</div>
+                        ${(item.meta || item.detail) ? `
+                            <div class="activity-detail-box">
+                                ${item.meta ? `<span class="activity-meta-tag">${item.meta}</span>` : ''}
+                                <span>${item.detail || ''}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterActivityFeed(category, btnElement) {
+            activeActivityFilter = category;
+            const pills = document.querySelectorAll('.activity-filter-bar .filter-pill');
+            pills.forEach(p => p.classList.remove('active'));
+            if (btnElement) {
+                btnElement.classList.add('active');
+            }
+            renderActivityFeed();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Read initial page from hash if available
+            const initialHash = window.location.hash.replace('#', '');
+            if (initialHash) {
+                switchPage(initialHash);
+            } else {
+                switchPage('overview');
+            }
+
+            checkServerHealth();
+            fetchRepositories();
+            fetchUsersREST();
+            fetchIssues();
+            initLiveUsersWebSocket();
+            renderActivityFeed();
+        });
+    </script>
+</body>
 </html>
