@@ -21,11 +21,11 @@ CREATE TABLE IF NOT EXISTS repositories (
     name VARCHAR(128) NOT NULL,
     full_name VARCHAR(256) UNIQUE NOT NULL,
     description TEXT,
-    visibility VARCHAR(32) DEFAULT 'public',
-    discoverability VARCHAR(32) DEFAULT 'public',
+    visibility VARCHAR(32) DEFAULT 'public', -- 'public', 'private'
+    discoverability VARCHAR(32) DEFAULT 'public', -- 'public', 'hidden', 'unlisted', 'private'
     default_branch VARCHAR(64) DEFAULT 'main',
     language VARCHAR(64) DEFAULT 'Rust',
-    status VARCHAR(32) DEFAULT 'active',
+    status VARCHAR(32) DEFAULT 'CREATING', -- 'CREATING', 'ACTIVE', 'SUSPENDED', 'ARCHIVED', 'DELETING', 'DELETED'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     last_commit_hash VARCHAR(64),
@@ -33,6 +33,21 @@ CREATE TABLE IF NOT EXISTS repositories (
     object_count BIGINT DEFAULT 0,
     deleted_at TIMESTAMP WITH TIME ZONE NULL,
     CONSTRAINT unique_owner_repo UNIQUE(owner_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS repository_stats (
+    repository_id VARCHAR(64) PRIMARY KEY REFERENCES repositories(id) ON DELETE CASCADE,
+    stars_count BIGINT DEFAULT 0,
+    forks_count BIGINT DEFAULT 0,
+    issues_open_count BIGINT DEFAULT 0,
+    issues_total_count BIGINT DEFAULT 0,
+    pull_requests_open_count BIGINT DEFAULT 0,
+    peer_count BIGINT DEFAULT 1,
+    replica_count BIGINT DEFAULT 1,
+    object_count BIGINT DEFAULT 0,
+    size_bytes BIGINT DEFAULT 0,
+    views_count BIGINT DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS outbox_events (
@@ -43,5 +58,10 @@ CREATE TABLE IF NOT EXISTS outbox_events (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Index for high-performance public Explore index queries
-CREATE INDEX IF NOT EXISTS idx_explore_repositories ON repositories(visibility, discoverability, status) WHERE visibility = 'public' AND discoverability = 'public' AND status = 'active' AND deleted_at IS NULL;
+-- Index for high-performance public Explore index queries (strict ACTIVE filtering)
+CREATE INDEX IF NOT EXISTS idx_explore_repositories 
+ON repositories(visibility, discoverability, status) 
+WHERE visibility = 'public' 
+  AND discoverability = 'public' 
+  AND status = 'ACTIVE' 
+  AND deleted_at IS NULL;

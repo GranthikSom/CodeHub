@@ -449,6 +449,7 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
     let owner_str = if payload.owner.is_empty() { "GranthikSom".to_string() } else { payload.owner.clone() };
     let full_name_str = format!("{}/{}", owner_str, payload.name);
 
+    // Phase 1: Initialize metadata in DB transaction with CREATING status
     let record = db::RepositoryRecord {
         id: repo_id.clone(),
         owner_id: owner_str,
@@ -459,7 +460,7 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
         discoverability: if payload.is_private { "private".to_string() } else { "public".to_string() },
         default_branch: "main".to_string(),
         language: if payload.language.is_empty() { "Rust".to_string() } else { payload.language.clone() },
-        status: "active".to_string(),
+        status: "CREATING".to_string(), // Uncommitted state
         created_at: "2026-08-25T18:25:00Z".to_string(),
         updated_at: "2026-08-25T18:25:00Z".to_string(),
         last_commit_hash: if payload.root_commit_hash.is_empty() { format!("commit_{}", repo_id) } else { payload.root_commit_hash.clone() },
@@ -469,6 +470,9 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
     };
 
     repo_store.insert_repository(record);
+
+    // Phase 2: Complete initial transaction and Git state setup -> Commit & transition status to ACTIVE
+    repo_store.update_repository_status(&repo_id, "ACTIVE");
 
     let event_payload = serde_json::json!({
         "event": "repository_created",
@@ -1881,7 +1885,7 @@ mod tests {
         let repo_store = db::RepositoryDbStore::new();
         let user_store = auth::user_store::UserStore::new();
 
-        // 1. Add a public active repo
+        // 1. Add a public active repo (ACTIVE status)
         repo_store.insert_repository(db::RepositoryRecord {
             id: "repo_pub_1".to_string(),
             owner_id: "GranthikSom".to_string(),
@@ -1892,7 +1896,7 @@ mod tests {
             discoverability: "public".to_string(),
             default_branch: "main".to_string(),
             language: "Rust".to_string(),
-            status: "active".to_string(),
+            status: "ACTIVE".to_string(),
             created_at: "2026-08-25T18:00:00Z".to_string(),
             updated_at: "2026-08-25T18:00:00Z".to_string(),
             last_commit_hash: "commit_pub_1".to_string(),
@@ -1912,7 +1916,7 @@ mod tests {
             discoverability: "private".to_string(),
             default_branch: "main".to_string(),
             language: "Rust".to_string(),
-            status: "active".to_string(),
+            status: "ACTIVE".to_string(),
             created_at: "2026-08-25T18:00:00Z".to_string(),
             updated_at: "2026-08-25T18:00:00Z".to_string(),
             last_commit_hash: "commit_priv_1".to_string(),
@@ -1921,7 +1925,27 @@ mod tests {
             deleted_at: None,
         });
 
-        // 3. Add a deleted repo (must be excluded at DB level)
+        // 3. Add a CREATING status repo (must be excluded before transaction finish)
+        repo_store.insert_repository(db::RepositoryRecord {
+            id: "repo_creating_1".to_string(),
+            owner_id: "GranthikSom".to_string(),
+            name: "creating-repo".to_string(),
+            full_name: "GranthikSom/creating-repo".to_string(),
+            description: Some("Creating repo".to_string()),
+            visibility: "public".to_string(),
+            discoverability: "public".to_string(),
+            default_branch: "main".to_string(),
+            language: "Rust".to_string(),
+            status: "CREATING".to_string(),
+            created_at: "2026-08-25T18:00:00Z".to_string(),
+            updated_at: "2026-08-25T18:00:00Z".to_string(),
+            last_commit_hash: "commit_creat_1".to_string(),
+            size_bytes: 1000,
+            object_count: 10,
+            deleted_at: None,
+        });
+
+        // 4. Add a deleted repo (must be excluded at DB level)
         repo_store.insert_repository(db::RepositoryRecord {
             id: "repo_del_1".to_string(),
             owner_id: "GranthikSom".to_string(),
@@ -1932,7 +1956,7 @@ mod tests {
             discoverability: "public".to_string(),
             default_branch: "main".to_string(),
             language: "Rust".to_string(),
-            status: "deleted".to_string(),
+            status: "DELETED".to_string(),
             created_at: "2026-08-25T18:00:00Z".to_string(),
             updated_at: "2026-08-25T18:00:00Z".to_string(),
             last_commit_hash: "commit_del_1".to_string(),
@@ -1941,36 +1965,16 @@ mod tests {
             deleted_at: Some("2026-08-25T18:05:00Z".to_string()),
         });
 
-        // 4. Add a pending repo (must be excluded at DB level)
-        repo_store.insert_repository(db::RepositoryRecord {
-            id: "repo_pend_1".to_string(),
-            owner_id: "GranthikSom".to_string(),
-            name: "pending-repo".to_string(),
-            full_name: "GranthikSom/pending-repo".to_string(),
-            description: Some("Pending repo".to_string()),
-            visibility: "public".to_string(),
-            discoverability: "public".to_string(),
-            default_branch: "main".to_string(),
-            language: "Rust".to_string(),
-            status: "pending".to_string(),
-            created_at: "2026-08-25T18:00:00Z".to_string(),
-            updated_at: "2026-08-25T18:00:00Z".to_string(),
-            last_commit_hash: "commit_pend_1".to_string(),
-            size_bytes: 1000,
-            object_count: 10,
-            deleted_at: None,
-        });
-
         // Query explore index
         let explore_repos = repo_store.get_explore_public_repositories(&user_store);
 
-        // Verify public repo is present
+        // Verify public ACTIVE repo is present
         assert!(explore_repos.iter().any(|r| r.id == "repo_pub_1"));
 
-        // Verify private, deleted, and pending repos are excluded at DB level
+        // Verify private, CREATING, and DELETED repos are excluded at DB level
         assert!(!explore_repos.iter().any(|r| r.id == "repo_priv_1"));
+        assert!(!explore_repos.iter().any(|r| r.id == "repo_creating_1"));
         assert!(!explore_repos.iter().any(|r| r.id == "repo_del_1"));
-        assert!(!explore_repos.iter().any(|r| r.id == "repo_pend_1"));
     }
 }
 

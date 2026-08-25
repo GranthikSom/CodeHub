@@ -19,12 +19,12 @@ pub struct RepositoryRecord {
     pub name: String,
     pub full_name: String,
     pub description: Option<String>,
-    pub visibility: String,      // 'public', 'private', 'unlisted', 'hidden'
-    pub discoverability: String, // 'public', 'private', 'unlisted'
+    pub visibility: String,      // 'public', 'private'
+    pub discoverability: String, // 'public', 'hidden', 'unlisted', 'private'
     pub default_branch: String,  // 'main', 'master'
     pub language: String,        // 'Rust', 'Dart', etc.
     #[serde(default = "default_repo_status")]
-    pub status: String,          // 'active', 'deleted', 'pending'
+    pub status: String,          // 'CREATING', 'ACTIVE', 'SUSPENDED', 'ARCHIVED', 'DELETING', 'DELETED'
     pub created_at: String,
     pub updated_at: String,
     pub last_commit_hash: String,
@@ -34,7 +34,23 @@ pub struct RepositoryRecord {
 }
 
 fn default_repo_status() -> String {
-    "active".to_string()
+    "ACTIVE".to_string()
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepositoryStatsRecord {
+    pub repository_id: String,
+    pub stars_count: u64,
+    pub forks_count: u64,
+    pub issues_open_count: u64,
+    pub issues_total_count: u64,
+    pub pull_requests_open_count: u64,
+    pub peer_count: u64,
+    pub replica_count: u64,
+    pub object_count: u64,
+    pub size_bytes: u64,
+    pub views_count: u64,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,7 +124,7 @@ impl RepositoryDbStore {
                 discoverability: "public".to_string(),
                 default_branch: "main".to_string(),
                 language: "Rust".to_string(),
-                status: "active".to_string(),
+                status: "ACTIVE".to_string(),
                 created_at: "2026-08-20T10:00:00Z".to_string(),
                 updated_at: "2026-08-25T18:00:00Z".to_string(),
                 last_commit_hash: "a81c4e97d2f831b2c4d5e6f7a8b9c0d1e2f3a4b5".to_string(),
@@ -126,7 +142,7 @@ impl RepositoryDbStore {
                 discoverability: "public".to_string(),
                 default_branch: "main".to_string(),
                 language: "Dart".to_string(),
-                status: "active".to_string(),
+                status: "ACTIVE".to_string(),
                 created_at: "2026-08-21T12:00:00Z".to_string(),
                 updated_at: "2026-08-25T18:00:00Z".to_string(),
                 last_commit_hash: "b92d5f08e3a1b4c7d6e9f0a2b3c4d5e6f7a8b9c0".to_string(),
@@ -146,6 +162,16 @@ impl RepositoryDbStore {
         record
     }
 
+    pub fn update_repository_status(&self, repo_id: &str, status: &str) -> bool {
+        let mut guard = self.repos.write().unwrap();
+        if let Some(r) = guard.iter_mut().find(|r| r.id == repo_id) {
+            r.status = status.to_string();
+            r.updated_at = "2026-08-25T18:40:00Z".to_string();
+            return true;
+        }
+        false
+    }
+
     pub fn get_all_repositories(&self) -> Vec<RepositoryRecord> {
         let guard = self.repos.read().unwrap();
         guard.clone()
@@ -157,12 +183,16 @@ impl RepositoryDbStore {
         guard
             .iter()
             .filter(|r| {
-                // Must be explicitly 'public' visibility and discoverability
+                // Must be explicitly 'public' visibility and 'public' discoverability
                 if r.visibility != "public" || r.discoverability != "public" {
                     return false;
                 }
-                // Must be active (not deleted or pending)
-                if r.status != "active" || r.deleted_at.is_some() {
+                // Must be ACTIVE status (strictly excluding CREATING, SUSPENDED, DELETING, DELETED)
+                if r.status != "ACTIVE" && r.status != "active" {
+                    return false;
+                }
+                // Must NOT be soft-deleted
+                if r.deleted_at.is_some() {
                     return false;
                 }
                 // Owner must NOT be suspended
