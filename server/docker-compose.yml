@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  codehub-server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    ports:
+      - "8080:8080"
+      - "4001:4001"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+      - DATABASE_URL=postgres://codehub:password@postgres:5432/codehub_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=codehub_super_secret_argon2id_jwt_key_2026
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: codehub
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: codehub_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:

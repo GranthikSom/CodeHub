@@ -9,11 +9,16 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 
+pub mod config;
 pub mod api;
 pub mod auth;
 pub mod users;
 pub mod db;
 pub mod database;
+pub mod websocket;
+pub mod events;
+pub mod middleware;
+pub mod services;
 pub mod discovery;
 pub mod repository;
 pub mod repositories;
