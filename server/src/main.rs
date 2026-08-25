@@ -112,7 +112,8 @@ async fn main() {
         .route("/api/v1/admin/ws", get(admin_ws_handler))
         .route("/api/v1/events/ws", get(events_ws_handler))
         
-        // 3. Repositories routes
+        // 3. Repositories & Explore Catalog routes
+        .route("/api/v1/explore", get(get_explore_catalog_handler))
         .route("/api/v1/repositories", post(create_repository).get(list_repositories))
         .route(
             "/api/v1/repositories/:id",
@@ -407,8 +408,14 @@ async fn update_my_profile(Json(payload): Json<UpdateProfilePayload>) -> Json<Ap
 }
 
 // -----------------------------------------------------------------------------
-// 3. REPOSITORIES HANDLERS
+// 3. REPOSITORIES & EXPLORE CATALOG HANDLERS
 // -----------------------------------------------------------------------------
+
+async fn get_explore_catalog_handler(
+    Query(params): Query<api::explore::ExploreQueryParams>,
+) -> Json<ApiResponse<api::explore::ExploreResponseData>> {
+    api::explore::get_explore_catalog(Query(params), get_repo_db_store(), get_user_store()).await
+}
 
 async fn list_repositories() -> Json<ApiResponse<Vec<RepoIndexItem>>> {
     let records = get_repo_db_store().get_explore_public_repositories(get_user_store());
