@@ -54,6 +54,24 @@ pub struct RepositoryStatsRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepositoryTagRecord {
+    pub repository_id: String,
+    pub tag: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepositoryPeerRecord {
+    pub repository_id: String,
+    pub peer_id: String,
+    pub status: String, // 'online', 'offline', 'unreachable'
+    pub last_seen: String,
+    pub storage_bytes: u64,
+    pub object_count: u64,
+    pub is_seeding: bool,
+    pub replication_role: String, // 'primary', 'seed', 'cache'
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RepositoryMemberRecord {
     pub repository_id: String,
     pub user_id: String,

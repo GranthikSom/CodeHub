@@ -50,6 +50,24 @@ CREATE TABLE IF NOT EXISTS repository_stats (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS repository_tags (
+    repository_id VARCHAR(64) NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+    tag VARCHAR(64) NOT NULL,
+    PRIMARY KEY (repository_id, tag)
+);
+
+CREATE TABLE IF NOT EXISTS repository_peers (
+    repository_id VARCHAR(64) NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+    peer_id VARCHAR(128) NOT NULL,
+    status VARCHAR(32) DEFAULT 'online', -- 'online', 'offline', 'unreachable'
+    last_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    storage_bytes BIGINT DEFAULT 0,
+    object_count BIGINT DEFAULT 0,
+    is_seeding BOOLEAN DEFAULT TRUE,
+    replication_role VARCHAR(32) DEFAULT 'seed', -- 'primary', 'seed', 'cache'
+    PRIMARY KEY (repository_id, peer_id)
+);
+
 CREATE TABLE IF NOT EXISTS outbox_events (
     id VARCHAR(64) PRIMARY KEY,
     event_type VARCHAR(64) NOT NULL,
@@ -58,10 +76,22 @@ CREATE TABLE IF NOT EXISTS outbox_events (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Index for high-performance public Explore index queries (strict ACTIVE filtering)
-CREATE INDEX IF NOT EXISTS idx_explore_repositories 
-ON repositories(visibility, discoverability, status) 
-WHERE visibility = 'public' 
-  AND discoverability = 'public' 
-  AND status = 'ACTIVE' 
-  AND deleted_at IS NULL;
+-- Production Indexes for High Performance Queries
+
+-- Single-column indexes for repositories
+CREATE INDEX IF NOT EXISTS idx_repositories_owner_id ON repositories(owner_id);
+CREATE INDEX IF NOT EXISTS idx_repositories_created_at ON repositories(created_at);
+CREATE INDEX IF NOT EXISTS idx_repositories_updated_at ON repositories(updated_at);
+CREATE INDEX IF NOT EXISTS idx_repositories_visibility ON repositories(visibility);
+CREATE INDEX IF NOT EXISTS idx_repositories_discoverability ON repositories(discoverability);
+CREATE INDEX IF NOT EXISTS idx_repositories_status ON repositories(status);
+CREATE INDEX IF NOT EXISTS idx_repositories_language ON repositories(language);
+CREATE INDEX IF NOT EXISTS idx_repositories_full_name ON repositories(full_name);
+
+-- Optimized Composite Index for Explore Queries (public + discoverable + active + timestamp)
+CREATE INDEX IF NOT EXISTS idx_repositories_explore_composite 
+ON repositories(visibility, discoverability, status, created_at DESC);
+
+-- Fast Tag and Swarm Peer Indexes
+CREATE INDEX IF NOT EXISTS idx_repository_tags_tag ON repository_tags(tag);
+CREATE INDEX IF NOT EXISTS idx_repository_peers_repo ON repository_peers(repository_id, is_seeding);
