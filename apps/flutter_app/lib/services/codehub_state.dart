@@ -298,11 +298,43 @@ class CodeHubState extends ChangeNotifier {
                 );
 
                 _repositories.insert(0, newRepo);
-                _latestLiveEventMessage = '⚡ Live Swarm Event: User $owner created repository "$name" (Saved to PostgreSQL & broadcast live via Redis / Socket.IO)';
+                _latestLiveEventMessage = '⚡ Live Control Event: User $owner created repository "$name" (Saved to PostgreSQL & broadcast live)';
                 _latestLiveEventTime = DateTime.now();
                 notifyListeners();
               }
             }
+          } else if (evt == 'repository_updated' || evt == 'repository.updated') {
+            final repoMap = json['repository'] as Map<String, dynamic>?;
+            final name = repoMap?['name'] ?? 'repository';
+            _latestLiveEventMessage = '⚡ Live Control Event: Repository "$name" metadata updated';
+            _latestLiveEventTime = DateTime.now();
+            notifyListeners();
+          } else if (evt == 'repository_deleted' || evt == 'repository.deleted') {
+            final repoId = (json['repository_id'] ?? json['id'] ?? '').toString();
+            _repositories.removeWhere((r) => r.id == repoId);
+            _latestLiveEventMessage = '⚡ Live Control Event: Repository $repoId deleted from catalog';
+            _latestLiveEventTime = DateTime.now();
+            notifyListeners();
+          } else if (evt == 'issue_updated' || evt == 'issue.updated') {
+            final title = json['title'] ?? 'Issue update';
+            _latestLiveEventMessage = '⚡ Live Control Event: Issue updated "$title"';
+            _latestLiveEventTime = DateTime.now();
+            notifyListeners();
+          } else if (evt == 'PR_updated' || evt == 'PR.updated') {
+            final title = json['title'] ?? 'Pull request update';
+            _latestLiveEventMessage = '⚡ Live Control Event: Pull Request updated "$title"';
+            _latestLiveEventTime = DateTime.now();
+            notifyListeners();
+          } else if (evt == 'peer_online' || evt == 'peer.online') {
+            final peerId = json['peer_id'] ?? 'Peer';
+            _latestLiveEventMessage = '⚡ Live Control Event: Peer $peerId joined swarm';
+            _latestLiveEventTime = DateTime.now();
+            notifyListeners();
+          } else if (evt == 'replication_updated' || evt == 'replication.updated') {
+            final factor = json['replica_count'] ?? 3;
+            _latestLiveEventMessage = '⚡ Live Control Event: Swarm replication factor synchronized ($factor seeds active)';
+            _latestLiveEventTime = DateTime.now();
+            notifyListeners();
           }
         } catch (e) {
           // parse error
