@@ -225,6 +225,21 @@ impl UserStore {
         Err(format!("User '{}' not found", target_id_or_username))
     }
 
+    pub fn is_user_suspended(&self, target_id_or_username: &str) -> bool {
+        let map = match self.users_by_username.read() {
+            Ok(guard) => guard,
+            Err(_) => return false,
+        };
+        let user_ref = map.values().find(|u| {
+            u.id == target_id_or_username
+                || u.username.eq_ignore_ascii_case(target_id_or_username)
+        });
+        if let Some(user) = user_ref {
+            return user.status == "suspended";
+        }
+        false
+    }
+
     pub fn get_all_users(&self) -> Vec<UserSafe> {
         let map = match self.users_by_username.read() {
             Ok(guard) => guard,

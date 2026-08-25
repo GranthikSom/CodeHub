@@ -406,42 +406,29 @@ async fn update_my_profile(Json(payload): Json<UpdateProfilePayload>) -> Json<Ap
 // -----------------------------------------------------------------------------
 
 async fn list_repositories() -> Json<ApiResponse<Vec<RepoIndexItem>>> {
-    let repos = vec![
-        RepoIndexItem {
-            id: "repo_101".to_string(),
-            name: "codehub-core-p2p".to_string(),
-            owner: "GranthikSom".to_string(),
-            description: Some("Decentralized P2P Git Objectstore".to_string()),
-            root_commit_hash: "a81c4e97d2f831b2c4d5e6f7a8b9c0d1e2f3a4b5".to_string(),
+    let records = get_repo_db_store().get_explore_public_repositories(get_user_store());
+    let repos: Vec<RepoIndexItem> = records
+        .into_iter()
+        .map(|r| RepoIndexItem {
+            id: r.id.clone(),
+            name: r.name.clone(),
+            owner: r.owner_id.clone(),
+            description: r.description.clone(),
+            root_commit_hash: format!("commit_{}", r.id),
             total_objects: 1420,
-            seed_count: 8,
-            is_private: false,
-            topics: vec!["rust".to_string(), "p2p".to_string()],
-            language: "Rust".to_string(),
-            stars: 340,
-            forks: 42,
-            last_activity: "2 hours ago".to_string(),
-        },
-        RepoIndexItem {
-            id: "repo_102".to_string(),
-            name: "flutter-torrent-ui".to_string(),
-            owner: "SohamMondal".to_string(),
-            description: Some("Sovereign Flutter Desktop UI".to_string()),
-            root_commit_hash: "b92d5f08e3a1b4c7d6e9f0a2b3c4d5e6f7a8b9c0".to_string(),
-            total_objects: 512,
             seed_count: 5,
-            is_private: false,
-            topics: vec!["flutter".to_string(), "dart".to_string()],
-            language: "Dart".to_string(),
-            stars: 180,
-            forks: 19,
-            last_activity: "1 day ago".to_string(),
-        },
-    ];
+            is_private: r.visibility == "private",
+            topics: vec!["rust".to_string(), "p2p".to_string(), "git".to_string()],
+            language: "Rust".to_string(),
+            stars: 120,
+            forks: 15,
+            last_activity: "Just now".to_string(),
+        })
+        .collect();
 
     Json(ApiResponse {
         success: true,
-        message: "Indexed repositories retrieved".to_string(),
+        message: "Explore global public repository index retrieved from database store".to_string(),
         data: Some(repos),
     })
 }
@@ -460,7 +447,8 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
         name: payload.name.clone(),
         description: payload.description.clone(),
         visibility: if payload.is_private { "private".to_string() } else { "public".to_string() },
-        created_at: "2026-08-23T08:30:00Z".to_string(),
+        status: "active".to_string(),
+        created_at: "2026-08-25T18:25:00Z".to_string(),
     };
 
     repo_store.insert_repository(record);
@@ -704,38 +692,25 @@ async fn search_repositories(Query(params): Query<SearchQuery>) -> Json<ApiRespo
     let lang_filter = params.language.map(|l| l.to_lowercase());
     let topic_filter = params.topic.map(|t| t.to_lowercase());
 
-    let all_repos = vec![
-        RepoIndexItem {
-            id: "repo_101".to_string(),
-            name: "codehub-core-p2p".to_string(),
-            owner: "GranthikSom".to_string(),
-            description: Some("Decentralized P2P Git Object Replication Infrastructure".to_string()),
-            root_commit_hash: "a81c4e97d2f831b2c4d5e6f7a8b9c0d1e2f3a4b5".to_string(),
+    let records = get_repo_db_store().get_explore_public_repositories(get_user_store());
+    let all_repos: Vec<RepoIndexItem> = records
+        .into_iter()
+        .map(|r| RepoIndexItem {
+            id: r.id.clone(),
+            name: r.name.clone(),
+            owner: r.owner_id.clone(),
+            description: r.description.clone(),
+            root_commit_hash: format!("commit_{}", r.id),
             total_objects: 1420,
-            seed_count: 8,
-            is_private: false,
-            topics: vec!["p2p".to_string(), "git".to_string(), "libp2p".to_string(), "rust".to_string()],
-            language: "Rust".to_string(),
-            stars: 142,
-            forks: 28,
-            last_activity: "2026-08-21T11:20:00Z".to_string(),
-        },
-        RepoIndexItem {
-            id: "repo_102".to_string(),
-            name: "flutter-torrent-ui".to_string(),
-            owner: "SohamMondal".to_string(),
-            description: Some("High Performance Desktop UI for Content-Addressed Swarms".to_string()),
-            root_commit_hash: "b92d5f08e3a1b4c7d6e9f0a2b3c4d5e6f7a8b9c0".to_string(),
-            total_objects: 512,
             seed_count: 5,
-            is_private: false,
-            topics: vec!["flutter".to_string(), "ui".to_string(), "desktop".to_string()],
-            language: "Dart".to_string(),
-            stars: 89,
-            forks: 14,
-            last_activity: "2026-08-21T10:45:00Z".to_string(),
-        },
-    ];
+            is_private: r.visibility == "private",
+            topics: vec!["rust".to_string(), "p2p".to_string(), "git".to_string()],
+            language: "Rust".to_string(),
+            stars: 120,
+            forks: 15,
+            last_activity: "Just now".to_string(),
+        })
+        .collect();
 
     let filtered: Vec<RepoIndexItem> = all_repos
         .into_iter()
@@ -1877,6 +1852,72 @@ async fn handle_admin_socket(mut socket: WebSocket) {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_explore_db_level_public_filtering() {
+        let repo_store = db::RepositoryDbStore::new();
+        let user_store = auth::user_store::UserStore::new();
+
+        // 1. Add a public active repo
+        repo_store.insert_repository(db::RepositoryRecord {
+            id: "repo_pub_1".to_string(),
+            owner_id: "GranthikSom".to_string(),
+            name: "public-open-repo".to_string(),
+            description: Some("Public repo".to_string()),
+            visibility: "public".to_string(),
+            status: "active".to_string(),
+            created_at: "2026-08-25T18:00:00Z".to_string(),
+        });
+
+        // 2. Add a private repo (must be excluded at DB level)
+        repo_store.insert_repository(db::RepositoryRecord {
+            id: "repo_priv_1".to_string(),
+            owner_id: "GranthikSom".to_string(),
+            name: "private-secret-repo".to_string(),
+            description: Some("Private repo".to_string()),
+            visibility: "private".to_string(),
+            status: "active".to_string(),
+            created_at: "2026-08-25T18:00:00Z".to_string(),
+        });
+
+        // 3. Add a deleted repo (must be excluded at DB level)
+        repo_store.insert_repository(db::RepositoryRecord {
+            id: "repo_del_1".to_string(),
+            owner_id: "GranthikSom".to_string(),
+            name: "deleted-repo".to_string(),
+            description: Some("Deleted repo".to_string()),
+            visibility: "public".to_string(),
+            status: "deleted".to_string(),
+            created_at: "2026-08-25T18:00:00Z".to_string(),
+        });
+
+        // 4. Add a pending repo (must be excluded at DB level)
+        repo_store.insert_repository(db::RepositoryRecord {
+            id: "repo_pend_1".to_string(),
+            owner_id: "GranthikSom".to_string(),
+            name: "pending-repo".to_string(),
+            description: Some("Pending repo".to_string()),
+            visibility: "public".to_string(),
+            status: "pending".to_string(),
+            created_at: "2026-08-25T18:00:00Z".to_string(),
+        });
+
+        // Query explore index
+        let explore_repos = repo_store.get_explore_public_repositories(&user_store);
+
+        // Verify public repo is present
+        assert!(explore_repos.iter().any(|r| r.id == "repo_pub_1"));
+
+        // Verify private, deleted, and pending repos are excluded at DB level
+        assert!(!explore_repos.iter().any(|r| r.id == "repo_priv_1"));
+        assert!(!explore_repos.iter().any(|r| r.id == "repo_del_1"));
+        assert!(!explore_repos.iter().any(|r| r.id == "repo_pend_1"));
     }
 }
 
