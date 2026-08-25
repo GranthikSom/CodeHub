@@ -7,11 +7,15 @@ use crate::auth::password_hasher::Argon2idHasher;
 pub struct User {
     pub id: String,
     pub username: String,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub bio: Option<String>,
     pub email: String,
     pub password_hash: String,
     pub peer_id: String,
     pub role: String,
     pub created_at: String,
+    pub updated_at: Option<String>,
     #[serde(default = "default_status")]
     pub status: String,
 }
@@ -24,10 +28,14 @@ fn default_status() -> String {
 pub struct UserSafe {
     pub id: String,
     pub username: String,
+    pub display_name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub bio: Option<String>,
     pub email: String,
     pub peer_id: String,
     pub role: String,
     pub created_at: String,
+    pub updated_at: Option<String>,
     pub is_active_session: bool,
     pub status: String,
 }
@@ -94,11 +102,15 @@ impl UserStore {
         let default_user = User {
             id: "usr_granthiksom_101".to_string(),
             username: "GranthikSom".to_string(),
+            display_name: Some("Granthik Som".to_string()),
+            avatar_url: Some("https://avatars.githubusercontent.com/u/1001".to_string()),
+            bio: Some("P2P Systems Architect & Core Maintainer".to_string()),
             email: "soham@codehub.p2p".to_string(),
             password_hash: default_pass_hash,
             peer_id: "12D3KooWGranthikSomNodeKey998877665544332211".to_string(),
             role: "admin".to_string(),
             created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: Some("2026-08-25T18:00:00Z".to_string()),
             status: "active".to_string(),
         };
 
@@ -136,11 +148,15 @@ impl UserStore {
         let user = User {
             id: user_id,
             username: payload.username.clone(),
+            display_name: Some(payload.username.clone()),
+            avatar_url: None,
+            bio: None,
             email,
             password_hash: pass_hash,
             peer_id,
             role: "developer".to_string(),
             created_at: "2026-08-21T20:38:00Z".to_string(),
+            updated_at: Some("2026-08-25T18:00:00Z".to_string()),
             status: "active".to_string(),
         };
 
@@ -192,10 +208,14 @@ impl UserStore {
                 let safe = UserSafe {
                     id: user.id.clone(),
                     username: user.username.clone(),
+                    display_name: user.display_name.clone(),
+                    avatar_url: user.avatar_url.clone(),
+                    bio: user.bio.clone(),
                     email: user.email.clone(),
                     peer_id: user.peer_id.clone(),
                     role: user.role.clone(),
                     created_at: user.created_at.clone(),
+                    updated_at: user.updated_at.clone(),
                     is_active_session: user.status != "suspended",
                     status: user.status.clone(),
                 };
@@ -248,10 +268,14 @@ impl UserStore {
         let mut list: Vec<UserSafe> = map.values().map(|u| UserSafe {
             id: u.id.clone(),
             username: u.username.clone(),
+            display_name: u.display_name.clone(),
+            avatar_url: u.avatar_url.clone(),
+            bio: u.bio.clone(),
             email: u.email.clone(),
             peer_id: u.peer_id.clone(),
             role: u.role.clone(),
             created_at: u.created_at.clone(),
+            updated_at: u.updated_at.clone(),
             is_active_session: u.status != "suspended",
             status: u.status.clone(),
         }).collect();
