@@ -40,6 +40,7 @@ All environment configurations are unified through `.env` (development) or `.env
 | `DATABASE_URL` | PostgreSQL connection string | `postgres://codehub:secret@postgres:5432/codehub_db` |
 | `REDIS_URL` | Redis cache & pubsub connection string | `redis://:secret@redis:6379` |
 | `JWT_SECRET` | 32+ character HMAC key for auth tokens | *(Generate with `openssl rand -base64 48`)* |
+| `P2P_NODE_PRIVATE_KEY` | 32-byte Base64 Ed25519 secret seed for persistent Peer ID | *(Generate with `openssl rand -base64 32`)* |
 | `HOST` / `PORT` | Control plane server listen address | `0.0.0.0` / `8080` |
 | `API_BASE_URL` | Client HTTP endpoint | `https://api.codehub.p2p/api/v1` |
 | `SOCKET_WS_URL` | Client WebSocket endpoint | `wss://api.codehub.p2p/api/v1/events/ws` |

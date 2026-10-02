@@ -27,10 +27,28 @@ pub struct ServerP2pStoragePeer {
 
 impl ServerP2pStoragePeer {
     pub fn new() -> Self {
-        // Generate or load server's persistent P2P identity
-        let identity_dir = std::env::temp_dir().join("codehub_server_identity");
-        let identity_mgr = PeerIdentityManager::load_or_create(&identity_dir)
-            .unwrap_or_else(|_| panic!("Failed to initialize server P2P peer identity"));
+        // Generate or load server's persistent P2P identity.
+        // If P2P_NODE_PRIVATE_KEY is provided via env, initialize deterministically from the 32-byte Ed25519 seed.
+        let identity_mgr = if let Ok(seed_str) = std::env::var("P2P_NODE_PRIVATE_KEY") {
+            let trimmed = seed_str.trim();
+            if !trimmed.is_empty() {
+                PeerIdentityManager::from_seed_string(trimmed, Some("codehub-control-relay".to_string()))
+                    .unwrap_or_else(|e| {
+                        eprintln!("[WARN] Failed to load P2P_NODE_PRIVATE_KEY: {e}. Falling back to disk storage.");
+                        let identity_dir = std::env::temp_dir().join("codehub_server_identity");
+                        PeerIdentityManager::load_or_create(&identity_dir)
+                            .unwrap_or_else(|_| panic!("Failed to initialize server P2P peer identity"))
+                    })
+            } else {
+                let identity_dir = std::env::temp_dir().join("codehub_server_identity");
+                PeerIdentityManager::load_or_create(&identity_dir)
+                    .unwrap_or_else(|_| panic!("Failed to initialize server P2P peer identity"))
+            }
+        } else {
+            let identity_dir = std::env::temp_dir().join("codehub_server_identity");
+            PeerIdentityManager::load_or_create(&identity_dir)
+                .unwrap_or_else(|_| panic!("Failed to initialize server P2P peer identity"))
+        };
         let peer_id = identity_mgr.identity.peer_id.clone();
         let p2p_port = 4001;
         let multiaddr = format!("/ip4/0.0.0.0/tcp/{}/p2p/{}", p2p_port, peer_id);
@@ -107,5 +125,22 @@ mod tests {
         let status = peer.get_status();
         assert_eq!(status.total_seeded_repositories, 3);
         assert_eq!(status.total_seeded_chunks, 1470);
+    }
+
+    #[test]
+    fn test_server_p2p_with_custom_private_key_env() {
+        let test_seed = "EsdZoTk5jzU52YIBZMdTUfYXzld3Y2KheUmHg5t0lo0=";
+        std::env::set_var("P2P_NODE_PRIVATE_KEY", test_seed);
+
+        let peer = ServerP2pStoragePeer::new();
+        let status = peer.get_status();
+
+        assert!(status.server_peer_id.starts_with("12D3KooW"));
+        assert_eq!(status.server_peer_id, "12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ");
+        assert!(status.p2p_multiaddr.contains(&status.server_peer_id));
+        assert_eq!(status.p2p_multiaddr, "/ip4/0.0.0.0/tcp/4001/p2p/12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ");
+
+        // Clean up environment
+        std::env::remove_var("P2P_NODE_PRIVATE_KEY");
     }
 }

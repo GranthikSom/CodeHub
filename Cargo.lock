@@ -2135,6 +2135,7 @@ name = "p2p_engine"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "bs58",
  "dirs",
  "ed25519-dalek",

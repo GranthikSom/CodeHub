@@ -18,6 +18,7 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgres://codehub:codehub_pass@postgres:5432/codehub_db}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - JWT_SECRET=${JWT_SECRET:-codehub_production_jwt_secret_key_change_me}
+      - P2P_NODE_PRIVATE_KEY=${P2P_NODE_PRIVATE_KEY:-}
       - RUST_LOG=${RUST_LOG:-info,codehub_server=debug}
     depends_on:
       postgres:

@@ -42,6 +42,75 @@ impl PeerIdentityManager {
         format!("12D3KooW{}", &encoded[0..36.min(encoded.len())])
     }
 
+    /// Creates a deterministic peer identity directly from a 32-byte Ed25519 secret seed
+    pub fn from_seed_bytes(seed: &[u8; 32], device_id: Option<String>) -> Self {
+        let signing_key = SigningKey::from_bytes(seed);
+        let verifying_key = signing_key.verifying_key();
+
+        let pub_key_bytes = verifying_key.to_bytes();
+        let public_key_hex = hex::encode(pub_key_bytes);
+        let peer_id = Self::derive_peer_id(&pub_key_bytes);
+        let dev_id = device_id.unwrap_or_else(|| Uuid::new_v4().to_string());
+
+        let created_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        let identity = CryptographicPeerIdentity {
+            peer_id,
+            public_key_hex,
+            device_id: dev_id,
+            algorithm: "Ed25519".to_string(),
+            created_at,
+        };
+
+        Self { identity, signing_key }
+    }
+
+    /// Parses a 32-byte Ed25519 seed from either Base64 or Hex encoding and initializes the peer identity
+    pub fn from_seed_string(seed_str: &str, device_id: Option<String>) -> io::Result<Self> {
+        let trimmed = seed_str.trim();
+
+        // 1. Try Base64 decoding (standard 32-byte seed from `openssl rand -base64 32`)
+        use base64::engine::general_purpose::{STANDARD, URL_SAFE};
+        use base64::Engine;
+
+        let decoded = if let Ok(bytes) = STANDARD.decode(trimmed) {
+            bytes
+        } else if let Ok(bytes) = URL_SAFE.decode(trimmed) {
+            bytes
+        } else if let Ok(bytes) = hex::decode(trimmed) {
+            bytes
+        } else {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Failed to decode Ed25519 seed: must be valid Base64 or Hex",
+            ));
+        };
+
+        if decoded.len() != 32 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "Invalid Ed25519 seed length: expected 32 bytes, got {} bytes",
+                    decoded.len()
+                ),
+            ));
+        }
+
+        let mut seed_arr = [0u8; 32];
+        seed_arr.copy_from_slice(&decoded);
+        Ok(Self::from_seed_bytes(&seed_arr, device_id))
+    }
+
+    /// Returns the node's 32-byte Ed25519 secret seed encoded in Base64
+    pub fn secret_seed_base64(&self) -> String {
+        use base64::engine::general_purpose::STANDARD;
+        use base64::Engine;
+        STANDARD.encode(self.signing_key.to_bytes())
+    }
+
     /// Loads existing peer identity from `identity_dir` or generates a fresh cryptographic keypair
     pub fn load_or_create<P: AsRef<Path>>(identity_dir: P) -> io::Result<Self> {
         let dir = identity_dir.as_ref();
@@ -269,5 +338,28 @@ mod tests {
         let manager2 = PeerIdentityManager::load_or_create(&identity_dir).unwrap();
         assert_eq!(manager1.identity.peer_id, manager2.identity.peer_id);
         assert_eq!(manager1.identity.device_id, manager2.identity.device_id);
+    }
+
+    #[test]
+    fn test_peer_identity_from_base64_and_hex_seed() {
+        let base64_seed = "EsdZoTk5jzU52YIBZMdTUfYXzld3Y2KheUmHg5t0lo0=";
+        let manager_b64 = PeerIdentityManager::from_seed_string(base64_seed, Some("test-server".to_string())).unwrap();
+
+        assert!(manager_b64.identity.peer_id.starts_with("12D3KooW"));
+        assert_eq!(manager_b64.identity.peer_id, "12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ");
+        assert_eq!(manager_b64.identity.public_key_hex, "72818eca3e648c211eaf5ce8fd6d10933fe010008f708339d2d2782968764c3b");
+        assert_eq!(manager_b64.identity.algorithm, "Ed25519");
+        assert_eq!(manager_b64.identity.device_id, "test-server");
+        assert_eq!(manager_b64.secret_seed_base64(), base64_seed);
+
+        // Deterministic reproduction: loading same seed yields identical peer_id and public_key
+        let manager_repeat = PeerIdentityManager::from_seed_string(base64_seed, None).unwrap();
+        assert_eq!(manager_b64.identity.peer_id, manager_repeat.identity.peer_id);
+        assert_eq!(manager_b64.identity.public_key_hex, manager_repeat.identity.public_key_hex);
+
+        // Test sign and verify
+        let msg = b"Verification of Base64 Seed Identity";
+        let sig = manager_b64.sign_message(msg);
+        assert!(PeerIdentityManager::verify_signature(&manager_b64.identity.public_key_hex, msg, &sig));
     }
 }
