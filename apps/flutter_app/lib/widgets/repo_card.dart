@@ -25,6 +25,7 @@ class RepoCard extends StatelessWidget {
             builder: (_) => RepositoryDetailScreen(
               repoName: repo.name,
               owner: repo.owner,
+              repository: repo,
             ),
           ),
         );
@@ -131,6 +132,8 @@ class RepoCard extends StatelessWidget {
                           builder: (_) => RepositoryDetailScreen(
                             repoName: repo.name,
                             owner: repo.owner,
+                            repository: repo,
+                            initialTabIndex: 1,
                           ),
                         ),
                       );

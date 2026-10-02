@@ -220,6 +220,32 @@ class ApiService {
     return [];
   }
 
+  // 4a. Check Repository Name Availability
+  Future<Map<String, dynamic>> checkRepoNameAvailability({
+    required String name,
+    String? owner,
+  }) async {
+    try {
+      final queryOwner = owner != null ? '&owner=${Uri.encodeComponent(owner)}' : '';
+      final response = await _sendWithFallback(
+        method: 'GET',
+        endpoint: '/repositories/check-name?name=${Uri.encodeComponent(name)}$queryOwner',
+      );
+      if (response['data'] != null) {
+        return response;
+      }
+    } catch (_) {}
+
+    return {
+      'success': true,
+      'data': {
+        'available': true,
+        'name': name,
+        'reason': null,
+      },
+    };
+  }
+
   // 4b. Create Repository Endpoint
   Future<Map<String, dynamic>> createRepository({
     required String id,
@@ -230,6 +256,11 @@ class ApiService {
     required int totalObjects,
     required List<String> topics,
     required bool isPrivate,
+    String defaultBranch = 'main',
+    String? license,
+    String? gitignoreTemplate,
+    bool initReadme = true,
+    int replicaCount = 3,
   }) async {
     try {
       return await _sendWithFallback(
@@ -242,13 +273,17 @@ class ApiService {
           'description': description,
           'root_commit_hash': rootCommitHash,
           'total_objects': totalObjects,
-          'seed_count': 3,
+          'seed_count': replicaCount,
           'is_private': isPrivate,
           'topics': topics,
           'language': topics.isNotEmpty ? topics.first : 'Rust',
           'stars': 1,
           'forks': 0,
           'last_activity': 'Just now',
+          'default_branch': defaultBranch,
+          'license': license,
+          'gitignore_template': gitignoreTemplate,
+          'init_readme': initReadme,
         },
       );
     } catch (e) {

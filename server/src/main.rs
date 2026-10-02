@@ -115,6 +115,7 @@ async fn main() {
         // 3. Repositories & Explore Catalog routes
         .route("/api/v1/explore", get(get_explore_catalog_handler))
         .route("/api/v1/repositories", post(create_repository).get(list_repositories))
+        .route("/api/v1/repositories/check-name", get(check_repository_name))
         .route(
             "/api/v1/repositories/:id",
             get(get_repository_by_id)
@@ -427,14 +428,18 @@ async fn list_repositories() -> Json<ApiResponse<Vec<RepoIndexItem>>> {
             owner: r.owner_id.clone(),
             description: r.description.clone(),
             root_commit_hash: format!("commit_{}", r.id),
-            total_objects: 1420,
+            total_objects: r.object_count as usize,
             seed_count: 5,
             is_private: r.visibility == "private",
             topics: vec!["rust".to_string(), "p2p".to_string(), "git".to_string()],
-            language: "Rust".to_string(),
+            language: r.language.clone(),
             stars: 120,
             forks: 15,
             last_activity: "Just now".to_string(),
+            default_branch: Some(r.default_branch.clone()),
+            license: None,
+            gitignore_template: None,
+            init_readme: None,
         })
         .collect();
 
@@ -445,75 +450,232 @@ async fn list_repositories() -> Json<ApiResponse<Vec<RepoIndexItem>>> {
     })
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CheckRepoNameQuery {
+    pub name: String,
+    pub owner: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CheckRepoNameResponse {
+    pub available: bool,
+    pub name: String,
+    pub reason: Option<String>,
+}
+
+async fn check_repository_name(
+    Query(params): Query<CheckRepoNameQuery>,
+) -> Json<ApiResponse<CheckRepoNameResponse>> {
+    let raw_name = params.name.trim();
+    let owner_str = params.owner.unwrap_or_else(|| "GranthikSom".to_string());
+
+    if raw_name.is_empty() {
+        return Json(ApiResponse {
+            success: true,
+            message: "Repository name is required".to_string(),
+            data: Some(CheckRepoNameResponse {
+                available: false,
+                name: raw_name.to_string(),
+                reason: Some("Repository name is required.".to_string()),
+            }),
+        });
+    }
+
+    if raw_name.len() > 100 {
+        return Json(ApiResponse {
+            success: true,
+            message: "Repository name is too long".to_string(),
+            data: Some(CheckRepoNameResponse {
+                available: false,
+                name: raw_name.to_string(),
+                reason: Some("Repository name must be 100 characters or fewer.".to_string()),
+            }),
+        });
+    }
+
+    let is_valid = raw_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.');
+    if !is_valid || raw_name.starts_with('.') || raw_name.ends_with('.') || raw_name.ends_with(".git") {
+        return Json(ApiResponse {
+            success: true,
+            message: "Invalid repository name format".to_string(),
+            data: Some(CheckRepoNameResponse {
+                available: false,
+                name: raw_name.to_string(),
+                reason: Some("Repository name can only contain ASCII letters, digits, and the characters ., -, and _".to_string()),
+            }),
+        });
+    }
+
+    let repo_store = get_repo_db_store();
+    let records = repo_store.get_all_repositories();
+    let is_taken = records.iter().any(|r| {
+        r.name.eq_ignore_ascii_case(raw_name) && (r.owner_id.eq_ignore_ascii_case(&owner_str) || r.owner_id == "GranthikSom")
+    });
+
+    if is_taken {
+        Json(ApiResponse {
+            success: true,
+            message: format!("The repository '{}' already exists on this account.", raw_name),
+            data: Some(CheckRepoNameResponse {
+                available: false,
+                name: raw_name.to_string(),
+                reason: Some(format!("The repository '{}' already exists on this account.", raw_name)),
+            }),
+        })
+    } else {
+        Json(ApiResponse {
+            success: true,
+            message: format!("'{}' is available.", raw_name),
+            data: Some(CheckRepoNameResponse {
+                available: true,
+                name: raw_name.to_string(),
+                reason: None,
+            }),
+        })
+    }
+}
+
 async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, Json<ApiResponse<RepoIndexItem>>) {
     let repo_store = get_repo_db_store();
+    let raw_name = payload.name.trim();
+
+    if raw_name.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse {
+                success: false,
+                message: "Repository name cannot be empty".to_string(),
+                data: None,
+            }),
+        );
+    }
+
+    let is_valid = raw_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.');
+    if !is_valid || raw_name.starts_with('.') || raw_name.ends_with('.') || raw_name.ends_with(".git") {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ApiResponse {
+                success: false,
+                message: "Repository name can only contain ASCII letters, digits, and the characters ., -, and _".to_string(),
+                data: None,
+            }),
+        );
+    }
+
+    let owner_str = if payload.owner.is_empty() { "GranthikSom".to_string() } else { payload.owner.clone() };
+
+    let records = repo_store.get_all_repositories();
+    let is_taken = records.iter().any(|r| {
+        r.name.eq_ignore_ascii_case(raw_name) && (r.owner_id.eq_ignore_ascii_case(&owner_str) || r.owner_id == "GranthikSom")
+    });
+
+    if is_taken {
+        return (
+            StatusCode::CONFLICT,
+            Json(ApiResponse {
+                success: false,
+                message: format!("The repository '{}' already exists on this account.", raw_name),
+                data: None,
+            }),
+        );
+    }
+
     let repo_id = if payload.id.is_empty() {
         format!("repo_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis())
     } else {
         payload.id.clone()
     };
 
-    let owner_str = if payload.owner.is_empty() { "GranthikSom".to_string() } else { payload.owner.clone() };
-    let full_name_str = format!("{}/{}", owner_str, payload.name);
+    let default_branch = payload.default_branch.clone().unwrap_or_else(|| "main".to_string());
+    let full_name_str = format!("{}/{}", owner_str, raw_name);
 
-    // Phase 1: Initialize metadata in DB transaction with CREATING status
+    // Initial git DAG calculation based on README, .gitignore, LICENSE selections
+    let mut initial_objects: usize = 2; // Initial commit + root tree
+    let mut initial_size_bytes: u64 = 512;
+    if payload.init_readme.unwrap_or(true) {
+        initial_objects += 1;
+        initial_size_bytes += 480;
+    }
+    if payload.gitignore_template.as_ref().map(|s| !s.is_empty() && s != "None").unwrap_or(false) {
+        initial_objects += 1;
+        initial_size_bytes += 360;
+    }
+    if payload.license.as_ref().map(|s| !s.is_empty() && s != "None").unwrap_or(false) {
+        initial_objects += 1;
+        initial_size_bytes += 1080;
+    }
+
+    let root_hash = if payload.root_commit_hash.is_empty() {
+        format!("commit_{}", repo_id)
+    } else {
+        payload.root_commit_hash.clone()
+    };
+
     let record = db::RepositoryRecord {
         id: repo_id.clone(),
-        owner_id: owner_str,
-        name: payload.name.clone(),
+        owner_id: owner_str.clone(),
+        name: raw_name.to_string(),
         full_name: full_name_str,
         description: payload.description.clone(),
         visibility: if payload.is_private { "private".to_string() } else { "public".to_string() },
         discoverability: if payload.is_private { "private".to_string() } else { "public".to_string() },
-        default_branch: "main".to_string(),
+        default_branch: default_branch.clone(),
         language: if payload.language.is_empty() { "Rust".to_string() } else { payload.language.clone() },
-        status: "CREATING".to_string(), // Uncommitted state
+        status: "CREATING".to_string(),
         created_at: "2026-08-25T18:25:00Z".to_string(),
         updated_at: "2026-08-25T18:25:00Z".to_string(),
-        last_commit_hash: if payload.root_commit_hash.is_empty() { format!("commit_{}", repo_id) } else { payload.root_commit_hash.clone() },
-        size_bytes: 1024000,
-        object_count: payload.total_objects as u64,
+        last_commit_hash: root_hash.clone(),
+        size_bytes: initial_size_bytes,
+        object_count: initial_objects as u64,
         deleted_at: None,
     };
 
     repo_store.insert_repository(record);
-
-    // Phase 2: Complete initial transaction and Git state setup -> Commit & transition status to ACTIVE
     repo_store.update_repository_status(&repo_id, "ACTIVE");
+
+    let mut response_payload = payload.clone();
+    response_payload.id = repo_id.clone();
+    response_payload.name = raw_name.to_string();
+    response_payload.owner = owner_str.clone();
+    response_payload.root_commit_hash = root_hash;
+    response_payload.total_objects = initial_objects;
+    response_payload.default_branch = Some(default_branch.clone());
 
     let event_payload = serde_json::json!({
         "event": "repository_created",
         "type": "repository.created",
         "action": "CREATE_REPOSITORY",
-
         "pipeline": ["CodeHub API", "PostgreSQL", "Event Bus / Redis", "Socket.IO / WS Broadcaster"],
         "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
         "repository": {
             "id": repo_id,
-            "name": payload.name,
-            "owner": payload.owner,
-            "description": payload.description,
-            "root_commit_hash": payload.root_commit_hash,
-            "total_objects": payload.total_objects,
-            "seed_count": payload.seed_count,
-            "is_private": payload.is_private,
-            "topics": payload.topics,
-            "language": payload.language,
-            "stars": payload.stars,
-            "forks": payload.forks,
+            "name": response_payload.name,
+            "owner": response_payload.owner,
+            "description": response_payload.description,
+            "root_commit_hash": response_payload.root_commit_hash,
+            "total_objects": response_payload.total_objects,
+            "seed_count": response_payload.seed_count,
+            "is_private": response_payload.is_private,
+            "topics": response_payload.topics,
+            "language": response_payload.language,
+            "default_branch": response_payload.default_branch,
+            "license": response_payload.license,
+            "gitignore_template": response_payload.gitignore_template,
+            "init_readme": response_payload.init_readme,
+            "stars": response_payload.stars,
+            "forks": response_payload.forks,
             "last_activity": "Just now"
         }
     });
 
-    let event_str = event_payload.to_string();
-    let _ = get_event_bus().send(event_str);
+    let _ = get_event_bus().send(event_payload.to_string());
 
     (
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Repository '{}' saved to PostgreSQL & published to Event Bus / Redis", payload.name),
-            data: Some(payload),
+            message: format!("Repository '{}/{}' saved to PostgreSQL & published to Event Bus / Redis", owner_str, raw_name),
+            data: Some(response_payload),
         }),
     )
 }
@@ -534,6 +696,10 @@ async fn get_repository_by_id(Path(id): Path<String>) -> Json<ApiResponse<RepoIn
         stars: 128,
         forks: 24,
         last_activity: "Just now".to_string(),
+        default_branch: Some("main".to_string()),
+        license: Some("MIT".to_string()),
+        gitignore_template: Some("Rust".to_string()),
+        init_readme: Some(true),
     };
 
     Json(ApiResponse {
@@ -729,14 +895,18 @@ async fn search_repositories(Query(params): Query<SearchQuery>) -> Json<ApiRespo
             owner: r.owner_id.clone(),
             description: r.description.clone(),
             root_commit_hash: format!("commit_{}", r.id),
-            total_objects: 1420,
+            total_objects: r.object_count as usize,
             seed_count: 5,
             is_private: r.visibility == "private",
             topics: vec!["rust".to_string(), "p2p".to_string(), "git".to_string()],
-            language: "Rust".to_string(),
+            language: r.language.clone(),
             stars: 120,
             forks: 15,
             last_activity: "Just now".to_string(),
+            default_branch: Some(r.default_branch.clone()),
+            license: None,
+            gitignore_template: None,
+            init_readme: None,
         })
         .collect();
 
@@ -1983,5 +2153,33 @@ mod tests {
         assert!(!explore_repos.iter().any(|r| r.id == "repo_creating_1"));
         assert!(!explore_repos.iter().any(|r| r.id == "repo_del_1"));
     }
+
+    #[tokio::test]
+    async fn test_check_repository_name_validation() {
+        // Valid name check
+        let query = CheckRepoNameQuery {
+            name: "brand-new-p2p-repo".to_string(),
+            owner: Some("GranthikSom".to_string()),
+        };
+        let res = check_repository_name(Query(query)).await;
+        assert!(res.0.data.unwrap().available);
+
+        // Invalid characters
+        let invalid_query = CheckRepoNameQuery {
+            name: "invalid name with spaces!".to_string(),
+            owner: Some("GranthikSom".to_string()),
+        };
+        let res_invalid = check_repository_name(Query(invalid_query)).await;
+        assert!(!res_invalid.0.data.unwrap().available);
+
+        // Empty name
+        let empty_query = CheckRepoNameQuery {
+            name: "".to_string(),
+            owner: None,
+        };
+        let res_empty = check_repository_name(Query(empty_query)).await;
+        assert!(!res_empty.0.data.unwrap().available);
+    }
 }
+
 

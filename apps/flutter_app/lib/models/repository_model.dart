@@ -18,6 +18,10 @@ class CodeRepository {
   final int stars;
   final int forks;
   final List<String> tags;
+  final bool isPrivate;
+  final String? license;
+  final String? gitignoreTemplate;
+  final String? language;
 
   // Repository Health Metrics
   final int replicationScore;
@@ -43,6 +47,10 @@ class CodeRepository {
     required this.stars,
     required this.forks,
     required this.tags,
+    this.isPrivate = false,
+    this.license,
+    this.gitignoreTemplate,
+    this.language = 'Rust',
     this.replicationScore = 5,
     this.peerAvailabilityScore = 4,
     this.integrityScore = 5,
@@ -99,6 +107,10 @@ class CodeRepository {
       stars: stars ?? this.stars,
       forks: forks ?? this.forks,
       tags: tags,
+      isPrivate: isPrivate,
+      license: license,
+      gitignoreTemplate: gitignoreTemplate,
+      language: language,
       replicationScore: replicationScore,
       peerAvailabilityScore: peerAvailabilityScore,
       integrityScore: integrityScore,

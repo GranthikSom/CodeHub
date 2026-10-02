@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "native/p2p_engine",
+    "server",
+    "cli",
+]
+resolver = "2"

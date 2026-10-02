@@ -237,6 +237,41 @@ class CodeHubState extends ChangeNotifier {
     }).toList();
   }
 
+  final Set<String> _starredRepoIds = {};
+
+  bool isRepoStarred(String repoId) => _starredRepoIds.contains(repoId);
+
+  void toggleStarRepository(String repoId) {
+    if (_starredRepoIds.contains(repoId)) {
+      _starredRepoIds.remove(repoId);
+    } else {
+      _starredRepoIds.add(repoId);
+    }
+    
+    final index = _repositories.indexWhere((r) => r.id == repoId);
+    if (index != -1) {
+      final repo = _repositories[index];
+      final newStars = _starredRepoIds.contains(repoId) ? repo.stars + 1 : (repo.stars - 1).clamp(0, 999999);
+      _repositories[index] = repo.copyWith(stars: newStars);
+    }
+    notifyListeners();
+  }
+
+  CodeRepository? findRepository(String owner, String name) {
+    for (final r in _repositories) {
+      if (r.name.toLowerCase() == name.toLowerCase() &&
+          r.owner.toLowerCase() == owner.toLowerCase()) {
+        return r;
+      }
+    }
+    for (final r in _repositories) {
+      if (r.name.toLowerCase() == name.toLowerCase()) {
+        return r;
+      }
+    }
+    return null;
+  }
+
   CodeHubState() {
     NativeP2PEngine.initialize();
     _initializeData();

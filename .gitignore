@@ -60,3 +60,5 @@ node_modules/
 dist/
 **/dist/
 
+# Runtime SQLite/JSON databases
+/codehub_users.json

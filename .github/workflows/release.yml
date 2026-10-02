@@ -1,0 +1,73 @@
+name: CodeHub Production Multi-Platform Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  release-builds:
+    name: Build & Package Production Artifacts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Desktop Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev zip
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Build Rust Native Engine, Server & CLI
+        run: |
+          cargo build --release --workspace
+          mkdir -p native/p2p_engine/target/debug
+          cp target/release/libp2p_engine.so native/p2p_engine/target/debug/ 2>/dev/null || true
+
+      - name: Build Flutter Linux Release Bundle
+        working-directory: apps/flutter_app
+        run: |
+          flutter pub get
+          flutter build linux --release
+
+      - name: Package Linux Desktop Tarball
+        run: |
+          mkdir -p release-artifacts
+          tar -czvf release-artifacts/codehub-desktop-linux-x64.tar.gz -C apps/flutter_app/build/linux/x64/release/bundle .
+
+      - name: Package CodeHub CLI Binary
+        run: |
+          cp target/release/codehub release-artifacts/codehub-cli-linux-x64
+          chmod +x release-artifacts/codehub-cli-linux-x64
+
+      - name: Build & Package Flutter Web Bundle
+        working-directory: apps/flutter_app
+        run: |
+          flutter build web --release
+          cd build/web && zip -r ../../../../release-artifacts/codehub-web.zip .
+
+      - name: Generate Checksums (SHA-256)
+        working-directory: release-artifacts
+        run: sha256sum * > SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: release-artifacts/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true

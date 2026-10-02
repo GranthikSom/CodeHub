@@ -14,7 +14,15 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
 
-    // Verify that AuthScreen renders correctly
-    expect(find.text('Sign In to CodeHub'), findsOneWidget);
+    // Verify that LandingScreen renders correctly with sign up mode default
+    expect(find.text('Sign up for CodeHub'), findsOneWidget);
+    expect(find.text('Get started'), findsOneWidget);
+
+    // Tap 'Sign in' in nav to toggle mode
+    await tester.tap(find.text('Sign in').first);
+    await tester.pumpAndSettle();
+
+    // Verify button updates to 'Sign in to CodeHub'
+    expect(find.text('Sign in to CodeHub'), findsOneWidget);
   });
 }

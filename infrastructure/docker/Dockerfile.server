@@ -1,0 +1,57 @@
+# Multi-stage Production Dockerfile for CodeHub Axum Control Server & Embedded P2P Node
+# syntax=docker/dockerfile:1
+
+# ------------------------------------------------------------------------------
+# 1. Builder Stage
+# ------------------------------------------------------------------------------
+FROM rust:1.80-bookworm AS builder
+
+WORKDIR /usr/src/codehub
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y pkg-config libssl-dev protobuf-compiler cmake clang && rm -rf /var/lib/apt/lists/*
+
+# Copy workspace and all member crates
+COPY Cargo.toml ./
+COPY native/ native/
+COPY server/ server/
+COPY cli/ cli/
+COPY protocols/ protocols/
+
+# Build release binary for the control server
+RUN cargo build --release -p codehub_server
+
+# ------------------------------------------------------------------------------
+# 2. Production Runtime Stage
+# ------------------------------------------------------------------------------
+FROM debian:bookworm-slim AS runner
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root system user for security
+RUN groupadd -g 1001 codehub && useradd -u 1001 -g codehub -m -s /bin/bash codehub
+
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /usr/src/codehub/target/release/codehub_server /usr/local/bin/codehub_server
+
+# Set permissions
+RUN chown -R codehub:codehub /app
+
+USER codehub
+
+ENV HOST=0.0.0.0 \
+    PORT=8080 \
+    RUST_LOG=info,codehub_server=debug
+
+EXPOSE 8080 4001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://127.0.0.1:8080/health || exit 1
+
+ENTRYPOINT ["codehub_server"]

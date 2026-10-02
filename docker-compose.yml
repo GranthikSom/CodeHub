@@ -1,44 +1,87 @@
 version: '3.8'
 
 services:
+  # ============================================================================
+  # 1. CodeHub Axum Control Plane Server & Embedded P2P Node
+  # ============================================================================
   control_plane:
     build:
-      context: ./server/codehub_control_plane
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.server
+    container_name: codehub_control_plane
     ports:
-      - "8080:8080"
+      - "${API_PORT:-8080}:8080"
+      - "${P2P_PORT:-4001}:4001"
     environment:
-      - DATABASE_URL=postgres://codehub:codehub_pass@postgres:5432/codehub_db
-      - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=codehub_production_jwt_secret_key_change_me
+      - HOST=0.0.0.0
+      - PORT=8080
+      - DATABASE_URL=${DATABASE_URL:-postgres://codehub:codehub_pass@postgres:5432/codehub_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - JWT_SECRET=${JWT_SECRET:-codehub_production_jwt_secret_key_change_me}
+      - RUST_LOG=${RUST_LOG:-info,codehub_server=debug}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: always
 
+  # ============================================================================
+  # 2. CodeHub Web Client (Flutter Web + Nginx)
+  # ============================================================================
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.web
+    container_name: codehub_web
+    ports:
+      - "3000:80"
+    depends_on:
+      - control_plane
+    restart: always
+
+  # ============================================================================
+  # 3. PostgreSQL Database
+  # ============================================================================
   postgres:
     image: postgres:16-alpine
     container_name: codehub_postgres
     environment:
-      POSTGRES_USER: codehub
-      POSTGRES_PASSWORD: codehub_pass
-      POSTGRES_DB: codehub_db
+      POSTGRES_USER: ${POSTGRES_USER:-codehub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-codehub_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-codehub_db}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./server/migrations/0001_init.sql:/docker-entrypoint-initdb.d/0001_init.sql
+      - ./infrastructure/db/schema.sql:/docker-entrypoint-initdb.d/0001_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-codehub} -d ${POSTGRES_DB:-codehub_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
 
+  # ============================================================================
+  # 4. Redis Cache & Swarm Event Broker
+  # ============================================================================
   redis:
     image: redis:7-alpine
     container_name: codehub_redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
 
+  # ============================================================================
+  # 5. Caddy Reverse Proxy & Edge Router
+  # ============================================================================
   caddy:
     image: caddy:2-alpine
     container_name: codehub_caddy
@@ -51,6 +94,18 @@ services:
       - caddy_config:/config
     depends_on:
       - control_plane
+    restart: always
+
+  # ============================================================================
+  # 6. Prometheus Swarm Metrics
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: codehub_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     restart: always
 
 volumes:

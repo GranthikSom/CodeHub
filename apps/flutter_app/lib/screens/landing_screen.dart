@@ -149,86 +149,91 @@ class _LandingScreenState extends State<LandingScreen> {
               child: Center(
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 1280),
-                  child: Row(
-                    children: [
-                      // CodeHub Logo
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: sageMistBg,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: deepSageAccent.withValues(alpha: 0.3)),
-                        ),
-                        child: const Icon(Icons.hub_rounded, size: 24, color: deepSageAccent),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'CodeHub',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: darkForestText,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: sageMistBg,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: deepSageAccent.withValues(alpha: 0.4)),
-                        ),
-                        child: const Text(
-                          'P2P Swarm v1.4',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: deepSageAccent),
-                        ),
-                      ),
-                      const SizedBox(width: 36),
-
-                      // Nav Menu Items
-                      _buildNavItem('Features', darkForestText),
-                      _buildNavItem('Architecture', darkForestText),
-                      _buildNavItem('Swarm Stats', darkForestText),
-                      _buildNavItem('Enterprise', darkForestText),
-
-                      const Spacer(),
-
-                      // Sign In link
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _isSignUpMode = false;
-                          });
-                        },
-                        child: Text(
-                          'Sign in',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: !_isSignUpMode ? deepSageAccent : darkForestText,
+                  child: LayoutBuilder(
+                    builder: (context, navConstraints) {
+                      final showNavLinks = navConstraints.maxWidth > 720;
+                      return Row(
+                        children: [
+                          // CodeHub Logo
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: sageMistBg,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: deepSageAccent.withValues(alpha: 0.3)),
+                            ),
+                            child: const Icon(Icons.hub_rounded, size: 24, color: deepSageAccent),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'CodeHub',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: darkForestText,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: sageMistBg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: deepSageAccent.withValues(alpha: 0.4)),
+                            ),
+                            child: const Text(
+                              'P2P Swarm v1.4',
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: deepSageAccent),
+                            ),
+                          ),
+                          if (showNavLinks) ...[
+                            const SizedBox(width: 36),
+                            _buildNavItem('Features', darkForestText),
+                            _buildNavItem('Architecture', darkForestText),
+                            _buildNavItem('Swarm Stats', darkForestText),
+                            _buildNavItem('Enterprise', darkForestText),
+                          ],
 
-                      // Sign Up Button (Forest Green)
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: forestGreenPrimary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          elevation: 0,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isSignUpMode = true;
-                          });
-                        },
-                        child: const Text('Sign up', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      ),
-                    ],
+                          const Spacer(),
+
+                          // Sign In link
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _isSignUpMode = false;
+                              });
+                            },
+                            child: Text(
+                              'Sign in',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: !_isSignUpMode ? deepSageAccent : darkForestText,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Sign Up Button (Forest Green)
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: forestGreenPrimary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              elevation: 0,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isSignUpMode = true;
+                              });
+                            },
+                            child: const Text('Sign up', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -249,296 +254,310 @@ class _LandingScreenState extends State<LandingScreen> {
               child: Center(
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 1280),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left Column: Hero Text & Enterprise Box
-                      Expanded(
-                        flex: 6,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: sageMistBg,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: deepSageAccent.withValues(alpha: 0.3)),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.bolt, color: deepSageAccent, size: 16),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Sovereign P2P Infrastructure • Zero Lock-in',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: deepSageAccent,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                  child: LayoutBuilder(
+                    builder: (context, heroConstraints) {
+                      final isWide = heroConstraints.maxWidth >= 960;
+                      final leftColumn = Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: sageMistBg,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: deepSageAccent.withValues(alpha: 0.3)),
                             ),
-                            const SizedBox(height: 24),
-                            RichText(
-                              text: const TextSpan(
-                                style: TextStyle(
-                                  fontSize: 62,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.05,
-                                  letterSpacing: -2.0,
-                                  color: darkForestText,
-                                  fontFamily: 'sans-serif',
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.bolt, color: deepSageAccent, size: 16),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Sovereign P2P Infrastructure • Zero Lock-in',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: deepSageAccent,
+                                  ),
                                 ),
-                                children: [
-                                  TextSpan(text: 'Built for '),
-                                  TextSpan(
-                                    text: '>_',
-                                    style: TextStyle(color: deepSageAccent),
-                                  ),
-                                  TextSpan(text: '\nDevelopers'),
-                                ],
-                              ),
+                              ],
                             ),
-                            const SizedBox(height: 20),
-                            const Text(
-                              "CodeHub is the world's most secure, most scalable, and most loved sovereign P2P developer platform. Host, replicate, and collaborate on Git repositories using content-addressed SHA-256 DAG trees and libp2p Gossipsub.",
+                          ),
+                          const SizedBox(height: 24),
+                          RichText(
+                            text: const TextSpan(
                               style: TextStyle(
-                                fontSize: 17,
-                                height: 1.5,
-                                color: sageGreyText,
+                                fontSize: 56,
+                                fontWeight: FontWeight.w900,
+                                height: 1.05,
+                                letterSpacing: -2.0,
+                                color: darkForestText,
+                                fontFamily: 'sans-serif',
                               ),
+                              children: [
+                                TextSpan(text: 'Built for '),
+                                TextSpan(
+                                  text: '>_',
+                                  style: TextStyle(color: deepSageAccent),
+                                ),
+                                TextSpan(text: '\nDevelopers'),
+                              ],
                             ),
-                            const SizedBox(height: 40),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            "CodeHub is the world's most secure, most scalable, and most loved sovereign P2P developer platform. Host, replicate, and collaborate on Git repositories using content-addressed SHA-256 DAG trees and libp2p Gossipsub.",
+                            style: TextStyle(
+                              fontSize: 17,
+                              height: 1.5,
+                              color: sageGreyText,
+                            ),
+                          ),
+                          const SizedBox(height: 40),
 
-                            // Enterprise Callout Card (Warm Ivory / Sage)
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: cardBg,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: beigeBorder),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: darkForestText.withValues(alpha: 0.03),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
+                          // Enterprise Callout Card (Warm Ivory / Sage)
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: beigeBorder),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: darkForestText.withValues(alpha: 0.03),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: sageMistBg,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: beigeBorder),
                                   ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: sageMistBg,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: beigeBorder),
-                                    ),
-                                    child: const Icon(Icons.corporate_fare_outlined, size: 28, color: forestGreenPrimary),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  const Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'CodeHub Enterprise Swarm',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: darkForestText,
-                                          ),
+                                  child: const Icon(Icons.corporate_fare_outlined, size: 28, color: forestGreenPrimary),
+                                ),
+                                const SizedBox(width: 16),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'CodeHub Enterprise Swarm',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: darkForestText,
                                         ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          'Deploy to your private environment or self-hosted cloud.',
-                                          style: TextStyle(fontSize: 13, color: sageGreyText),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Deploy to your private environment or self-hosted cloud.',
+                                        style: TextStyle(fontSize: 13, color: sageGreyText),
+                                      ),
+                                    ],
                                   ),
-                                  TextButton(
-                                    onPressed: () {},
-                                    child: const Row(
-                                      children: [
-                                        Text('Start trial', style: TextStyle(color: deepSageAccent, fontWeight: FontWeight.bold)),
-                                        SizedBox(width: 4),
-                                        Icon(Icons.arrow_forward, size: 14, color: deepSageAccent),
-                                      ],
-                                    ),
+                                ),
+                                TextButton(
+                                  onPressed: () {},
+                                  child: const Row(
+                                    children: [
+                                      Text('Start trial', style: TextStyle(color: deepSageAccent, fontWeight: FontWeight.bold)),
+                                      SizedBox(width: 4),
+                                      Icon(Icons.arrow_forward, size: 14, color: deepSageAccent),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+
+                      final authCard = Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: beigeBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: darkForestText.withValues(alpha: 0.06),
+                              blurRadius: 30,
+                              offset: const Offset(0, 10),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 40),
-
-                      // Center Column: Git Branch DAG Graphic
-                      SizedBox(
-                        width: 120,
-                        height: 480,
-                        child: CustomPaint(
-                          painter: GitBranchGraphPainter(),
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-
-                      // Right Column: Auth Card (Warm Ivory & Deep Sage)
-                      Expanded(
-                        flex: 5,
-                        child: Container(
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: cardBg,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: beigeBorder),
-                            boxShadow: [
-                              BoxShadow(
-                                color: darkForestText.withValues(alpha: 0.06),
-                                blurRadius: 30,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: const BoxDecoration(
-                                      color: forestGreenPrimary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.fork_right_rounded, color: Colors.white, size: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    color: forestGreenPrimary,
+                                    shape: BoxShape.circle,
                                   ),
-                                  const SizedBox(width: 14),
-                                  Text(
-                                    _isSignUpMode ? 'Get started' : 'Sign in',
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w800,
-                                      color: darkForestText,
-                                    ),
+                                  child: const Icon(Icons.fork_right_rounded, color: Colors.white, size: 20),
+                                ),
+                                const SizedBox(width: 14),
+                                Text(
+                                  _isSignUpMode ? 'Get started' : 'Sign in',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: darkForestText,
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 28),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 28),
 
-                              // Timeline & Inputs
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Column(
-                                    children: [
-                                      const SizedBox(height: 12),
+                            // Timeline & Inputs
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Column(
+                                  children: [
+                                    const SizedBox(height: 12),
+                                    _buildStepDot(true, forestGreenPrimary),
+                                    _buildStepLine(50, beigeBorder),
+                                    if (_isSignUpMode) ...[
                                       _buildStepDot(true, forestGreenPrimary),
                                       _buildStepLine(50, beigeBorder),
-                                      if (_isSignUpMode) ...[
-                                        _buildStepDot(true, forestGreenPrimary),
-                                        _buildStepLine(50, beigeBorder),
-                                      ],
-                                      _buildStepDot(_isSignUpMode, forestGreenPrimary),
                                     ],
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        TextField(
-                                          controller: _usernameController,
-                                          style: const TextStyle(color: darkForestText, fontSize: 15, fontWeight: FontWeight.w500),
-                                          decoration: InputDecoration(
-                                            labelText: _isSignUpMode ? 'Username' : 'Username / Email',
-                                            labelStyle: const TextStyle(color: sageGreyText),
-                                            hintText: _isSignUpMode ? '@cyberduck' : 'Username or email address',
-                                            hintStyle: const TextStyle(color: Colors.black26),
-                                            enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: beigeBorder)),
-                                            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: deepSageAccent, width: 2)),
-                                          ),
+                                    _buildStepDot(_isSignUpMode, forestGreenPrimary),
+                                  ],
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    children: [
+                                      TextField(
+                                        controller: _usernameController,
+                                        style: const TextStyle(color: darkForestText, fontSize: 15, fontWeight: FontWeight.w500),
+                                        decoration: InputDecoration(
+                                          labelText: _isSignUpMode ? 'Username' : 'Username / Email',
+                                          labelStyle: const TextStyle(color: sageGreyText),
+                                          hintText: _isSignUpMode ? '@cyberduck' : 'Username or email address',
+                                          hintStyle: const TextStyle(color: Colors.black26),
+                                          enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: beigeBorder)),
+                                          focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: deepSageAccent, width: 2)),
                                         ),
-                                        if (_isSignUpMode) ...[
-                                          const SizedBox(height: 16),
-                                          TextField(
-                                            controller: _emailController,
-                                            style: const TextStyle(color: darkForestText, fontSize: 15, fontWeight: FontWeight.w500),
-                                            decoration: const InputDecoration(
-                                              labelText: 'Email Address',
-                                              labelStyle: TextStyle(color: sageGreyText),
-                                              hintText: 'cyberduck@codehub.com',
-                                              hintStyle: TextStyle(color: Colors.black26),
-                                              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: beigeBorder)),
-                                              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: deepSageAccent, width: 2)),
-                                            ),
-                                          ),
-                                        ],
+                                      ),
+                                      if (_isSignUpMode) ...[
                                         const SizedBox(height: 16),
                                         TextField(
-                                          controller: _passwordController,
-                                          obscureText: true,
+                                          controller: _emailController,
                                           style: const TextStyle(color: darkForestText, fontSize: 15, fontWeight: FontWeight.w500),
                                           decoration: const InputDecoration(
-                                            labelText: 'Password',
+                                            labelText: 'Email Address',
                                             labelStyle: TextStyle(color: sageGreyText),
+                                            hintText: 'cyberduck@codehub.com',
+                                            hintStyle: TextStyle(color: Colors.black26),
                                             enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: beigeBorder)),
                                             focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: deepSageAccent, width: 2)),
                                           ),
                                         ),
                                       ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                "Make sure it's at least 15 characters. Learn more.",
-                                style: TextStyle(fontSize: 11, color: sageGreyText),
-                              ),
-                              const SizedBox(height: 28),
-
-                              // Big Deep Sage / Forest Green Action Button
-                              SizedBox(
-                                width: double.infinity,
-                                height: 48,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: forestGreenPrimary,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                    elevation: 0,
-                                  ),
-                                  onPressed: _isLoading ? null : _submitAuth,
-                                  child: _isLoading
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                        )
-                                      : Text(
-                                          _isSignUpMode ? 'Sign up for CodeHub' : 'Sign in to CodeHub',
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      const SizedBox(height: 16),
+                                      TextField(
+                                        controller: _passwordController,
+                                        obscureText: true,
+                                        style: const TextStyle(color: darkForestText, fontSize: 15, fontWeight: FontWeight.w500),
+                                        decoration: const InputDecoration(
+                                          labelText: 'Password',
+                                          labelStyle: TextStyle(color: sageGreyText),
+                                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: beigeBorder)),
+                                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: deepSageAccent, width: 2)),
                                         ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              "Make sure it's at least 15 characters. Learn more.",
+                              style: TextStyle(fontSize: 11, color: sageGreyText),
+                            ),
+                            const SizedBox(height: 28),
+
+                            // Big Deep Sage / Forest Green Action Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: forestGreenPrimary,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                  elevation: 0,
+                                ),
+                                onPressed: _isLoading ? null : _submitAuth,
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      )
+                                    : Text(
+                                        _isSignUpMode ? 'Sign up for CodeHub' : 'Sign in to CodeHub',
+                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      ),
                               ),
-                              const SizedBox(height: 14),
-                              Text(
-                                _isSignUpMode
-                                    ? 'By clicking "Sign up for CodeHub", you agree to our Terms of Service and Privacy Statement.'
-                                    : 'By clicking "Sign in to CodeHub", you authenticate using zero-plain identity keys.',
-                                style: const TextStyle(fontSize: 11, color: sageGreyText, height: 1.3),
-                              ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              _isSignUpMode
+                                  ? 'By clicking "Sign up for CodeHub", you agree to our Terms of Service and Privacy Statement.'
+                                  : 'By clicking "Sign in to CodeHub", you authenticate using zero-plain identity keys.',
+                              style: const TextStyle(fontSize: 11, color: sageGreyText, height: 1.3),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      );
+
+                      if (!isWide) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            leftColumn,
+                            const SizedBox(height: 40),
+                            Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 480),
+                                child: authCard,
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 6, child: leftColumn),
+                          const SizedBox(width: 40),
+                          SizedBox(
+                            width: 120,
+                            height: 480,
+                            child: CustomPaint(
+                              painter: GitBranchGraphPainter(),
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(flex: 5, child: authCard),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -552,8 +571,10 @@ class _LandingScreenState extends State<LandingScreen> {
               child: Center(
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 1280),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 20,
+                    runSpacing: 20,
                     children: [
                       _buildMetricCard('14 Active Nodes', 'Kademlia DHT Mesh', Icons.lan, forestGreenPrimary, darkForestText, sageGreyText),
                       _buildMetricCard('100% Encrypted', 'Noise TLS Handshake', Icons.shield, deepSageAccent, darkForestText, sageGreyText),
@@ -603,7 +624,13 @@ class _LandingScreenState extends State<LandingScreen> {
                           const SizedBox(width: 8),
                           Container(width: 12, height: 12, decoration: const BoxDecoration(color: Color(0xFF27C93F), shape: BoxShape.circle)),
                           const SizedBox(width: 16),
-                          const Text('codehub-p2p-engine — bash — 80x24', style: TextStyle(color: Color(0xFFAFE3C0), fontSize: 13, fontFamily: 'monospace')),
+                          const Expanded(
+                            child: Text(
+                              'codehub-p2p-engine — bash — 80x24',
+                              style: TextStyle(color: Color(0xFFAFE3C0), fontSize: 13, fontFamily: 'monospace'),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 20),

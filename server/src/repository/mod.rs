@@ -15,6 +15,14 @@ pub struct RepoIndexItem {
     pub stars: usize,
     pub forks: usize,
     pub last_activity: String,
+    #[serde(default)]
+    pub default_branch: Option<String>,
+    #[serde(default)]
+    pub license: Option<String>,
+    #[serde(default)]
+    pub gitignore_template: Option<String>,
+    #[serde(default)]
+    pub init_readme: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
