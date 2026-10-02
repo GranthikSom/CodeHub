@@ -47,6 +47,24 @@ All environment configurations are unified through `.env` (development) or `.env
 | `P2P_BOOTSTRAP_RELAY_MULTIADDR` | Libp2p relay rendezvous address | `/dns4/p2p.codehub.p2p/tcp/4001/p2p/...` |
 | `CADDY_ACME_EMAIL` | Contact email for Let's Encrypt / ACME SSL certificate issuance | `sohammondal1304@gmail.com` |
 
+### DNS & Hostname Configuration
+
+Configure the following DNS `A` records (or `/etc/hosts` entries) pointing to your production server IP:
+
+```
+YOUR_SERVER_IP codehub.p2p
+YOUR_SERVER_IP app.codehub.p2p
+YOUR_SERVER_IP api.codehub.p2p
+YOUR_SERVER_IP p2p.codehub.p2p
+```
+
+| Subdomain | Target | Reverse Proxy Mapping |
+| :--- | :--- | :--- |
+| `codehub.p2p` | `YOUR_SERVER_IP` | `web:80` (Web Landing & UI) |
+| `app.codehub.p2p` | `YOUR_SERVER_IP` | `web:80` (Flutter Web SPA) |
+| `api.codehub.p2p` | `YOUR_SERVER_IP` | `control_plane:8080` (REST & WebSockets) |
+| `p2p.codehub.p2p` | `YOUR_SERVER_IP` | `control_plane:4001` (Libp2p Swarm Relay) |
+
 ---
 
 ## 3. Production Deployment with Docker Compose

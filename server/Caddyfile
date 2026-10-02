@@ -2,10 +2,17 @@
     email {$CADDY_ACME_EMAIL:sohammondal1304@gmail.com}
 }
 
-api.codehub.p2p, app.codehub.p2p, codehub.p2p, api.codehub.com, auth.codehub.com, registry.codehub.com {
+# Web UI Client (Flutter Web Nginx)
+codehub.p2p, app.codehub.p2p {
+    reverse_proxy web:80
+}
+
+# Control Plane REST/WebSocket API & Auth
+api.codehub.p2p, auth.codehub.p2p, registry.codehub.p2p, api.codehub.com, auth.codehub.com {
     reverse_proxy control_plane:8080
 }
 
+# P2P Storage Swarm & Relay
 p2p.codehub.p2p, p2p.codehub.com {
     reverse_proxy control_plane:4001
 }
