@@ -15,7 +15,7 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=8080
-      - DATABASE_URL=${DATABASE_URL:-postgres://codehub:codehub_pass@postgres:5432/codehub_db}
+      - DATABASE_URL=${DATABASE_URL:-postgres://codehub:codehub_pass@postgres:5432/codehub_db?sslmode=prefer}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - JWT_SECRET=${JWT_SECRET:-codehub_production_jwt_secret_key_change_me}
       - P2P_NODE_PRIVATE_KEY=${P2P_NODE_PRIVATE_KEY:-}
