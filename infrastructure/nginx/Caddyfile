@@ -1,3 +1,7 @@
+{
+    email {$CADDY_ACME_EMAIL:sohammondal1304@gmail.com}
+}
+
 api.codehub.com, auth.codehub.com, registry.codehub.com {
     reverse_proxy axum_api_1:8080 axum_api_2:8080 axum_api_3:8080 {
         lb_policy round_robin

@@ -45,6 +45,7 @@ All environment configurations are unified through `.env` (development) or `.env
 | `API_BASE_URL` | Client HTTP endpoint | `https://api.codehub.p2p/api/v1` |
 | `SOCKET_WS_URL` | Client WebSocket endpoint | `wss://api.codehub.p2p/api/v1/events/ws` |
 | `P2P_BOOTSTRAP_RELAY_MULTIADDR` | Libp2p relay rendezvous address | `/dns4/p2p.codehub.p2p/tcp/4001/p2p/...` |
+| `CADDY_ACME_EMAIL` | Contact email for Let's Encrypt / ACME SSL certificate issuance | `sohammondal1304@gmail.com` |
 
 ---
 

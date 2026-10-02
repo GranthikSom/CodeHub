@@ -1,7 +1,11 @@
-api.codehub.com, auth.codehub.com, registry.codehub.com {
+{
+    email {$CADDY_ACME_EMAIL:sohammondal1304@gmail.com}
+}
+
+api.codehub.p2p, app.codehub.p2p, codehub.p2p, api.codehub.com, auth.codehub.com, registry.codehub.com {
     reverse_proxy control_plane:8080
 }
 
-p2p.codehub.com {
+p2p.codehub.p2p, p2p.codehub.com {
     reverse_proxy control_plane:4001
 }

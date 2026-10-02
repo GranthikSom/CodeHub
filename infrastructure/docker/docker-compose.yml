@@ -85,6 +85,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - CADDY_ACME_EMAIL=${CADDY_ACME_EMAIL:-sohammondal1304@gmail.com}
     volumes:
       - ../nginx/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
