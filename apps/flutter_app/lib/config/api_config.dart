@@ -17,10 +17,13 @@ class ApiConfig {
     defaultValue: 'ws://127.0.0.1:8080/api/v1/events/ws',
   );
 
-  static const String appDomain = 'app.codehub.com';
-  static const String apiDomain = 'api.codehub.com';
+  static const String appDomain = 'app.codehub.p2p';
+  static const String apiDomain = 'api.codehub.p2p';
 
   // libp2p Bootstrap Discovery Relay Node Multiaddr
-  static const String p2pBootstrapRelayMultiaddr =
-      '/dns4/p2p.codehub.com/tcp/4001/p2p/12D3KooWControlRelayServer';
+  static const String p2pBootstrapRelayMultiaddr = String.fromEnvironment(
+    'P2P_BOOTSTRAP_RELAY_MULTIADDR',
+    defaultValue:
+        '/dns4/p2p.codehub.p2p/tcp/4001/p2p/12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ',
+  );
 }

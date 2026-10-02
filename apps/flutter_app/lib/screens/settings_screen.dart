@@ -1836,13 +1836,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         _buildSectionHeader('🆔 Peer Identity Keypair', 'Your cryptographic Ed25519 node ID on Kademlia DHT.'),
         const SizedBox(height: 12),
-        _buildFormInput('Node Peer ID', TextEditingController(text: '12D3KooWControlRelayServer99aF81c'), enabled: false),
+        _buildFormInput('Node Peer ID', TextEditingController(text: '12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ'), enabled: false),
         const SizedBox(height: 12),
         Row(
           children: [
             OutlinedButton.icon(
               onPressed: () {
-                Clipboard.setData(const ClipboardData(text: '12D3KooWControlRelayServer99aF81c'));
+                Clipboard.setData(const ClipboardData(text: '12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ'));
                 _showNotification('Peer ID copied to clipboard!');
               },
               icon: const Icon(Icons.copy, size: 16),

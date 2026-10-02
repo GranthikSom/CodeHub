@@ -50,7 +50,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
       category: ActivityCategory.peer,
       typeLabel: 'Peer Events',
       title: 'New peer joined your swarm',
-      repoOrTarget: 'Peer: 12D3KooWControlRelayServer',
+      repoOrTarget: 'Peer: 12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ',
       timeAgo: '15 minutes ago',
       shaOrMeta: 'libp2p DHT',
       detail: 'Connected via Noise TLS encrypted transport on port 4001',

@@ -532,7 +532,7 @@ class CodeHubState extends ChangeNotifier {
         pinnedRepoIds: ['repo-1', 'repo-2', 'repo-3', 'repo-4'],
       ),
       const P2PNode(
-        id: '12D3KooWControlRelayServer',
+        id: '12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ',
         name: 'Control Plane (Relay & Metadata Coord)',
         ipAddress: 'control.codehub.p2p',
         type: NodeType.controlRelay,

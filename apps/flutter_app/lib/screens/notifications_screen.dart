@@ -15,7 +15,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     {
       'id': 'n1',
       'title': 'New Swarm Peer Connected',
-      'body': 'Peer 12D3KooWControlRelayServer connected to your local node.',
+      'body': 'Peer 12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ connected to your local node.',
       'type': 'peer',
       'read': false,
       'time': '15 mins ago',

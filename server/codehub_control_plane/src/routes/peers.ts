@@ -9,7 +9,7 @@ export async function peerTelemetryRoutes(fastify: FastifyInstance, io: Server) 
       success: true,
       total_peers: 14,
       peers: [
-        { peer_id: '12D3KooWControlRelayServer', status: 'online', addr: '10.0.0.1:4001' },
+        { peer_id: '12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ', status: 'online', addr: '10.0.0.1:4001' },
         { peer_id: '12D3KooWPeerNode8831y99', status: 'online', addr: '192.168.1.15:4001' },
       ],
     });
