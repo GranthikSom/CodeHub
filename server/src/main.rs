@@ -78,8 +78,30 @@ pub struct SearchQuery {
     pub sort: Option<String>,
 }
 
+fn load_dotenv_if_exists() {
+    for path in [".env.production", ".env", "../.env.production", "../.env"] {
+        if let Ok(content) = std::fs::read_to_string(path) {
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if trimmed.is_empty() || trimmed.starts_with('#') {
+                    continue;
+                }
+                if let Some((k, v)) = trimmed.split_once('=') {
+                    let key = k.trim();
+                    let val = v.trim().trim_matches('"').trim_matches('\'');
+                    if !key.is_empty() && std::env::var_os(key).is_none() {
+                        std::env::set_var(key, val);
+                    }
+                }
+            }
+            break;
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
+    load_dotenv_if_exists();
     tracing_subscriber::fmt::init();
 
     let cors = CorsLayer::new()
