@@ -1,7 +1,7 @@
+use crate::auth::password_hasher::Argon2idHasher;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use crate::auth::password_hasher::Argon2idHasher;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
@@ -114,7 +114,8 @@ impl UserStore {
             status: "active".to_string(),
         };
 
-        store.users_by_username
+        store
+            .users_by_username
             .write()
             .unwrap()
             .insert("granthiksom".to_string(), default_user);
@@ -136,14 +137,30 @@ impl UserStore {
         let mut map = self.users_by_username.write().map_err(|e| e.to_string())?;
 
         if map.contains_key(&key) {
-            return Err(format!("Username '{}' is already registered", payload.username));
+            return Err(format!(
+                "Username '{}' is already registered",
+                payload.username
+            ));
         }
 
         let pass_hash = Argon2idHasher::hash_password(&payload.password).hashed_password;
-        let email = payload.email.clone().unwrap_or_else(|| format!("{}@codehub.p2p", payload.username.to_lowercase()));
-        let peer_id = payload.peer_id.clone().unwrap_or_else(|| format!("12D3KooW_{}_NodeKey", payload.username));
-        let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis();
-        let user_id = format!("usr_{}_{}", hex::encode(&payload.username.as_bytes()[..payload.username.len().min(4)]), ts);
+        let email = payload
+            .email
+            .clone()
+            .unwrap_or_else(|| format!("{}@codehub.p2p", payload.username.to_lowercase()));
+        let peer_id = payload
+            .peer_id
+            .clone()
+            .unwrap_or_else(|| format!("12D3KooW_{}_NodeKey", payload.username));
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis();
+        let user_id = format!(
+            "usr_{}_{}",
+            hex::encode(&payload.username.as_bytes()[..payload.username.len().min(4)]),
+            ts
+        );
 
         let user = User {
             id: user_id,
@@ -172,7 +189,9 @@ impl UserStore {
         let map = self.users_by_username.read().map_err(|e| e.to_string())?;
 
         let user_ref = map.get(&key).cloned().or_else(|| {
-            map.values().find(|u| u.email.to_lowercase() == key).cloned()
+            map.values()
+                .find(|u| u.email.to_lowercase() == key)
+                .cloned()
         });
 
         if let Some(user) = user_ref {
@@ -187,14 +206,22 @@ impl UserStore {
             }
         }
 
-        Err(format!("User account '{}' does not exist. Please register a new identity first.", payload.username))
+        Err(format!(
+            "User account '{}' does not exist. Please register a new identity first.",
+            payload.username
+        ))
     }
 
     pub fn toggle_suspend_user(&self, target_id_or_username: &str) -> Result<UserSafe, String> {
         let mut map = self.users_by_username.write().map_err(|e| e.to_string())?;
-        
-        let key = map.iter()
-            .find(|(k, u)| u.id == target_id_or_username || u.username.eq_ignore_ascii_case(target_id_or_username) || k.as_str() == target_id_or_username)
+
+        let key = map
+            .iter()
+            .find(|(k, u)| {
+                u.id == target_id_or_username
+                    || u.username.eq_ignore_ascii_case(target_id_or_username)
+                    || k.as_str() == target_id_or_username
+            })
             .map(|(k, _)| k.clone());
 
         if let Some(found_key) = key {
@@ -230,9 +257,14 @@ impl UserStore {
 
     pub fn delete_user(&self, target_id_or_username: &str) -> Result<(), String> {
         let mut map = self.users_by_username.write().map_err(|e| e.to_string())?;
-        
-        let key = map.iter()
-            .find(|(k, u)| u.id == target_id_or_username || u.username.eq_ignore_ascii_case(target_id_or_username) || k.as_str() == target_id_or_username)
+
+        let key = map
+            .iter()
+            .find(|(k, u)| {
+                u.id == target_id_or_username
+                    || u.username.eq_ignore_ascii_case(target_id_or_username)
+                    || k.as_str() == target_id_or_username
+            })
             .map(|(k, _)| k.clone());
 
         if let Some(found_key) = key {
@@ -251,8 +283,7 @@ impl UserStore {
             Err(_) => return false,
         };
         let user_ref = map.values().find(|u| {
-            u.id == target_id_or_username
-                || u.username.eq_ignore_ascii_case(target_id_or_username)
+            u.id == target_id_or_username || u.username.eq_ignore_ascii_case(target_id_or_username)
         });
         if let Some(user) = user_ref {
             return user.status == "suspended";
@@ -265,20 +296,23 @@ impl UserStore {
             Ok(guard) => guard,
             Err(_) => return Vec::new(),
         };
-        let mut list: Vec<UserSafe> = map.values().map(|u| UserSafe {
-            id: u.id.clone(),
-            username: u.username.clone(),
-            display_name: u.display_name.clone(),
-            avatar_url: u.avatar_url.clone(),
-            bio: u.bio.clone(),
-            email: u.email.clone(),
-            peer_id: u.peer_id.clone(),
-            role: u.role.clone(),
-            created_at: u.created_at.clone(),
-            updated_at: u.updated_at.clone(),
-            is_active_session: u.status != "suspended",
-            status: u.status.clone(),
-        }).collect();
+        let mut list: Vec<UserSafe> = map
+            .values()
+            .map(|u| UserSafe {
+                id: u.id.clone(),
+                username: u.username.clone(),
+                display_name: u.display_name.clone(),
+                avatar_url: u.avatar_url.clone(),
+                bio: u.bio.clone(),
+                email: u.email.clone(),
+                peer_id: u.peer_id.clone(),
+                role: u.role.clone(),
+                created_at: u.created_at.clone(),
+                updated_at: u.updated_at.clone(),
+                is_active_session: u.status != "suspended",
+                status: u.status.clone(),
+            })
+            .collect();
         list.sort_by(|a, b| a.username.cmp(&b.username));
         list
     }
@@ -320,7 +354,10 @@ mod tests {
             peer_id: None,
         });
         assert!(bad_pass_res.is_err());
-        assert_eq!(bad_pass_res.unwrap_err(), "Invalid password provided for user account.");
+        assert_eq!(
+            bad_pass_res.unwrap_err(),
+            "Invalid password provided for user account."
+        );
 
         // 2b. Test login with non-existent user (must NOT auto-register)
         let unknown_res = store.authenticate(&LoginPayload {
@@ -332,7 +369,13 @@ mod tests {
         assert!(unknown_res.unwrap_err().contains("does not exist"));
 
         // 3. Test registering new developer user
-        let test_name = format!("AliceDev_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis());
+        let test_name = format!(
+            "AliceDev_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis()
+        );
         let reg_res = store.register(&RegisterPayload {
             username: test_name.clone(),
             email: Some("alice@codehub.p2p".to_string()),
@@ -342,7 +385,9 @@ mod tests {
         assert!(reg_res.is_ok());
         let alice = reg_res.unwrap();
         assert_eq!(alice.username, test_name);
-        assert!(alice.password_hash.starts_with("$argon2id$v=19$m=4096,t=3,p=1$"));
+        assert!(alice
+            .password_hash
+            .starts_with("$argon2id$v=19$m=4096,t=3,p=1$"));
 
         // 4. Test toggle suspend user
         let susp_res = store.toggle_suspend_user(&alice.id);

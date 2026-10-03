@@ -24,7 +24,7 @@ pub struct RepositoryRecord {
     pub default_branch: String,  // 'main', 'master'
     pub language: String,        // 'Rust', 'Dart', etc.
     #[serde(default = "default_repo_status")]
-    pub status: String,          // 'CREATING', 'ACTIVE', 'SUSPENDED', 'ARCHIVED', 'DELETING', 'DELETED'
+    pub status: String, // 'CREATING', 'ACTIVE', 'SUSPENDED', 'ARCHIVED', 'DELETING', 'DELETED'
     pub created_at: String,
     pub updated_at: String,
     pub last_commit_hash: String,
@@ -131,46 +131,8 @@ pub struct RepositoryDbStore {
 
 impl RepositoryDbStore {
     pub fn new() -> Self {
-        let initial_repos = vec![
-            RepositoryRecord {
-                id: "repo_101".to_string(),
-                owner_id: "GranthikSom".to_string(),
-                name: "codehub-core-p2p".to_string(),
-                full_name: "GranthikSom/codehub-core-p2p".to_string(),
-                description: Some("Decentralized P2P Git Objectstore".to_string()),
-                visibility: "public".to_string(),
-                discoverability: "public".to_string(),
-                default_branch: "main".to_string(),
-                language: "Rust".to_string(),
-                status: "ACTIVE".to_string(),
-                created_at: "2026-08-20T10:00:00Z".to_string(),
-                updated_at: "2026-08-25T18:00:00Z".to_string(),
-                last_commit_hash: "a81c4e97d2f831b2c4d5e6f7a8b9c0d1e2f3a4b5".to_string(),
-                size_bytes: 48500000,
-                object_count: 1420,
-                deleted_at: None,
-            },
-            RepositoryRecord {
-                id: "repo_102".to_string(),
-                owner_id: "SohamMondal".to_string(),
-                name: "flutter-torrent-ui".to_string(),
-                full_name: "SohamMondal/flutter-torrent-ui".to_string(),
-                description: Some("Sovereign Flutter Desktop UI".to_string()),
-                visibility: "public".to_string(),
-                discoverability: "public".to_string(),
-                default_branch: "main".to_string(),
-                language: "Dart".to_string(),
-                status: "ACTIVE".to_string(),
-                created_at: "2026-08-21T12:00:00Z".to_string(),
-                updated_at: "2026-08-25T18:00:00Z".to_string(),
-                last_commit_hash: "b92d5f08e3a1b4c7d6e9f0a2b3c4d5e6f7a8b9c0".to_string(),
-                size_bytes: 12400000,
-                object_count: 512,
-                deleted_at: None,
-            },
-        ];
         Self {
-            repos: RwLock::new(initial_repos),
+            repos: RwLock::new(Vec::new()),
         }
     }
 
@@ -178,6 +140,24 @@ impl RepositoryDbStore {
         let mut guard = self.repos.write().unwrap();
         guard.insert(0, record.clone());
         record
+    }
+
+    pub fn get_repository(&self, repo_id: &str) -> Option<RepositoryRecord> {
+        let guard = self.repos.read().unwrap();
+        guard
+            .iter()
+            .find(|r| r.id == repo_id && r.deleted_at.is_none())
+            .cloned()
+    }
+
+    pub fn delete_repository(&self, repo_id: &str) -> bool {
+        let mut guard = self.repos.write().unwrap();
+        if let Some(pos) = guard.iter().position(|r| r.id == repo_id) {
+            guard.remove(pos);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn update_repository_status(&self, repo_id: &str, status: &str) -> bool {
@@ -196,7 +176,10 @@ impl RepositoryDbStore {
     }
 
     /// DB-level filtering for CodeHub Explore global public repository index
-    pub fn get_explore_public_repositories(&self, user_store: &crate::auth::user_store::UserStore) -> Vec<RepositoryRecord> {
+    pub fn get_explore_public_repositories(
+        &self,
+        user_store: &crate::auth::user_store::UserStore,
+    ) -> Vec<RepositoryRecord> {
         let guard = self.repos.read().unwrap();
         guard
             .iter()
@@ -223,4 +206,3 @@ impl RepositoryDbStore {
             .collect()
     }
 }
-

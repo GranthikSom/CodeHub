@@ -70,7 +70,9 @@ mod tests {
         let positioning = ProductPositioningInspector::get_positioning();
 
         assert_eq!(positioning.differentiation_pillars.len(), 7);
-        assert!(positioning.strong_pitch.contains("distributed across a peer network"));
+        assert!(positioning
+            .strong_pitch
+            .contains("distributed across a peer network"));
         assert!(!positioning.strong_pitch.contains("torrent"));
     }
 }

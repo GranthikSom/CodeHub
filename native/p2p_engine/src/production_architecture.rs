@@ -83,15 +83,13 @@ impl ProductionArchitectureInspector {
             },
         ];
 
-        let p2p_swarm_layer = vec![
-            ArchComponentSpec {
-                component_name: "Peer Client Swarm (Peers A, B, C)".to_string(),
-                tier: "P2P User Network".to_string(),
-                status: "ACTIVE (Bitswap + SHA-256 Content Addressing)".to_string(),
-                tech_stack: "Rust Native Engine + Flutter UI / CLI".to_string(),
-                redundancy_strategy: "Decentralized Chunk Seeding & Availability Matrix".to_string(),
-            },
-        ];
+        let p2p_swarm_layer = vec![ArchComponentSpec {
+            component_name: "Peer Client Swarm (Peers A, B, C)".to_string(),
+            tier: "P2P User Network".to_string(),
+            status: "ACTIVE (Bitswap + SHA-256 Content Addressing)".to_string(),
+            tech_stack: "Rust Native Engine + Flutter UI / CLI".to_string(),
+            redundancy_strategy: "Decentralized Chunk Seeding & Availability Matrix".to_string(),
+        }];
 
         let seed_server_mesh_layer = vec![
             ArchComponentSpec {
@@ -117,7 +115,11 @@ impl ProductionArchitectureInspector {
             },
         ];
 
-        let total = 1 + control_plane_microservices.len() + data_persistence_layer.len() + p2p_swarm_layer.len() + seed_server_mesh_layer.len();
+        let total = 1
+            + control_plane_microservices.len()
+            + data_persistence_layer.len()
+            + p2p_swarm_layer.len()
+            + seed_server_mesh_layer.len();
 
         FinalProductionArchitectureReport {
             ingress_layer,
@@ -126,7 +128,8 @@ impl ProductionArchitectureInspector {
             p2p_swarm_layer,
             seed_server_mesh_layer,
             total_system_components: total,
-            overall_architecture_status: "PRODUCTION READY (Full Target Architecture Verified)".to_string(),
+            overall_architecture_status: "PRODUCTION READY (Full Target Architecture Verified)"
+                .to_string(),
         }
     }
 }
@@ -140,10 +143,15 @@ mod tests {
         let report = ProductionArchitectureInspector::generate_production_blueprint();
 
         assert_eq!(report.total_system_components, 11);
-        assert_eq!(report.ingress_layer.component_name, "Cloudflare WAF & Edge CDN");
+        assert_eq!(
+            report.ingress_layer.component_name,
+            "Cloudflare WAF & Edge CDN"
+        );
         assert_eq!(report.control_plane_microservices.len(), 4);
         assert_eq!(report.data_persistence_layer.len(), 2);
         assert_eq!(report.seed_server_mesh_layer.len(), 3);
-        assert!(report.overall_architecture_status.contains("PRODUCTION READY"));
+        assert!(report
+            .overall_architecture_status
+            .contains("PRODUCTION READY"));
     }
 }

@@ -1,9 +1,9 @@
 pub mod auth;
-pub mod repositories;
 pub mod explore;
-pub mod users;
 pub mod issues;
 pub mod pull_requests;
+pub mod repositories;
+pub mod users;
 
 use serde::{Deserialize, Serialize};
 

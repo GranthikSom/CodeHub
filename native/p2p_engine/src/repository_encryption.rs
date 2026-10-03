@@ -91,7 +91,10 @@ impl RepositoryEncryptionEngine {
         let calculated_mac_hex = hex::encode(mac_hasher.finalize());
 
         if calculated_mac_hex != payload.mac_hex {
-            return Err("HMAC MAC verification failed! Encrypted payload corrupted or tampered.".to_string());
+            return Err(
+                "HMAC MAC verification failed! Encrypted payload corrupted or tampered."
+                    .to_string(),
+            );
         }
 
         // Re-derive IV bytes
@@ -159,7 +162,12 @@ impl PrivateRepoAccessManager {
     }
 
     /// Adds a member key and access level to private repository registry
-    pub fn add_member(&mut self, user_id: &str, user_public_key: &str, access_level: MemberAccessLevel) {
+    pub fn add_member(
+        &mut self,
+        user_id: &str,
+        user_public_key: &str,
+        access_level: MemberAccessLevel,
+    ) {
         self.members.insert(
             user_id.to_string(),
             MemberPermissionRecord {
@@ -244,14 +252,20 @@ impl PrivateRepoAccessManager {
                 repo_id: self.repo_id.clone(),
                 visibility: "private".to_string(),
                 is_access_granted: true,
-                reason: format!("Access granted to active member {} ({:?})", user_id, record.access_level),
+                reason: format!(
+                    "Access granted to active member {} ({:?})",
+                    user_id, record.access_level
+                ),
             }
         } else {
             PrivateAccessDecision {
                 repo_id: self.repo_id.clone(),
                 visibility: "private".to_string(),
                 is_access_granted: false,
-                reason: format!("Access denied: User {} is not a registered member of this private repository", user_id),
+                reason: format!(
+                    "Access denied: User {} is not a registered member of this private repository",
+                    user_id
+                ),
             }
         }
     }
@@ -280,7 +294,8 @@ impl PrivateRepoAccessManager {
                 repo_id: repo_id.to_string(),
                 visibility: "private".to_string(),
                 is_access_granted: false,
-                reason: "Private repository: Access denied. Missing symmetric decryption key.".to_string(),
+                reason: "Private repository: Access denied. Missing symmetric decryption key."
+                    .to_string(),
             }
         }
     }
@@ -313,22 +328,26 @@ mod tests {
     #[test]
     fn test_private_repo_access_evaluation() {
         // Public repo allows all
-        let public_res = PrivateRepoAccessManager::evaluate_access_decision("repo_pub", "public", false);
+        let public_res =
+            PrivateRepoAccessManager::evaluate_access_decision("repo_pub", "public", false);
         assert!(public_res.is_access_granted);
 
         // Private repo without key denies access
-        let denied_res = PrivateRepoAccessManager::evaluate_access_decision("repo_priv", "private", false);
+        let denied_res =
+            PrivateRepoAccessManager::evaluate_access_decision("repo_priv", "private", false);
         assert!(!denied_res.is_access_granted);
 
         // Private repo with key grants access
-        let granted_res = PrivateRepoAccessManager::evaluate_access_decision("repo_priv", "private", true);
+        let granted_res =
+            PrivateRepoAccessManager::evaluate_access_decision("repo_priv", "private", true);
         assert!(granted_res.is_access_granted);
     }
 
     #[test]
     fn test_phase9_private_repositories_encryption_access_control_and_member_keys() {
         let engine = RepositoryEncryptionEngine::new();
-        let master_key = RepositoryEncryptionEngine::derive_key("enterprise_master_passphrase_2026");
+        let master_key =
+            RepositoryEncryptionEngine::derive_key("enterprise_master_passphrase_2026");
         let mut access_mgr = PrivateRepoAccessManager::new("repo_confidential", master_key);
 
         // 1. Register Member Keys & Access Control Roles
@@ -354,18 +373,29 @@ mod tests {
         );
 
         // 4. Alice unwraps master key and decrypts private chunk payload
-        let alice_unwrapped_key = PrivateRepoAccessManager::unwrap_member_key(&alice_grant, alice_pub_key).unwrap();
+        let alice_unwrapped_key =
+            PrivateRepoAccessManager::unwrap_member_key(&alice_grant, alice_pub_key).unwrap();
         assert_eq!(alice_unwrapped_key, master_key);
 
         let payload = b"CONFIDENTIAL_SOURCE_CODE_PAYLOAD_PRIVATE_REPO";
-        let encrypted_chunk = engine.encrypt_chunk(&alice_unwrapped_key, "repo_confidential", "chunk_01", payload);
-        let decrypted_payload = engine.decrypt_chunk(&alice_unwrapped_key, &encrypted_chunk).unwrap();
+        let encrypted_chunk = engine.encrypt_chunk(
+            &alice_unwrapped_key,
+            "repo_confidential",
+            "chunk_01",
+            payload,
+        );
+        let decrypted_payload = engine
+            .decrypt_chunk(&alice_unwrapped_key, &encrypted_chunk)
+            .unwrap();
         assert_eq!(decrypted_payload, payload);
 
         // 5. Eve attempts to unwrap key with her public key -> Fails MAC/decryption check!
-        let eve_unwrapped_key = PrivateRepoAccessManager::unwrap_member_key(&alice_grant, eve_pub_key).unwrap();
+        let eve_unwrapped_key =
+            PrivateRepoAccessManager::unwrap_member_key(&alice_grant, eve_pub_key).unwrap();
         assert_ne!(eve_unwrapped_key, master_key);
-        assert!(engine.decrypt_chunk(&eve_unwrapped_key, &encrypted_chunk).is_err());
+        assert!(engine
+            .decrypt_chunk(&eve_unwrapped_key, &encrypted_chunk)
+            .is_err());
 
         // 6. Revoke Bob's Key Access
         access_mgr.revoke_member("bob");

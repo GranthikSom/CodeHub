@@ -1,8 +1,11 @@
 //! WebSocket Connection Handling
 
-use axum::extract::ws::{WebSocket, Message};
+use axum::extract::ws::{Message, WebSocket};
 
-pub async fn handle_connection(mut socket: WebSocket, mut event_rx: tokio::sync::broadcast::Receiver<String>) {
+pub async fn handle_connection(
+    mut socket: WebSocket,
+    mut event_rx: tokio::sync::broadcast::Receiver<String>,
+) {
     while let Ok(msg) = event_rx.recv().await {
         if socket.send(Message::Text(msg)).await.is_err() {
             break;

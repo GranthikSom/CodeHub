@@ -79,7 +79,10 @@ impl DirectP2PNode {
         let payload = sender.chunk_store.get(chunk_hash).cloned().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
-                format!("Chunk {} not found on remote peer {}", chunk_hash, sender.peer_id),
+                format!(
+                    "Chunk {} not found on remote peer {}",
+                    chunk_hash, sender.peer_id
+                ),
             )
         })?;
 
@@ -88,12 +91,16 @@ impl DirectP2PNode {
         if computed != chunk_hash {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("SHA-256 verification failed during P2P download! Expected {}, computed {}", chunk_hash, computed),
+                format!(
+                    "SHA-256 verification failed during P2P download! Expected {}, computed {}",
+                    chunk_hash, computed
+                ),
             ));
         }
 
         // Receiver saves verified chunk locally
-        self.chunk_store.insert(chunk_hash.to_string(), payload.clone());
+        self.chunk_store
+            .insert(chunk_hash.to_string(), payload.clone());
 
         Ok(payload)
     }
@@ -112,7 +119,10 @@ impl DirectP2PNode {
         let payload = self.chunk_store.get(chunk_hash).cloned().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
-                format!("Chunk {} not available for upload on {}", chunk_hash, self.peer_id),
+                format!(
+                    "Chunk {} not available for upload on {}",
+                    chunk_hash, self.peer_id
+                ),
             )
         })?;
 
@@ -125,7 +135,9 @@ impl DirectP2PNode {
             ));
         }
 
-        target.chunk_store.insert(chunk_hash.to_string(), payload.clone());
+        target
+            .chunk_store
+            .insert(chunk_hash.to_string(), payload.clone());
 
         Ok(DirectChunkTransfer {
             chunk_hash: chunk_hash.to_string(),

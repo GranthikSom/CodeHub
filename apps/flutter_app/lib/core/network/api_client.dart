@@ -1,23 +1,27 @@
-import 'dart:io';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class ApiClient {
   static const String baseUrl = 'http://127.0.0.1:8080';
-  static final HttpClient _client = HttpClient();
+  static final http.Client _client = http.Client();
 
   static Future<Map<String, dynamic>> get(String endpoint) async {
-    final request = await _client.getUrl(Uri.parse('$baseUrl$endpoint'));
-    final response = await request.close();
-    final stringData = await response.transform(utf8.decoder).join();
-    return json.decode(stringData);
+    final response = await _client.get(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: {'Accept': 'application/json'},
+    );
+    return json.decode(response.body) as Map<String, dynamic>;
   }
 
   static Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> data) async {
-    final request = await _client.postUrl(Uri.parse('$baseUrl$endpoint'));
-    request.headers.contentType = ContentType.json;
-    request.write(json.encode(data));
-    final response = await request.close();
-    final stringData = await response.transform(utf8.decoder).join();
-    return json.decode(stringData);
+    final response = await _client.post(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: json.encode(data),
+    );
+    return json.decode(response.body) as Map<String, dynamic>;
   }
 }

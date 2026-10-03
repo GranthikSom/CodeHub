@@ -1,3 +1,3 @@
 pub mod connection;
-pub mod rooms;
 pub mod events;
+pub mod rooms;

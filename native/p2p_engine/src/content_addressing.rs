@@ -3,11 +3,11 @@
 //! Hashes payloads using SHA-256, stores objects at `objects/a8/1c4e...`,
 //! enforces zero-duplicate storage across repositories, and resolves P2P swarm queries for object hashes.
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContentObjectMeta {
@@ -103,7 +103,10 @@ impl ContentAddressedStore {
         if computed != hash {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("Checksum mismatch! Expected {}, computed {}", hash, computed),
+                format!(
+                    "Checksum mismatch! Expected {}, computed {}",
+                    hash, computed
+                ),
             ));
         }
 
@@ -167,12 +170,19 @@ mod tests {
         assert_eq!(&meta1.hash[0..2], meta1.prefix);
 
         // Verify file path structure: objects/a8/1c4e...
-        let expected_path = tmp.path().join("objects").join(&meta1.prefix).join(&meta1.suffix);
+        let expected_path = tmp
+            .path()
+            .join("objects")
+            .join(&meta1.prefix)
+            .join(&meta1.suffix);
         assert!(expected_path.exists());
 
         // Second write with IDENTICAL content (100 users scenario): Should deduplicate!
         let meta2 = store.put_object(content_a).unwrap();
-        assert!(!meta2.is_newly_written, "Identical content must be deduplicated!");
+        assert!(
+            !meta2.is_newly_written,
+            "Identical content must be deduplicated!"
+        );
         assert_eq!(meta1.hash, meta2.hash);
 
         // Read and verify integrity

@@ -110,7 +110,9 @@ impl TechnologyStackInspector {
         TechStackAuditReport {
             proven_technologies,
             custom_innovations,
-            compliance_status: "PASSED (100% Adherence — Standard Tech for Infra, Custom Tech for P2P Innovation)".to_string(),
+            compliance_status:
+                "PASSED (100% Adherence — Standard Tech for Infra, Custom Tech for P2P Innovation)"
+                    .to_string(),
         }
     }
 }

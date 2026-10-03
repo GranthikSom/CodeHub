@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/codehub_state.dart';
 import '../screens/auth_screen.dart';
+import '../screens/profile_screen.dart';
 import 'create_repository_dialog.dart';
 
 class P2PNetworkHeader extends StatelessWidget {
@@ -472,132 +474,341 @@ class P2PNetworkHeader extends StatelessWidget {
 }
 
 void _showUserProfileModal(BuildContext context, CodeHubState state) {
-  final username = state.api.currentUsername ?? 'User';
-  final email = state.api.currentEmail ?? '$username@codehub.p2p';
-  final role = state.api.currentRole ?? 'developer';
-  final peerId = state.api.currentPeerId ?? '12D3KooWNodeKeyUnregistered';
+  final profile = state.userProfile;
+  final username = profile.username;
+  final displayName = profile.displayName.isNotEmpty ? profile.displayName : username;
+  final email = profile.email;
+  final role = profile.role;
+  final peerId = profile.peerId;
+  final repoCount = state.repositories.length;
+  final starredCount = state.repositories.where((r) => r.stars > 0).length;
+  final pinnedCount = state.repositories.where((r) => r.isPinnedLocally).length;
 
   showDialog(
     context: context,
     builder: (ctx) {
       final isDark = Theme.of(ctx).brightness == Brightness.dark;
-      return AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF161B22) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: const Color(0xFF238636),
-              child: Text(
-                username.isNotEmpty ? username[0].toUpperCase() : 'U',
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        alignment: Alignment.topRight,
+        insetPadding: const EdgeInsets.only(top: 60, right: 24, bottom: 20),
+        child: Container(
+          width: 340,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161B22) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? const Color(0xFF30363D) : const Color(0xFFD0D7DE),
+              width: 1,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(username, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: role == 'admin' ? Colors.purple.withValues(alpha: 0.2) : Colors.blue.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          role.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: role == 'admin' ? const Color(0xFFBC8CFF) : const Color(0xFF58A6FF),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. User Identity Header (GitHub Style)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: const Color(0xFF238636),
+                      child: Text(
+                        displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  displayName,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: role == 'admin' ? const Color(0xFF8957E5).withValues(alpha: 0.2) : const Color(0xFF1F6FEB).withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  role.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: role == 'admin' ? const Color(0xFFBC8CFF) : const Color(0xFF58A6FF),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+                          Text('@$username', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600)),
+                          Text(email, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade500), overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Status line (GitHub style)
+              if (profile.statusText.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: isDark ? const Color(0xFF30363D) : const Color(0xFFD0D7DE)),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(profile.statusEmoji, style: const TextStyle(fontSize: 14)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          profile.statusText,
+                          style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFC9D1D9) : Colors.black87),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
+                ),
+
+              const SizedBox(height: 10),
+              Divider(height: 1, color: isDark ? const Color(0xFF30363D) : const Color(0xFFD0D7DE)),
+
+              // 2. Navigation Actions List
+              _buildMenuItem(
+                icon: Icons.person_outline_rounded,
+                title: 'Your profile',
+                subtitle: 'View GitHub-style profile & contributions',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  state.navigateToProfile();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ProfileScreen(state: state)),
+                  );
+                },
+                isDark: isDark,
               ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Divider(color: Color(0xFF30363D)),
-            const SizedBox(height: 8),
-            const Text('Ed25519 Peer Identity Key', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0D1117) : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFF30363D)),
+              _buildMenuItem(
+                icon: Icons.source_outlined,
+                title: 'Your repositories',
+                badgeText: '$repoCount',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  state.setDashboardNavIndex(0);
+                  state.setActiveTab(ActiveTab.repos);
+                },
+                isDark: isDark,
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
+              _buildMenuItem(
+                icon: Icons.star_outline_rounded,
+                title: 'Your stars',
+                badgeText: '$starredCount',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  state.navigateToProfile();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ProfileScreen(state: state)),
+                  );
+                },
+                isDark: isDark,
+              ),
+              _buildMenuItem(
+                icon: Icons.pin_outlined,
+                title: 'Your pinned swarm nodes',
+                badgeText: '$pinnedCount',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  state.setDashboardNavIndex(0);
+                  state.setActiveTab(ActiveTab.storageSettings);
+                },
+                isDark: isDark,
+              ),
+
+              Divider(height: 1, color: isDark ? const Color(0xFF30363D) : const Color(0xFFD0D7DE)),
+
+              // 3. Sovereign P2P Identity Card
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.key_rounded, size: 13, color: Color(0xFF58A6FF)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Ed25519 Peer Identity',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700),
+                        ),
+                        const Spacer(),
+                        InkWell(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: peerId));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Ed25519 Peer Key copied to clipboard!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          child: const Icon(Icons.copy_rounded, size: 13, color: Color(0xFF58A6FF)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
                       peerId,
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFF7EE787)),
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: Color(0xFF7EE787)),
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF238636).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.verified, size: 16, color: Color(0xFF238636)),
-                  SizedBox(width: 8),
-                  Text(
-                    'Argon2id Hashed Session Active',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF7EE787), fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF85149),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              state.logoutUser();
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Signed out successfully'),
-                  duration: Duration(seconds: 2),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.verified, size: 13, color: Color(0xFF238636)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Argon2id Session Active',
+                          style: TextStyle(fontSize: 10, color: const Color(0xFF7EE787), fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              );
-            },
-            icon: const Icon(Icons.logout, size: 16),
-            label: const Text('Sign Out'),
+              ),
+
+              Divider(height: 1, color: isDark ? const Color(0xFF30363D) : const Color(0xFFD0D7DE)),
+
+              // 4. Settings Item
+              _buildMenuItem(
+                icon: Icons.settings_outlined,
+                title: 'Settings',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  state.setDashboardNavIndex(7);
+                },
+                isDark: isDark,
+              ),
+
+              Divider(height: 1, color: isDark ? const Color(0xFF30363D) : const Color(0xFFD0D7DE)),
+
+              // 5. Sign Out Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
+                    ),
+                    const Spacer(),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF85149),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      ),
+                      onPressed: () {
+                        state.logoutUser();
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Signed out successfully'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.logout, size: 14),
+                      label: const Text('Sign out', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       );
     },
+  );
+}
+
+Widget _buildMenuItem({
+  required IconData icon,
+  required String title,
+  String? subtitle,
+  String? badgeText,
+  required VoidCallback onTap,
+  required bool isDark,
+}) {
+  return InkWell(
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? const Color(0xFFC9D1D9) : const Color(0xFF24292F),
+                  ),
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 10, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade500),
+                  ),
+              ],
+            ),
+          ),
+          if (badgeText != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF21262D) : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                badgeText,
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade700),
+              ),
+            ),
+        ],
+      ),
+    ),
   );
 }

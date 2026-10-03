@@ -1,5 +1,5 @@
-use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 /// Status & Health of a Dedicated Always-On Storage Pinning Node
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,7 +48,8 @@ impl DedicatedStorageCluster {
         cluster.register_storage_node(StorageNodeInfo {
             node_id: "storage-node-us-east-1".to_string(),
             region: "US East (N. Virginia)".to_string(),
-            multiaddr: "/dns4/storage-us.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeUSEast1".to_string(),
+            multiaddr: "/dns4/storage-us.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeUSEast1"
+                .to_string(),
             uptime_percentage: 99.99,
             pinned_repositories_count: 1420,
             total_pinned_bytes: 485_000_000_000,
@@ -59,7 +60,8 @@ impl DedicatedStorageCluster {
         cluster.register_storage_node(StorageNodeInfo {
             node_id: "storage-node-eu-central-1".to_string(),
             region: "EU Central (Frankfurt)".to_string(),
-            multiaddr: "/dns4/storage-eu.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeEUCentral1".to_string(),
+            multiaddr: "/dns4/storage-eu.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeEUCentral1"
+                .to_string(),
             uptime_percentage: 99.98,
             pinned_repositories_count: 1420,
             total_pinned_bytes: 485_000_000_000,
@@ -70,7 +72,8 @@ impl DedicatedStorageCluster {
         cluster.register_storage_node(StorageNodeInfo {
             node_id: "storage-node-ap-south-1".to_string(),
             region: "AP South (Mumbai)".to_string(),
-            multiaddr: "/dns4/storage-ap.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeAPSouth1".to_string(),
+            multiaddr: "/dns4/storage-ap.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeAPSouth1"
+                .to_string(),
             uptime_percentage: 99.99,
             pinned_repositories_count: 1418,
             total_pinned_bytes: 483_500_000_000,
@@ -86,8 +89,11 @@ impl DedicatedStorageCluster {
     }
 
     pub fn pin_repository(&mut self, repo_id: &str, size_bytes: u64) -> RepositoryPinningStatus {
-        let pinned_nodes = self.repo_pins.entry(repo_id.to_string()).or_insert_with(HashSet::new);
-        
+        let pinned_nodes = self
+            .repo_pins
+            .entry(repo_id.to_string())
+            .or_insert_with(HashSet::new);
+
         // Auto-pin across all online dedicated storage nodes up to target count
         for (node_id, node) in self.storage_nodes.iter_mut() {
             if node.is_online && pinned_nodes.len() < self.target_replicas_per_repo {
@@ -128,7 +134,10 @@ impl DedicatedStorageCluster {
         } else if user_nodes_online == 0 && dedicated_pinned == 0 {
             "CRITICAL: Repository unavailable (User device offline, no dedicated storage nodes pinned)".to_string()
         } else {
-            format!("Healthy — Served by {} user P2P peers + {} dedicated storage nodes", user_nodes_online, dedicated_pinned)
+            format!(
+                "Healthy — Served by {} user P2P peers + {} dedicated storage nodes",
+                user_nodes_online, dedicated_pinned
+            )
         }
     }
 }

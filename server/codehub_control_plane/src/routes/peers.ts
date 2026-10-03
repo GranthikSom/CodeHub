@@ -45,7 +45,7 @@ export async function peerTelemetryRoutes(fastify: FastifyInstance, io: Server) 
       event: 'transfer.progress',
       type: 'transfer.progress',
       timestamp: Math.floor(Date.now() / 1000),
-      repository_id: repository_id || 'repo_101',
+      repository_id: repository_id || '',
       bytes_transferred: bytes_transferred || 42100000,
       progress_percent: progress_percent || 100.0,
     };
@@ -54,7 +54,7 @@ export async function peerTelemetryRoutes(fastify: FastifyInstance, io: Server) 
       event: 'replication.updated',
       type: 'replication.updated',
       timestamp: Math.floor(Date.now() / 1000),
-      repository_id: repository_id || 'repo_101',
+      repository_id: repository_id || '',
       replica_count: 9,
       status: 'synced',
     };

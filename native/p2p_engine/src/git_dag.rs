@@ -21,7 +21,7 @@ pub struct GitCommit {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitTreeEntry {
-    pub mode: String,        // "100644" (file), "040000" (directory), "100755" (executable)
+    pub mode: String, // "100644" (file), "040000" (directory), "100755" (executable)
     pub object_type: String, // "blob", "tree"
     pub hash: String,
     pub name: String,
@@ -52,7 +52,7 @@ pub struct GitTag {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitReferenceStore {
-    pub head_ref: String, // "ref: refs/heads/main" or commit hash
+    pub head_ref: String,                  // "ref: refs/heads/main" or commit hash
     pub branches: HashMap<String, String>, // "main" -> "8f91ab..."
     pub tags: HashMap<String, String>,     // "v1.0" -> "8f91ab..."
 }
@@ -102,13 +102,21 @@ impl GitDagEngine {
                 let parts: Vec<&str> = line.trim_start_matches("author ").split('<').collect();
                 if parts.len() >= 2 {
                     author_name = parts[0].trim().to_string();
-                    author_email = parts[1].split('>').next().unwrap_or("dev@codehub.p2p").to_string();
+                    author_email = parts[1]
+                        .split('>')
+                        .next()
+                        .unwrap_or("dev@codehub.p2p")
+                        .to_string();
                 }
             } else if line.starts_with("committer ") {
                 let parts: Vec<&str> = line.trim_start_matches("committer ").split('<').collect();
                 if parts.len() >= 2 {
                     committer_name = parts[0].trim().to_string();
-                    committer_email = parts[1].split('>').next().unwrap_or("dev@codehub.p2p").to_string();
+                    committer_email = parts[1]
+                        .split('>')
+                        .next()
+                        .unwrap_or("dev@codehub.p2p")
+                        .to_string();
                 }
             }
         }
@@ -163,7 +171,7 @@ mod tests {
     #[test]
     fn test_git_commit_parsing() {
         let raw_commit = b"tree 7c9f11223344\nparent 8f91ab772211\nauthor Soham Mondal <soham@codehub.p2p>\ncommitter Soham Mondal <soham@codehub.p2p>\n\nInitial P2P commit message";
-        
+
         let commit = GitDagEngine::parse_commit_payload("commit_hash_1", raw_commit).unwrap();
 
         assert_eq!(commit.tree_hash, "7c9f11223344");

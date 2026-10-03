@@ -44,46 +44,8 @@ export async function repositoryRoutes(fastify: FastifyInstance) {
     } catch (e) {
       return reply.send({
         success: true,
-        data: [
-          {
-            id: 'repo_101',
-            owner_id: 'usr_granthik_101',
-            owner: 'GranthikSom',
-            name: 'codehub-core-p2p',
-            full_name: 'GranthikSom/codehub-core-p2p',
-            description: 'Decentralized P2P Git Objectstore',
-            visibility: 'public',
-            default_branch: 'main',
-            language: 'Rust',
-            stars_count: 340,
-            forks_count: 42,
-            issues_count: 5,
-            size_bytes: 5242880,
-            object_count: 1420,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            last_commit_hash: 'a81c4e97d2f831b2c4d5e6f7a8b9c0d1e2f3a4b5',
-          },
-          {
-            id: 'repo_102',
-            owner_id: 'usr_soham_102',
-            owner: 'SohamMondal',
-            name: 'flutter-torrent-ui',
-            full_name: 'SohamMondal/flutter-torrent-ui',
-            description: 'Sovereign Flutter Desktop UI',
-            visibility: 'public',
-            default_branch: 'main',
-            language: 'Dart',
-            stars_count: 180,
-            forks_count: 19,
-            issues_count: 2,
-            size_bytes: 2097152,
-            object_count: 512,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            last_commit_hash: 'b92d5f08e3a1b4c7d6e9f0a2b3c4d5e6f7a8b9c0',
-          },
-        ],
+        message: 'Indexed repositories retrieved',
+        data: [],
       });
     }
   });

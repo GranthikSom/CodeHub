@@ -16,7 +16,10 @@ impl RoomManager {
 
     pub fn join_room(&self, room: &str, peer_id: &str) {
         if let Ok(mut guard) = self.rooms.lock() {
-            guard.entry(room.to_string()).or_default().push(peer_id.to_string());
+            guard
+                .entry(room.to_string())
+                .or_default()
+                .push(peer_id.to_string());
         }
     }
 }

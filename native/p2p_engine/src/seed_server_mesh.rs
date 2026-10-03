@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 /// Classification Tier of a Node in the Swarm Mesh
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum NodeTier {
-    OwnerDevice,       // Primary repository creator device
-    SeedServer,        // Always-on 24/7 dedicated geo-distributed storage node
-    CommunityPeer,     // Voluntary P2P swarm peer
+    OwnerDevice,   // Primary repository creator device
+    SeedServer,    // Always-on 24/7 dedicated geo-distributed storage node
+    CommunityPeer, // Voluntary P2P swarm peer
 }
 
 /// Information about a Node in the Global Replication Mesh
@@ -13,7 +13,7 @@ pub enum NodeTier {
 pub struct MeshNodeInfo {
     pub node_id: String,
     pub tier: NodeTier,
-    pub location: String,       // e.g. "Germany (Frankfurt)", "Singapore", "India (Mumbai)"
+    pub location: String, // e.g. "Germany (Frankfurt)", "Singapore", "India (Mumbai)"
     pub latency_ms: u32,
     pub is_online: bool,
     pub total_chunks_held: usize,
@@ -111,11 +111,17 @@ impl SeedServerMeshEngine {
         let total_score = owner_count + active_seeds + community_peers_count;
 
         let safety_level = if total_score >= 8 {
-            format!("EXCELLENT (Replication Score = {}/9 — Safe against multi-region outages)", total_score)
+            format!(
+                "EXCELLENT (Replication Score = {}/9 — Safe against multi-region outages)",
+                total_score
+            )
         } else if total_score >= 4 {
             format!("HEALTHY (Replication Score = {})", total_score)
         } else if total_score >= 2 {
-            format!("WARNING (Replication Score = {} — Below target 5+ replicas)", total_score)
+            format!(
+                "WARNING (Replication Score = {} — Below target 5+ replicas)",
+                total_score
+            )
         } else {
             "CRITICAL (Single Point of Failure)".to_string()
         };

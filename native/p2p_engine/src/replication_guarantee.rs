@@ -38,7 +38,13 @@ impl ReplicationGuaranteeEngine {
     }
 
     /// Registers a peer node with its current health metrics
-    pub fn register_peer(&mut self, peer_id: &str, is_online: bool, reputation_score: u32, latency_ms: u32) {
+    pub fn register_peer(
+        &mut self,
+        peer_id: &str,
+        is_online: bool,
+        reputation_score: u32,
+        latency_ms: u32,
+    ) {
         self.active_peer_health.insert(
             peer_id.to_string(),
             PeerHealthStatus {
@@ -69,7 +75,11 @@ impl ReplicationGuaranteeEngine {
     }
 
     /// Health Check: Evaluates current active peer set and identifies offline replicas
-    pub fn perform_health_check(&self, repo_id: &str, assigned_peers: &[String]) -> PushReplicationResult {
+    pub fn perform_health_check(
+        &self,
+        repo_id: &str,
+        assigned_peers: &[String],
+    ) -> PushReplicationResult {
         let mut healthy_peers = Vec::new();
 
         for peer in assigned_peers {
@@ -94,7 +104,10 @@ impl ReplicationGuaranteeEngine {
         let (status_symbol, status_message) = if replica_count >= self.min_replicas {
             (
                 "✓ Healthy".to_string(),
-                format!("{}/{} replicas verified. Swarm healthy!", replica_count, self.min_replicas),
+                format!(
+                    "{}/{} replicas verified. Swarm healthy!",
+                    replica_count, self.min_replicas
+                ),
             )
         } else {
             (
@@ -131,7 +144,8 @@ impl ReplicationGuaranteeEngine {
         *current_active_peers = health_report.replicated_peers.clone();
 
         while current_active_peers.len() < self.min_replicas {
-            if let Some(replacement_peer) = self.select_best_replacement_peer(current_active_peers) {
+            if let Some(replacement_peer) = self.select_best_replacement_peer(current_active_peers)
+            {
                 current_active_peers.push(replacement_peer);
             } else {
                 break; // No more candidate peers available in swarm
@@ -143,7 +157,11 @@ impl ReplicationGuaranteeEngine {
     }
 
     /// Verifies push replication status across available swarm seeders
-    pub fn verify_push_replication(&self, repo_id: &str, available_peers: &[&str]) -> PushReplicationResult {
+    pub fn verify_push_replication(
+        &self,
+        repo_id: &str,
+        available_peers: &[&str],
+    ) -> PushReplicationResult {
         let peer_strings: Vec<String> = available_peers.iter().map(|s| s.to_string()).collect();
         self.perform_health_check(repo_id, &peer_strings)
     }
@@ -186,7 +204,11 @@ mod tests {
         engine.register_peer("Peer C", true, 88, 60);
         engine.register_peer("Peer D", true, 98, 15); // Candidate replacement
 
-        let mut active_peers = vec!["Peer A".to_string(), "Peer B".to_string(), "Peer C".to_string()];
+        let mut active_peers = vec![
+            "Peer A".to_string(),
+            "Peer B".to_string(),
+            "Peer C".to_string(),
+        ];
 
         // 1. Initial State: Required: 3. Peer A ✓, Peer B ✓, Peer C ✓ -> Healthy (3/3)
         let initial_check = engine.perform_health_check("repo_codehub", &active_peers);

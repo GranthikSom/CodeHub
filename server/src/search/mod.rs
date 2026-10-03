@@ -11,6 +11,9 @@ pub fn search_index(query: &str) -> SearchResult {
     SearchResult {
         query: query.to_string(),
         matches_count: 2,
-        repositories: vec!["codehub-core-p2p".to_string(), "flutter-dag-visualizer".to_string()],
+        repositories: vec![
+            "codehub-core-p2p".to_string(),
+            "flutter-dag-visualizer".to_string(),
+        ],
     }
 }

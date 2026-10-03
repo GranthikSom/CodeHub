@@ -1,10 +1,10 @@
 //! API Explore Public Catalog Index Module with Cursor Pagination and Multi-Mode Ranking
 
+use crate::api::ApiResponse;
+use crate::auth::user_store::UserStore;
+use crate::db::{RepositoryDbStore, RepositoryRecord};
 use axum::{extract::Query, Json};
 use serde::{Deserialize, Serialize};
-use crate::api::ApiResponse;
-use crate::db::{RepositoryDbStore, RepositoryRecord};
-use crate::auth::user_store::UserStore;
 
 #[derive(Debug, Deserialize)]
 pub struct ExploreQueryParams {
@@ -56,7 +56,11 @@ pub async fn get_explore_catalog(
             if let Some(ref q) = search_term {
                 let name_match = r.name.to_lowercase().contains(q);
                 let full_name_match = r.full_name.to_lowercase().contains(q);
-                let desc_match = r.description.as_ref().map(|d| d.to_lowercase().contains(q)).unwrap_or(false);
+                let desc_match = r
+                    .description
+                    .as_ref()
+                    .map(|d| d.to_lowercase().contains(q))
+                    .unwrap_or(false);
                 if !name_match && !full_name_match && !desc_match {
                     return false;
                 }
@@ -71,9 +75,7 @@ pub async fn get_explore_catalog(
     match sort_mode.to_lowercase().as_str() {
         "seeded" => {
             // Sort by replica count & object count DESC
-            filtered_repos.sort_by(|a, b| {
-                b.size_bytes.cmp(&a.size_bytes)
-            });
+            filtered_repos.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
         }
         "recent" => {
             // ORDER BY updated_at DESC, created_at DESC
@@ -84,7 +86,9 @@ pub async fn get_explore_catalog(
             filtered_repos.sort_by(|a, b| {
                 let score_a = calculate_trending_score(a);
                 let score_b = calculate_trending_score(b);
-                score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
+                score_b
+                    .partial_cmp(&score_a)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             });
         }
     }
@@ -129,7 +133,7 @@ pub async fn get_explore_catalog(
 fn calculate_trending_score(r: &RepositoryRecord) -> f64 {
     let base_score = (r.object_count as f64 * 5.0) + ((r.size_bytes as f64 / 1_048_576.0) * 2.0);
     // Gravity time decay factor
-    let decay = 2.0; 
+    let decay = 2.0;
     base_score / decay
 }
 

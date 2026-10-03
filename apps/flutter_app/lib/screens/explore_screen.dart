@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/codehub_state.dart';
 import '../widgets/repo_card.dart';
-import '../models/repository_model.dart';
-import '../models/git_object.dart';
+import '../widgets/create_repository_dialog.dart';
 
 class ExploreScreen extends StatefulWidget {
   final CodeHubState state;
@@ -17,96 +16,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
   String _selectedCategory = 'Trending';
   String _searchQuery = '';
 
-  final List<CodeRepository> _trendingRepos = [
-    CodeRepository(
-      id: 'explore_1',
-      name: 'hyper-dht-p2p',
-      owner: 'libp2p-rust',
-      description: 'Ultra-fast Kademlia DHT implementation with hole-punching STUN/TURN traversal.',
-      defaultBranch: 'main',
-      tags: const ['rust', 'p2p', 'dht'],
-      totalSizeMb: 128.4,
-      totalObjects: 4200,
-      replicaCount: 18,
-      isPinnedLocally: false,
-      localReplicationProgress: 0.0,
-      seedNodeIds: const ['peer_tokyo', 'peer_london'],
-      rootCommitHash: 'commit_88f912c40a1',
-      lastUpdated: DateTime.now().subtract(const Duration(hours: 1)),
-      stars: 842,
-      forks: 139,
-      rootCommit: GitObject(
-        hash: 'commit_88f912c40a1',
-        type: GitObjectType.commit,
-        name: 'feat: add Noise cryptographic handshake',
-        sizeBytes: 900,
-        replicaNodeIds: const ['peer_tokyo'],
-        author: 'RustPeer',
-        timestamp: DateTime.now(),
-      ),
-    ),
-    CodeRepository(
-      id: 'explore_2',
-      name: 'flutter-decentralized-ui',
-      owner: 'flutter-community',
-      description: 'Glassmorphic design system and state manager for sovereign desktop apps.',
-      defaultBranch: 'main',
-      tags: const ['flutter', 'dart', 'ui'],
-      totalSizeMb: 45.2,
-      totalObjects: 1200,
-      replicaCount: 12,
-      isPinnedLocally: false,
-      localReplicationProgress: 0.0,
-      seedNodeIds: const ['peer_berlin'],
-      rootCommitHash: 'commit_11a45f92d3',
-      lastUpdated: DateTime.now().subtract(const Duration(hours: 3)),
-      stars: 620,
-      forks: 94,
-      rootCommit: GitObject(
-        hash: 'commit_11a45f92d3',
-        type: GitObjectType.commit,
-        name: 'v2.0.0 release',
-        sizeBytes: 1200,
-        replicaNodeIds: const ['peer_berlin'],
-        author: 'FlutterDev',
-        timestamp: DateTime.now(),
-      ),
-    ),
-    CodeRepository(
-      id: 'explore_3',
-      name: 'sqlite-wasm-sync',
-      owner: 'wasm-labs',
-      description: 'Local-first offline sync engine for WebAssembly and native apps.',
-      defaultBranch: 'main',
-      tags: const ['wasm', 'sqlite', 'database'],
-      totalSizeMb: 19.8,
-      totalObjects: 640,
-      replicaCount: 8,
-      isPinnedLocally: false,
-      localReplicationProgress: 0.0,
-      seedNodeIds: const ['peer_sf'],
-      rootCommitHash: 'commit_55d81299f0',
-      lastUpdated: DateTime.now().subtract(const Duration(hours: 8)),
-      stars: 410,
-      forks: 52,
-      rootCommit: GitObject(
-        hash: 'commit_55d81299f0',
-        type: GitObjectType.commit,
-        name: 'Fix CRDT merge conflict algorithm',
-        sizeBytes: 400,
-        replicaNodeIds: const ['peer_sf'],
-        author: 'DBArchitect',
-        timestamp: DateTime.now(),
-      ),
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final allDisplay = [...widget.state.repositories, ..._trendingRepos];
+    final allDisplay = widget.state.repositories;
     final filtered = allDisplay.where((r) {
+      if (_selectedCategory == 'Rust' &&
+          !(r.language?.toLowerCase().contains('rust') ?? false) &&
+          !r.tags.contains('rust')) {
+        return false;
+      }
+      if (_selectedCategory == 'Flutter' &&
+          !(r.language?.toLowerCase().contains('dart') ?? false) &&
+          !r.tags.contains('flutter')) {
+        return false;
+      }
       if (_searchQuery.isNotEmpty) {
         return r.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
             r.owner.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -235,10 +160,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'User A → CodeHub API → PostgreSQL → Redis Event Bus → Socket.IO → Live Explore Page',
+                    'User A → CodeHub API → PostgreSQL → Redis Event Bus → WebSocket → Live Explore Page',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? const Color(0xFF3FB950) : const Color(0xFF238636),
+                      color: widget.state.backendStatus == 'online'
+                          ? (isDark ? const Color(0xFF3FB950) : const Color(0xFF238636))
+                          : widget.state.backendStatus == 'connecting'
+                              ? const Color(0xFFD29922)
+                              : const Color(0xFFCF222E),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -246,13 +175,54 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF3FB950),
+                    decoration: BoxDecoration(
+                      color: widget.state.backendStatus == 'online'
+                          ? const Color(0xFF3FB950)
+                          : widget.state.backendStatus == 'connecting'
+                              ? const Color(0xFFD29922)
+                              : const Color(0xFFCF222E),
                       shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  const Text('Connected', style: TextStyle(fontSize: 11, color: Color(0xFF3FB950))),
+                  const SizedBox(width: 6),
+                  Text(
+                    widget.state.backendStatus == 'online'
+                        ? 'Connected'
+                        : widget.state.backendStatus == 'connecting'
+                            ? 'Connecting...'
+                            : 'Offline',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: widget.state.backendStatus == 'online'
+                          ? const Color(0xFF3FB950)
+                          : widget.state.backendStatus == 'connecting'
+                              ? const Color(0xFFD29922)
+                              : const Color(0xFFCF222E),
+                    ),
+                  ),
+                  if (widget.state.backendStatus != 'online') ...[
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => widget.state.reconnectBackend(),
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF21262D),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFF30363D)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.refresh, size: 12, color: Colors.white70),
+                            SizedBox(width: 4),
+                            Text('Retry', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -286,12 +256,64 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
           // Catalog List
           Expanded(
-            child: ListView.builder(
-              itemCount: filtered.length,
-              itemBuilder: (context, index) {
-                return RepoCard(repo: filtered[index], state: widget.state);
-              },
-            ),
+            child: filtered.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.travel_explore_rounded,
+                            size: 56,
+                            color: isDark ? const Color(0xFF30363D) : Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchQuery.isNotEmpty
+                                ? 'No repositories matching "$_searchQuery"'
+                                : 'No public repositories indexed in swarm yet',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create your first repository to announce and replicate content chunks across peer nodes.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (_) => CreateRepositoryDialog(state: widget.state),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF238636),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            ),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('New Repository', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      return RepoCard(repo: filtered[index], state: widget.state);
+                    },
+                  ),
           ),
         ],
       ),

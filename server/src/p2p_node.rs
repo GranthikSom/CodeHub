@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
-use serde::{Deserialize, Serialize};
 use p2p_engine::PeerIdentityManager;
+use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex};
 
 /// Status & Health of the Server's Embedded P2P Storage Peer
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,17 +53,14 @@ impl ServerP2pStoragePeer {
         let p2p_port = 4001;
         let multiaddr = format!("/ip4/0.0.0.0/tcp/{}/p2p/{}", p2p_port, peer_id);
 
-        let seeded_repos = vec![
-            "repo_101".to_string(),
-            "repo_102".to_string(),
-        ];
+        let seeded_repos: Vec<String> = Vec::new();
 
         Self {
             peer_id,
             multiaddr,
             seeded_repositories: Arc::new(Mutex::new(seeded_repos)),
-            total_chunks_seeded: Arc::new(Mutex::new(1420)),
-            total_bytes_seeded: Arc::new(Mutex::new(485_000_000)),
+            total_chunks_seeded: Arc::new(Mutex::new(0)),
+            total_bytes_seeded: Arc::new(Mutex::new(0)),
         }
     }
 
@@ -83,6 +80,12 @@ impl ServerP2pStoragePeer {
         }
     }
 
+    pub fn unpin_repository(&self, repo_id: &str) {
+        if let Ok(mut repos) = self.seeded_repositories.lock() {
+            repos.retain(|id| id != repo_id);
+        }
+    }
+
     pub fn get_status(&self) -> ServerPeerNodeStatus {
         let repos_count = self.seeded_repositories.lock().map_or(0, |r| r.len());
         let chunks_count = self.total_chunks_seeded.lock().map_or(0, |c| *c);
@@ -97,7 +100,8 @@ impl ServerP2pStoragePeer {
             total_storage_bytes_seeded: bytes_count,
             p2p_swarm_port: 4001,
             http_api_port: 8080,
-            role_description: "Dual-Role Control Server & Dedicated Always-On P2P Storage Peer".to_string(),
+            role_description: "Dual-Role Control Server & Dedicated Always-On P2P Storage Peer"
+                .to_string(),
         }
     }
 }
@@ -123,8 +127,8 @@ mod tests {
         peer.auto_pin_repository("repo_custom_99", 50, 10_000_000);
 
         let status = peer.get_status();
-        assert_eq!(status.total_seeded_repositories, 3);
-        assert_eq!(status.total_seeded_chunks, 1470);
+        assert_eq!(status.total_seeded_repositories, 1);
+        assert_eq!(status.total_seeded_chunks, 50);
     }
 
     #[test]
@@ -136,9 +140,15 @@ mod tests {
         let status = peer.get_status();
 
         assert!(status.server_peer_id.starts_with("12D3KooW"));
-        assert_eq!(status.server_peer_id, "12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ");
+        assert_eq!(
+            status.server_peer_id,
+            "12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ"
+        );
         assert!(status.p2p_multiaddr.contains(&status.server_peer_id));
-        assert_eq!(status.p2p_multiaddr, "/ip4/0.0.0.0/tcp/4001/p2p/12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ");
+        assert_eq!(
+            status.p2p_multiaddr,
+            "/ip4/0.0.0.0/tcp/4001/p2p/12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ"
+        );
 
         // Clean up environment
         std::env::remove_var("P2P_NODE_PRIVATE_KEY");

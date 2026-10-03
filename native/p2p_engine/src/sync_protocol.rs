@@ -3,8 +3,8 @@
 //! Implements 9-step P2P synchronization protocol with zero-trust SHA-256 chunk validation.
 //! Never trusts raw data received from external peers; computes SHA-256 and drops corrupted chunks.
 
-use sha2::{Digest, Sha256};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SyncMessageType {
@@ -80,12 +80,16 @@ impl RepositorySyncEngine {
         vec![
             CircuitRelayRoute {
                 relay_id: "relay_us_east_1".to_string(),
-                multiaddr: "/dns4/relay1.codehub.com/tcp/4001/p2p/12D3KooWSH1Y6m98aBCdE1f2g3h4i5j6k7l8m9n0".to_string(),
+                multiaddr:
+                    "/dns4/relay1.codehub.com/tcp/4001/p2p/12D3KooWSH1Y6m98aBCdE1f2g3h4i5j6k7l8m9n0"
+                        .to_string(),
                 nat_type_supported: "CGNAT / Symmetric Firewall".to_string(),
             },
             CircuitRelayRoute {
                 relay_id: "relay_eu_west_1".to_string(),
-                multiaddr: "/dns4/relay2.codehub.com/tcp/4001/p2p/12D3KooWEU2Y6m98aBCdE1f2g3h4i5j6k7l8m9n0".to_string(),
+                multiaddr:
+                    "/dns4/relay2.codehub.com/tcp/4001/p2p/12D3KooWEU2Y6m98aBCdE1f2g3h4i5j6k7l8m9n0"
+                        .to_string(),
                 nat_type_supported: "CGNAT / Symmetric Firewall".to_string(),
             },
         ]
@@ -107,7 +111,7 @@ mod tests {
     fn test_sync_chunk_verification_match() {
         let engine = RepositorySyncEngine::new();
         let raw_data = b"Hello CodeHub Decentralized Swarm!";
-        
+
         let mut hasher = Sha256::new();
         hasher.update(raw_data);
         let expected_hash = format!("{:x}", hasher.finalize());

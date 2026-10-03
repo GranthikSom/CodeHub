@@ -117,7 +117,8 @@ mod tests {
             raw_content: commit_bytes.to_vec(),
         };
 
-        let bundle = GitRepositoryAdapter::package_git_repository("codehub_core", "main", vec![obj]);
+        let bundle =
+            GitRepositoryAdapter::package_git_repository("codehub_core", "main", vec![obj]);
         assert_eq!(bundle.total_objects, 1);
         assert_eq!(bundle.head_commit_hash, hash);
     }

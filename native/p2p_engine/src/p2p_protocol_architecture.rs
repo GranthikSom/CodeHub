@@ -67,7 +67,9 @@ impl NativeP2PProtocolInspector {
 
         let pubsub_coordination = PubSubControlPlaneSpec {
             pubsub_topic: "/codehub/v1/swarm/sync-events".to_string(),
-            purpose: "Lightweight metadata broadcasting (New Push, Commit Head, Swarm Peer Discovery)".to_string(),
+            purpose:
+                "Lightweight metadata broadcasting (New Push, Commit Head, Swarm Peer Discovery)"
+                    .to_string(),
             data_transfer_mode: "In-Band GossipSub Messages (< 1KB per message)".to_string(),
         };
 
@@ -100,7 +102,13 @@ mod tests {
         assert!(report.design_principle.contains("libp2p"));
         assert!(report.design_principle.contains("Kademlia"));
         assert!(!report.design_principle.contains("BitTorrent"));
-        assert_eq!(report.pubsub_coordination.data_transfer_mode, "In-Band GossipSub Messages (< 1KB per message)");
-        assert!(report.direct_stream_transfer.data_transfer_mode.contains("Out-of-Band Direct Peer-to-Peer Streams"));
+        assert_eq!(
+            report.pubsub_coordination.data_transfer_mode,
+            "In-Band GossipSub Messages (< 1KB per message)"
+        );
+        assert!(report
+            .direct_stream_transfer
+            .data_transfer_mode
+            .contains("Out-of-Band Direct Peer-to-Peer Streams"));
     }
 }

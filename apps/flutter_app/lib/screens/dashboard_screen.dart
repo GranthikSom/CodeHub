@@ -10,6 +10,7 @@ import 'issues_screen.dart';
 import 'live_chat_screen.dart';
 import 'notifications_screen.dart';
 import 'settings_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final CodeHubState? state;
@@ -34,6 +35,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _state = CodeHubState();
       _isOwnedState = true;
     }
+    _selectedIndex = _state.dashboardNavIndex;
+    _state.onNavigateToDashboardTab = (index) {
+      if (mounted) {
+        setState(() {
+          _selectedIndex = index;
+        });
+      }
+    };
   }
 
   @override
@@ -126,6 +135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   setState(() {
                     _selectedIndex = index;
                   });
+                  _state.setDashboardNavIndex(index);
                 },
                 labelType: NavigationRailLabelType.selected,
                 leading: Padding(
@@ -184,6 +194,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     selectedIcon: Icon(Icons.settings, color: Colors.blueAccent),
                     label: Text('Settings'),
                   ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.person_outline_rounded),
+                    selectedIcon: Icon(Icons.person_rounded, color: Colors.blueAccent),
+                    label: Text('Profile'),
+                  ),
                 ],
               ),
               const VerticalDivider(thickness: 1, width: 1),
@@ -216,6 +231,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     // 7. Settings & Storage Control
                     SettingsScreen(state: _state),
+
+                    // 8. User Profile (GitHub Style)
+                    ProfileScreen(state: _state),
                   ],
                 ),
               ),

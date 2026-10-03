@@ -1,5 +1,8 @@
 use axum::{
-    extract::{ws::{Message, WebSocket, WebSocketUpgrade}, Path, Query},
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        Path, Query,
+    },
     http::StatusCode,
     response::Html,
     routing::{get, patch, post},
@@ -9,26 +12,26 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 
-pub mod config;
 pub mod api;
 pub mod auth;
-pub mod users;
-pub mod db;
+pub mod config;
 pub mod database;
-pub mod websocket;
-pub mod events;
-pub mod middleware;
-pub mod services;
+pub mod db;
 pub mod discovery;
-pub mod repository;
-pub mod repositories;
-pub mod permissions;
+pub mod events;
 pub mod issues;
-pub mod pull_requests;
-pub mod search;
-pub mod replication;
+pub mod middleware;
 pub mod notifications;
 pub mod p2p_node;
+pub mod permissions;
+pub mod pull_requests;
+pub mod replication;
+pub mod repositories;
+pub mod repository;
+pub mod search;
+pub mod services;
+pub mod users;
+pub mod websocket;
 
 use api::{ApiResponse, HealthStatus};
 use repository::{IssueItem, PullRequestItem, RepoIndexItem};
@@ -113,14 +116,13 @@ async fn main() {
         .route("/", get(serve_admin_panel))
         .route("/admin", get(serve_admin_panel))
         .route("/health", get(health_check))
-        
+        .route("/api/v1/health", get(health_check))
         // 1. Authentication & Authorization routes
         .route("/api/v1/auth/register", post(register_user))
         .route("/api/v1/auth/login", post(login_user))
         .route("/api/v1/auth/refresh", post(refresh_token))
         .route("/api/v1/auth/logout", post(logout_user))
         .route("/api/v1/auth/authorize", post(authorize_user_action))
-        
         // 2. Users routes
         .route("/api/v1/users", get(list_all_users_admin))
         .route("/api/v1/users/me", patch(update_my_profile))
@@ -129,41 +131,62 @@ async fn main() {
             get(get_user_profile).delete(delete_user_admin),
         )
         .route("/api/v1/users/:id/suspend", post(toggle_suspend_user_admin))
-        
         // 2b. Admin Real-Time WebSocket & Event Bus routes
         .route("/api/v1/admin/ws", get(admin_ws_handler))
         .route("/api/v1/events/ws", get(events_ws_handler))
-        
         // 3. Repositories & Explore Catalog routes
         .route("/api/v1/explore", get(get_explore_catalog_handler))
-        .route("/api/v1/repositories", post(create_repository).get(list_repositories))
-        .route("/api/v1/repositories/check-name", get(check_repository_name))
+        .route(
+            "/api/v1/repositories",
+            post(create_repository).get(list_repositories),
+        )
+        .route(
+            "/api/v1/repositories/check-name",
+            get(check_repository_name),
+        )
         .route(
             "/api/v1/repositories/:id",
             get(get_repository_by_id)
                 .patch(update_repository)
                 .delete(delete_repository),
         )
-        
         // 4. Repository peers, replication & key management routes
         .route("/api/v1/repositories/:id/announce", post(announce_peer))
         .route("/api/v1/repositories/:id/peers", get(get_repository_peers))
-        .route("/api/v1/repositories/:id/replicas", post(update_replication_factor))
-        .route("/api/v1/repositories/:id/replication-status", get(get_replication_status))
-        .route("/api/v1/repositories/:id/keys/grant", post(grant_repository_key))
-        .route("/api/v1/repositories/:id/keys/access", get(get_repository_key_access))
-        
+        .route(
+            "/api/v1/repositories/:id/replicas",
+            post(update_replication_factor),
+        )
+        .route(
+            "/api/v1/repositories/:id/replication-status",
+            get(get_replication_status),
+        )
+        .route(
+            "/api/v1/repositories/:id/keys/grant",
+            post(grant_repository_key),
+        )
+        .route(
+            "/api/v1/repositories/:id/keys/access",
+            get(get_repository_key_access),
+        )
         // 5. Bootstrap Node & Rendezvous Discovery routes
-        .route("/api/v1/swarm/bootstrap-nodes", get(get_bootstrap_server_nodes))
-        .route("/api/v1/swarm/rendezvous/:repo_id", get(get_rendezvous_repository_peers))
+        .route(
+            "/api/v1/swarm/bootstrap-nodes",
+            get(get_bootstrap_server_nodes),
+        )
+        .route(
+            "/api/v1/swarm/rendezvous/:repo_id",
+            get(get_rendezvous_repository_peers),
+        )
         .route("/api/v1/swarm/relays", get(get_circuit_relay_nodes))
-        
         // 6. Search routes
         .route("/api/v1/search/repositories", get(search_repositories))
         .route("/api/v1/search/code", get(search_code))
-        
         // 7. Issues routes
-        .route("/api/v1/repositories/:id/issues", get(list_issues).post(create_issue))
+        .route(
+            "/api/v1/repositories/:id/issues",
+            get(list_issues).post(create_issue),
+        )
         .route(
             "/api/v1/repositories/:id/issues/:issue_id",
             get(get_issue_by_id).patch(update_issue),
@@ -172,57 +195,146 @@ async fn main() {
             "/api/v1/repositories/:id/issues/:issue_id/comments",
             post(add_issue_comment),
         )
-        
         // 8. Fork & Pull requests & Branches & Reviews & Comments routes
         .route("/api/v1/repositories/:id/fork", post(fork_repository))
-        .route("/api/v1/repositories/:id/branches", get(list_branches).post(create_branch))
-        .route("/api/v1/repositories/:id/pulls", get(list_pulls).post(create_pull_request))
-        .route("/api/v1/repositories/:id/pulls/:pr_id", get(get_pull_request_by_id))
-        .route("/api/v1/repositories/:id/pulls/:pr_id/merge", post(merge_pull_request_handler))
-        .route("/api/v1/repositories/:id/pulls/:pr_id/reviews", get(list_pr_reviews).post(create_pr_review))
-        .route("/api/v1/repositories/:id/pulls/:pr_id/comments", get(list_pr_comments).post(create_pr_comment))
-        
+        .route(
+            "/api/v1/repositories/:id/branches",
+            get(list_branches).post(create_branch),
+        )
+        .route(
+            "/api/v1/repositories/:id/pulls",
+            get(list_pulls).post(create_pull_request),
+        )
+        .route(
+            "/api/v1/repositories/:id/pulls/:pr_id",
+            get(get_pull_request_by_id),
+        )
+        .route(
+            "/api/v1/repositories/:id/pulls/:pr_id/merge",
+            post(merge_pull_request_handler),
+        )
+        .route(
+            "/api/v1/repositories/:id/pulls/:pr_id/reviews",
+            get(list_pr_reviews).post(create_pr_review),
+        )
+        .route(
+            "/api/v1/repositories/:id/pulls/:pr_id/comments",
+            get(list_pr_comments).post(create_pr_comment),
+        )
         // 9. Stars, Followers, Watchers, Notifications routes
-        .route("/api/v1/repositories/:id/star", post(star_repository).delete(unstar_repository))
+        .route(
+            "/api/v1/repositories/:id/star",
+            post(star_repository).delete(unstar_repository),
+        )
         .route("/api/v1/repositories/:id/stargazers", get(list_stargazers))
-        .route("/api/v1/users/:id/follow", post(follow_user).delete(unfollow_user))
+        .route(
+            "/api/v1/users/:id/follow",
+            post(follow_user).delete(unfollow_user),
+        )
         .route("/api/v1/users/:id/followers", get(list_followers))
         .route("/api/v1/users/:id/following", get(list_following))
-        .route("/api/v1/repositories/:id/watch", post(watch_repository).delete(unwatch_repository))
+        .route(
+            "/api/v1/repositories/:id/watch",
+            post(watch_repository).delete(unwatch_repository),
+        )
         .route("/api/v1/notifications", get(list_notifications))
-        .route("/api/v1/notifications/:id/read", patch(mark_notification_read))
-
+        .route(
+            "/api/v1/notifications/:id/read",
+            patch(mark_notification_read),
+        )
         // 10. Releases, Tags, Actions/CI, Webhooks, Projects & Discussions routes
-        .route("/api/v1/repositories/:id/releases", get(list_releases).post(create_release))
-        .route("/api/v1/repositories/:id/tags", get(list_tags).post(create_tag))
-        .route("/api/v1/repositories/:id/actions/runs", get(list_workflow_runs).post(trigger_workflow_run))
-        .route("/api/v1/repositories/:id/webhooks", get(list_webhooks).post(create_webhook))
-        .route("/api/v1/repositories/:id/projects", get(list_projects).post(create_project))
-        .route("/api/v1/repositories/:id/discussions", get(list_discussions).post(create_discussion))
+        .route(
+            "/api/v1/repositories/:id/releases",
+            get(list_releases).post(create_release),
+        )
+        .route(
+            "/api/v1/repositories/:id/tags",
+            get(list_tags).post(create_tag),
+        )
+        .route(
+            "/api/v1/repositories/:id/actions/runs",
+            get(list_workflow_runs).post(trigger_workflow_run),
+        )
+        .route(
+            "/api/v1/repositories/:id/webhooks",
+            get(list_webhooks).post(create_webhook),
+        )
+        .route(
+            "/api/v1/repositories/:id/projects",
+            get(list_projects).post(create_project),
+        )
+        .route(
+            "/api/v1/repositories/:id/discussions",
+            get(list_discussions).post(create_discussion),
+        )
         // 11. Phase 12 Production Hardening & Dedicated Storage Node Pinning Cluster
-        .route("/api/v1/system/security-hardening", get(get_security_hardening_status))
-        .route("/api/v1/storage-nodes/status", get(get_storage_nodes_status))
-        .route("/api/v1/storage-nodes/pin/:id", post(pin_repository_on_storage_nodes))
+        .route(
+            "/api/v1/system/security-hardening",
+            get(get_security_hardening_status),
+        )
+        .route(
+            "/api/v1/storage-nodes/status",
+            get(get_storage_nodes_status),
+        )
+        .route(
+            "/api/v1/storage-nodes/pin/:id",
+            post(pin_repository_on_storage_nodes),
+        )
         // 12. Dual-Role Server Embedded P2P Storage Peer & Multi-Tier Seed Mesh
         .route("/api/v1/system/peer-node", get(get_server_peer_node_status))
-        .route("/api/v1/repositories/:id/replication-mesh", get(get_repository_replication_mesh))
+        .route(
+            "/api/v1/repositories/:id/replication-mesh",
+            get(get_repository_replication_mesh),
+        )
         // 13. Phase 16 Complete Final Production Architecture Blueprint & Technology Audit
-        .route("/api/v1/system/production-architecture", get(get_production_architecture_status))
-        .route("/api/v1/system/technology-audit", get(get_technology_stack_audit_status))
-        .route("/api/v1/system/product-positioning", get(get_product_positioning_status))
-        .route("/api/v1/system/p2p-protocol-spec", get(get_p2p_protocol_spec_status))
-        .route("/api/v1/system/release-roadmap", get(get_release_roadmap_status))
-        .route("/api/v1/system/development-roadmap", get(get_development_roadmap_status))
-        .route("/api/v1/system/hard-refresh", post(perform_system_hard_refresh))
-        
+        .route(
+            "/api/v1/system/production-architecture",
+            get(get_production_architecture_status),
+        )
+        .route(
+            "/api/v1/system/technology-audit",
+            get(get_technology_stack_audit_status),
+        )
+        .route(
+            "/api/v1/system/product-positioning",
+            get(get_product_positioning_status),
+        )
+        .route(
+            "/api/v1/system/p2p-protocol-spec",
+            get(get_p2p_protocol_spec_status),
+        )
+        .route(
+            "/api/v1/system/release-roadmap",
+            get(get_release_roadmap_status),
+        )
+        .route(
+            "/api/v1/system/development-roadmap",
+            get(get_development_roadmap_status),
+        )
+        .route(
+            "/api/v1/system/hard-refresh",
+            post(perform_system_hard_refresh),
+        )
         .layer(cors);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    let port: u16 = std::env::var("PORT")
+        .or_else(|_| std::env::var("API_PORT"))
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8080);
+    let host_str = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let ip: std::net::IpAddr = host_str
+        .parse()
+        .unwrap_or(std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0)));
+    let addr = SocketAddr::new(ip, port);
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(l) => l,
         Err(err) => {
-            eprintln!("❌ Failed to bind to http://0.0.0.0:8080: {}", err);
-            eprintln!("💡 Port 8080 is in use. Run 'fuser -k 8080/tcp' to release the port.");
+            eprintln!("❌ Failed to bind to http://{}: {}", addr, err);
+            eprintln!(
+                "💡 Port {} is in use. Run 'fuser -k {}/tcp' to release the port.",
+                port, port
+            );
             std::process::exit(1);
         }
     };
@@ -234,6 +346,7 @@ async fn main() {
 }
 
 async fn health_check() -> Json<ApiResponse<HealthStatus>> {
+    let repo_count = get_repo_db_store().get_all_repositories().len();
     Json(ApiResponse {
         success: true,
         message: "CodeHub Control Server API Operational".to_string(),
@@ -241,7 +354,7 @@ async fn health_check() -> Json<ApiResponse<HealthStatus>> {
             status: "online".to_string(),
             version: "1.0.0".to_string(),
             active_swarm_peers: 14,
-            total_indexed_repos: 42,
+            total_indexed_repos: repo_count,
         }),
     })
 }
@@ -252,7 +365,10 @@ async fn health_check() -> Json<ApiResponse<HealthStatus>> {
 
 static USER_STORE: std::sync::OnceLock<auth::UserStore> = std::sync::OnceLock::new();
 static REPO_DB_STORE: std::sync::OnceLock<db::RepositoryDbStore> = std::sync::OnceLock::new();
-static EVENT_BUS_SENDER: std::sync::OnceLock<tokio::sync::broadcast::Sender<String>> = std::sync::OnceLock::new();
+static EVENT_BUS_SENDER: std::sync::OnceLock<tokio::sync::broadcast::Sender<String>> =
+    std::sync::OnceLock::new();
+static SERVER_P2P_PEER: std::sync::OnceLock<p2p_node::ServerP2pStoragePeer> =
+    std::sync::OnceLock::new();
 
 fn get_user_store() -> &'static auth::UserStore {
     USER_STORE.get_or_init(auth::UserStore::new)
@@ -267,6 +383,10 @@ fn get_event_bus() -> &'static tokio::sync::broadcast::Sender<String> {
         let (tx, _rx) = tokio::sync::broadcast::channel(200);
         tx
     })
+}
+
+fn get_server_p2p_peer() -> &'static p2p_node::ServerP2pStoragePeer {
+    SERVER_P2P_PEER.get_or_init(p2p_node::ServerP2pStoragePeer::new)
 }
 
 async fn register_user(
@@ -316,7 +436,10 @@ async fn login_user(
                 StatusCode::OK,
                 Json(ApiResponse {
                     success: true,
-                    message: format!("User '{}' authenticated successfully via Argon2id password verification.", user.username),
+                    message: format!(
+                        "User '{}' authenticated successfully via Argon2id password verification.",
+                        user.username
+                    ),
                     data: Some(auth::AuthResponse {
                         user_id: user.id,
                         username: user.username,
@@ -343,11 +466,13 @@ async fn login_user(
 
 async fn refresh_token() -> Json<ApiResponse<auth::AuthResponse>> {
     let store = get_user_store();
-    let user = store.authenticate(&auth::LoginPayload {
-        username: "GranthikSom".to_string(),
-        password: "password123".to_string(),
-        peer_id: None,
-    }).unwrap();
+    let user = store
+        .authenticate(&auth::LoginPayload {
+            username: "GranthikSom".to_string(),
+            password: "password123".to_string(),
+            peer_id: None,
+        })
+        .unwrap();
 
     let token = auth::generate_structured_jwt(&user);
     Json(ApiResponse {
@@ -413,12 +538,18 @@ async fn get_user_profile(Path(username): Path<String>) -> Json<ApiResponse<User
     })
 }
 
-async fn update_my_profile(Json(payload): Json<UpdateProfilePayload>) -> Json<ApiResponse<UserProfile>> {
+async fn update_my_profile(
+    Json(payload): Json<UpdateProfilePayload>,
+) -> Json<ApiResponse<UserProfile>> {
     let profile = UserProfile {
         username: "me".to_string(),
-        display_name: payload.display_name.unwrap_or_else(|| "Soham Mondal".to_string()),
+        display_name: payload
+            .display_name
+            .unwrap_or_else(|| "Soham Mondal".to_string()),
         email: "soham@codehub.p2p".to_string(),
-        bio: payload.bio.unwrap_or_else(|| "Lead Architect @ CodeHub P2P".to_string()),
+        bio: payload
+            .bio
+            .unwrap_or_else(|| "Lead Architect @ CodeHub P2P".to_string()),
         repositories_count: 12,
         joined_at: "2026-01-01T00:00:00Z".to_string(),
     };
@@ -515,8 +646,14 @@ async fn check_repository_name(
         });
     }
 
-    let is_valid = raw_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.');
-    if !is_valid || raw_name.starts_with('.') || raw_name.ends_with('.') || raw_name.ends_with(".git") {
+    let is_valid = raw_name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.');
+    if !is_valid
+        || raw_name.starts_with('.')
+        || raw_name.ends_with('.')
+        || raw_name.ends_with(".git")
+    {
         return Json(ApiResponse {
             success: true,
             message: "Invalid repository name format".to_string(),
@@ -531,17 +668,24 @@ async fn check_repository_name(
     let repo_store = get_repo_db_store();
     let records = repo_store.get_all_repositories();
     let is_taken = records.iter().any(|r| {
-        r.name.eq_ignore_ascii_case(raw_name) && (r.owner_id.eq_ignore_ascii_case(&owner_str) || r.owner_id == "GranthikSom")
+        r.name.eq_ignore_ascii_case(raw_name)
+            && (r.owner_id.eq_ignore_ascii_case(&owner_str) || r.owner_id == "GranthikSom")
     });
 
     if is_taken {
         Json(ApiResponse {
             success: true,
-            message: format!("The repository '{}' already exists on this account.", raw_name),
+            message: format!(
+                "The repository '{}' already exists on this account.",
+                raw_name
+            ),
             data: Some(CheckRepoNameResponse {
                 available: false,
                 name: raw_name.to_string(),
-                reason: Some(format!("The repository '{}' already exists on this account.", raw_name)),
+                reason: Some(format!(
+                    "The repository '{}' already exists on this account.",
+                    raw_name
+                )),
             }),
         })
     } else {
@@ -557,7 +701,9 @@ async fn check_repository_name(
     }
 }
 
-async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, Json<ApiResponse<RepoIndexItem>>) {
+async fn create_repository(
+    Json(payload): Json<RepoIndexItem>,
+) -> (StatusCode, Json<ApiResponse<RepoIndexItem>>) {
     let repo_store = get_repo_db_store();
     let raw_name = payload.name.trim();
 
@@ -572,8 +718,14 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
         );
     }
 
-    let is_valid = raw_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.');
-    if !is_valid || raw_name.starts_with('.') || raw_name.ends_with('.') || raw_name.ends_with(".git") {
+    let is_valid = raw_name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.');
+    if !is_valid
+        || raw_name.starts_with('.')
+        || raw_name.ends_with('.')
+        || raw_name.ends_with(".git")
+    {
         return (
             StatusCode::BAD_REQUEST,
             Json(ApiResponse {
@@ -584,11 +736,16 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
         );
     }
 
-    let owner_str = if payload.owner.is_empty() { "GranthikSom".to_string() } else { payload.owner.clone() };
+    let owner_str = if payload.owner.is_empty() {
+        "GranthikSom".to_string()
+    } else {
+        payload.owner.clone()
+    };
 
     let records = repo_store.get_all_repositories();
     let is_taken = records.iter().any(|r| {
-        r.name.eq_ignore_ascii_case(raw_name) && (r.owner_id.eq_ignore_ascii_case(&owner_str) || r.owner_id == "GranthikSom")
+        r.name.eq_ignore_ascii_case(raw_name)
+            && (r.owner_id.eq_ignore_ascii_case(&owner_str) || r.owner_id == "GranthikSom")
     });
 
     if is_taken {
@@ -596,19 +753,31 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
             StatusCode::CONFLICT,
             Json(ApiResponse {
                 success: false,
-                message: format!("The repository '{}' already exists on this account.", raw_name),
+                message: format!(
+                    "The repository '{}' already exists on this account.",
+                    raw_name
+                ),
                 data: None,
             }),
         );
     }
 
     let repo_id = if payload.id.is_empty() {
-        format!("repo_{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis())
+        format!(
+            "repo_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        )
     } else {
         payload.id.clone()
     };
 
-    let default_branch = payload.default_branch.clone().unwrap_or_else(|| "main".to_string());
+    let default_branch = payload
+        .default_branch
+        .clone()
+        .unwrap_or_else(|| "main".to_string());
     let full_name_str = format!("{}/{}", owner_str, raw_name);
 
     // Initial git DAG calculation based on README, .gitignore, LICENSE selections
@@ -618,11 +787,21 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
         initial_objects += 1;
         initial_size_bytes += 480;
     }
-    if payload.gitignore_template.as_ref().map(|s| !s.is_empty() && s != "None").unwrap_or(false) {
+    if payload
+        .gitignore_template
+        .as_ref()
+        .map(|s| !s.is_empty() && s != "None")
+        .unwrap_or(false)
+    {
         initial_objects += 1;
         initial_size_bytes += 360;
     }
-    if payload.license.as_ref().map(|s| !s.is_empty() && s != "None").unwrap_or(false) {
+    if payload
+        .license
+        .as_ref()
+        .map(|s| !s.is_empty() && s != "None")
+        .unwrap_or(false)
+    {
         initial_objects += 1;
         initial_size_bytes += 1080;
     }
@@ -639,10 +818,22 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
         name: raw_name.to_string(),
         full_name: full_name_str,
         description: payload.description.clone(),
-        visibility: if payload.is_private { "private".to_string() } else { "public".to_string() },
-        discoverability: if payload.is_private { "private".to_string() } else { "public".to_string() },
+        visibility: if payload.is_private {
+            "private".to_string()
+        } else {
+            "public".to_string()
+        },
+        discoverability: if payload.is_private {
+            "private".to_string()
+        } else {
+            "public".to_string()
+        },
         default_branch: default_branch.clone(),
-        language: if payload.language.is_empty() { "Rust".to_string() } else { payload.language.clone() },
+        language: if payload.language.is_empty() {
+            "Rust".to_string()
+        } else {
+            payload.language.clone()
+        },
         status: "CREATING".to_string(),
         created_at: "2026-08-25T18:25:00Z".to_string(),
         updated_at: "2026-08-25T18:25:00Z".to_string(),
@@ -654,6 +845,7 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
 
     repo_store.insert_repository(record);
     repo_store.update_repository_status(&repo_id, "ACTIVE");
+    get_server_p2p_peer().auto_pin_repository(&repo_id, initial_objects, initial_size_bytes);
 
     let mut response_payload = payload.clone();
     response_payload.id = repo_id.clone();
@@ -696,45 +888,77 @@ async fn create_repository(Json(payload): Json<RepoIndexItem>) -> (StatusCode, J
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Repository '{}/{}' saved to PostgreSQL & published to Event Bus / Redis", owner_str, raw_name),
+            message: format!(
+                "Repository '{}/{}' saved to PostgreSQL & published to Event Bus / Redis",
+                owner_str, raw_name
+            ),
             data: Some(response_payload),
         }),
     )
 }
 
-
-async fn get_repository_by_id(Path(id): Path<String>) -> Json<ApiResponse<RepoIndexItem>> {
-    let repo = RepoIndexItem {
-        id: id.clone(),
-        name: format!("repo-{}", id),
-        owner: "GranthikSom".to_string(),
-        description: Some("Decentralized P2P Git Repository".to_string()),
-        root_commit_hash: "c03e6a19f4b7c8d9e0a1b2c3d4e5f6a7b8c9d0e1".to_string(),
-        total_objects: 2048,
-        seed_count: 14,
-        is_private: false,
-        topics: vec!["p2p".to_string(), "rust".to_string(), "git".to_string()],
-        language: "Rust".to_string(),
-        stars: 128,
-        forks: 24,
-        last_activity: "Just now".to_string(),
-        default_branch: Some("main".to_string()),
-        license: Some("MIT".to_string()),
-        gitignore_template: Some("Rust".to_string()),
-        init_readme: Some(true),
-    };
-
-    Json(ApiResponse {
-        success: true,
-        message: format!("Repository '{}' retrieved", id),
-        data: Some(repo),
-    })
+async fn get_repository_by_id(
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<RepoIndexItem>>) {
+    let repo_store = get_repo_db_store();
+    if let Some(r) = repo_store.get_repository(&id) {
+        let repo = RepoIndexItem {
+            id: r.id.clone(),
+            name: r.name.clone(),
+            owner: r.owner_id.clone(),
+            description: r.description.clone(),
+            root_commit_hash: r.last_commit_hash.clone(),
+            total_objects: r.object_count as usize,
+            seed_count: 3,
+            is_private: r.visibility == "private",
+            topics: vec!["rust".to_string(), "p2p".to_string(), "git".to_string()],
+            language: r.language.clone(),
+            stars: 0,
+            forks: 0,
+            last_activity: "Active".to_string(),
+            default_branch: Some(r.default_branch.clone()),
+            license: Some("MIT".to_string()),
+            gitignore_template: None,
+            init_readme: Some(true),
+        };
+        (
+            StatusCode::OK,
+            Json(ApiResponse {
+                success: true,
+                message: format!("Repository '{}' retrieved", id),
+                data: Some(repo),
+            }),
+        )
+    } else {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse {
+                success: false,
+                message: format!("Repository '{}' not found", id),
+                data: None,
+            }),
+        )
+    }
 }
 
 async fn update_repository(
     Path(id): Path<String>,
     Json(payload): Json<RepoIndexItem>,
 ) -> Json<ApiResponse<RepoIndexItem>> {
+    let event_payload = serde_json::json!({
+        "event": "repository_updated",
+        "type": "repository.updated",
+        "action": "UPDATE_REPOSITORY",
+        "repository_id": id,
+        "repository": {
+            "id": id,
+            "name": payload.name,
+            "description": payload.description,
+        },
+        "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
+    });
+    let _ = get_event_bus().send(event_payload.to_string());
+
     Json(ApiResponse {
         success: true,
         message: format!("Repository '{}' updated", id),
@@ -742,12 +966,42 @@ async fn update_repository(
     })
 }
 
-async fn delete_repository(Path(id): Path<String>) -> Json<ApiResponse<()>> {
-    Json(ApiResponse {
-        success: true,
-        message: format!("Repository '{}' deleted from control index", id),
-        data: None,
-    })
+async fn delete_repository(Path(id): Path<String>) -> (StatusCode, Json<ApiResponse<()>>) {
+    let repo_store = get_repo_db_store();
+    let deleted = repo_store.delete_repository(&id);
+    if deleted {
+        get_server_p2p_peer().unpin_repository(&id);
+
+        let event_payload = serde_json::json!({
+            "event": "repository_deleted",
+            "type": "repository.deleted",
+            "action": "DELETE_REPOSITORY",
+            "repository_id": id,
+            "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
+        });
+        let _ = get_event_bus().send(event_payload.to_string());
+
+        (
+            StatusCode::OK,
+            Json(ApiResponse {
+                success: true,
+                message: format!(
+                    "Repository '{}' deleted from control index and broadcast live",
+                    id
+                ),
+                data: None,
+            }),
+        )
+    } else {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse {
+                success: false,
+                message: format!("Repository '{}' not found in control index", id),
+                data: None,
+            }),
+        )
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -772,7 +1026,9 @@ async fn announce_peer(
     })
 }
 
-async fn get_repository_peers(Path(id): Path<String>) -> Json<ApiResponse<Vec<discovery::PeerDiscoveryNode>>> {
+async fn get_repository_peers(
+    Path(id): Path<String>,
+) -> Json<ApiResponse<Vec<discovery::PeerDiscoveryNode>>> {
     let peers = discovery::get_bootstrap_peers();
     Json(ApiResponse {
         success: true,
@@ -804,7 +1060,10 @@ async fn get_replication_status(
 
     Json(ApiResponse {
         success: true,
-        message: format!("Replication health status evaluated for repository '{}'", id),
+        message: format!(
+            "Replication health status evaluated for repository '{}'",
+            id
+        ),
         data: Some(status),
     })
 }
@@ -834,12 +1093,13 @@ async fn grant_repository_key(
     })
 }
 
-async fn get_repository_key_access(
-    Path(repo_id): Path<String>,
-) -> Json<ApiResponse<String>> {
+async fn get_repository_key_access(Path(repo_id): Path<String>) -> Json<ApiResponse<String>> {
     Json(ApiResponse {
         success: true,
-        message: format!("Retrieved encrypted symmetric key payload for repo '{}'", repo_id),
+        message: format!(
+            "Retrieved encrypted symmetric key payload for repo '{}'",
+            repo_id
+        ),
         data: Some("encrypted_key_payload_hex_998877665544332211".to_string()),
     })
 }
@@ -863,7 +1123,10 @@ async fn get_rendezvous_repository_peers(
     let peers = discovery::get_rendezvous_peers(&repo_id);
     Json(ApiResponse {
         success: true,
-        message: format!("Discovered Rendezvous/DHT seeders for repository '{}'", repo_id),
+        message: format!(
+            "Discovered Rendezvous/DHT seeders for repository '{}'",
+            repo_id
+        ),
         data: Some(peers),
     })
 }
@@ -880,13 +1143,17 @@ async fn get_circuit_relay_nodes() -> Json<ApiResponse<Vec<CircuitRelayNodeConfi
     let relays = vec![
         CircuitRelayNodeConfig {
             relay_id: "relay_us_east_1".to_string(),
-            multiaddr: "/dns4/relay1.codehub.com/tcp/4001/p2p/12D3KooWSH1Y6m98aBCdE1f2g3h4i5j6k7l8m9n0".to_string(),
+            multiaddr:
+                "/dns4/relay1.codehub.com/tcp/4001/p2p/12D3KooWSH1Y6m98aBCdE1f2g3h4i5j6k7l8m9n0"
+                    .to_string(),
             region: "us-east".to_string(),
             is_active: true,
         },
         CircuitRelayNodeConfig {
             relay_id: "relay_eu_west_1".to_string(),
-            multiaddr: "/dns4/relay2.codehub.com/tcp/4001/p2p/12D3KooWEU2Y6m98aBCdE1f2g3h4i5j6k7l8m9n0".to_string(),
+            multiaddr:
+                "/dns4/relay2.codehub.com/tcp/4001/p2p/12D3KooWEU2Y6m98aBCdE1f2g3h4i5j6k7l8m9n0"
+                    .to_string(),
             region: "eu-west".to_string(),
             is_active: true,
         },
@@ -894,7 +1161,8 @@ async fn get_circuit_relay_nodes() -> Json<ApiResponse<Vec<CircuitRelayNodeConfi
 
     Json(ApiResponse {
         success: true,
-        message: "Dedicated libp2p Circuit Relay v2 nodes retrieved for NAT/CGNAT fallback".to_string(),
+        message: "Dedicated libp2p Circuit Relay v2 nodes retrieved for NAT/CGNAT fallback"
+            .to_string(),
         data: Some(relays),
     })
 }
@@ -903,7 +1171,9 @@ async fn get_circuit_relay_nodes() -> Json<ApiResponse<Vec<CircuitRelayNodeConfi
 // 5. SEARCH HANDLERS
 // -----------------------------------------------------------------------------
 
-async fn search_repositories(Query(params): Query<SearchQuery>) -> Json<ApiResponse<Vec<RepoIndexItem>>> {
+async fn search_repositories(
+    Query(params): Query<SearchQuery>,
+) -> Json<ApiResponse<Vec<RepoIndexItem>>> {
     let query_str = params.q.unwrap_or_default();
     let lang_filter = params.language.map(|l| l.to_lowercase());
     let topic_filter = params.topic.map(|t| t.to_lowercase());
@@ -937,11 +1207,19 @@ async fn search_repositories(Query(params): Query<SearchQuery>) -> Json<ApiRespo
         .filter(|r| {
             let matches_query = query_str.is_empty()
                 || r.name.to_lowercase().contains(&query_str.to_lowercase())
-                || r.description.as_ref().map_or(false, |d| d.to_lowercase().contains(&query_str.to_lowercase()))
-                || r.topics.iter().any(|t| t.to_lowercase().contains(&query_str.to_lowercase()));
-            
-            let matches_lang = lang_filter.as_ref().map_or(true, |l| r.language.to_lowercase() == *l);
-            let matches_topic = topic_filter.as_ref().map_or(true, |t| r.topics.iter().any(|top| top.to_lowercase() == *t));
+                || r.description.as_ref().map_or(false, |d| {
+                    d.to_lowercase().contains(&query_str.to_lowercase())
+                })
+                || r.topics
+                    .iter()
+                    .any(|t| t.to_lowercase().contains(&query_str.to_lowercase()));
+
+            let matches_lang = lang_filter
+                .as_ref()
+                .map_or(true, |l| r.language.to_lowercase() == *l);
+            let matches_topic = topic_filter.as_ref().map_or(true, |t| {
+                r.topics.iter().any(|top| top.to_lowercase() == *t)
+            });
 
             matches_query && matches_lang && matches_topic
         })
@@ -949,27 +1227,41 @@ async fn search_repositories(Query(params): Query<SearchQuery>) -> Json<ApiRespo
 
     Json(ApiResponse {
         success: true,
-        message: format!("Found {} matching indexed repositories for query '{}'", filtered.len(), query_str),
+        message: format!(
+            "Found {} matching indexed repositories for query '{}'",
+            filtered.len(),
+            query_str
+        ),
         data: Some(filtered),
     })
 }
 
-async fn search_code(Query(params): Query<SearchQuery>) -> Json<ApiResponse<Vec<repository::CodeSearchResultItem>>> {
+async fn search_code(
+    Query(params): Query<SearchQuery>,
+) -> Json<ApiResponse<Vec<repository::CodeSearchResultItem>>> {
     let query_str = params.q.unwrap_or_default();
-    let results = vec![
-        repository::CodeSearchResultItem {
-            repo_id: "repo_101".to_string(),
-            repo_name: "codehub-core-p2p".to_string(),
-            file_path: "native/p2p_engine/src/sync_protocol.rs".to_string(),
-            blob_hash: "a81c4e97d2f831b2c4d5e6f7a8b9c0d1e2f3a4b5".to_string(),
-            matching_snippet: format!("pub fn verify_chunk_sha256(data: &[u8]) -> bool {{ ... {} ... }}", query_str),
-            line_number: 42,
-        },
-    ];
+    let records = get_repo_db_store().get_all_repositories();
+    let results: Vec<repository::CodeSearchResultItem> = records
+        .iter()
+        .filter(|r| {
+            query_str.is_empty() || r.name.to_lowercase().contains(&query_str.to_lowercase())
+        })
+        .map(|r| repository::CodeSearchResultItem {
+            repo_id: r.id.clone(),
+            repo_name: r.name.clone(),
+            file_path: format!("src/lib.rs"),
+            blob_hash: r.last_commit_hash.clone(),
+            matching_snippet: format!("// Code from repository '{}' [{}]", r.name, query_str),
+            line_number: 1,
+        })
+        .collect();
 
     Json(ApiResponse {
         success: true,
-        message: format!("Full-text code search returned {} matching blob snippets", results.len()),
+        message: format!(
+            "Full-text code search returned {} matching blob snippets",
+            results.len()
+        ),
         data: Some(results),
     })
 }
@@ -985,11 +1277,18 @@ async fn list_issues(Path(repo_id): Path<String>) -> Json<ApiResponse<Vec<IssueI
             repo_id: repo_id.clone(),
             issue_number: 1,
             title: "Support QUIC multiplexing over libp2p".to_string(),
-            body: Some("Enable QUIC transport alongside TCP for low-latency P2P chunk transfers.".to_string()),
+            body: Some(
+                "Enable QUIC transport alongside TCP for low-latency P2P chunk transfers."
+                    .to_string(),
+            ),
             author: "GranthikSom".to_string(),
             status: "OPEN".to_string(),
             milestone: Some("v1.0 Core Release".to_string()),
-            labels: vec!["enhancement".to_string(), "p2p".to_string(), "networking".to_string()],
+            labels: vec![
+                "enhancement".to_string(),
+                "p2p".to_string(),
+                "networking".to_string(),
+            ],
             assignees: vec!["soham_dev".to_string()],
             comments_count: 3,
         },
@@ -1074,7 +1373,10 @@ async fn update_issue(
     let status_str = payload.status.unwrap_or_else(|| "OPEN".to_string());
     Json(ApiResponse {
         success: true,
-        message: format!("Issue '{}' in repo '{}' updated to status '{}'", issue_id, repo_id, status_str),
+        message: format!(
+            "Issue '{}' in repo '{}' updated to status '{}'",
+            issue_id, repo_id, status_str
+        ),
         data: Some(format!("updated_status={}", status_str)),
     })
 }
@@ -1101,7 +1403,10 @@ async fn add_issue_comment(
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Comment added to Issue '{}' in repo '{}'", issue_id, repo_id),
+            message: format!(
+                "Comment added to Issue '{}' in repo '{}'",
+                issue_id, repo_id
+            ),
             data: Some(comment),
         }),
     )
@@ -1112,18 +1417,16 @@ async fn add_issue_comment(
 // -----------------------------------------------------------------------------
 
 async fn list_pulls(Path(repo_id): Path<String>) -> Json<ApiResponse<Vec<PullRequestItem>>> {
-    let pulls = vec![
-        PullRequestItem {
-            id: "pr-201".to_string(),
-            repo_id: repo_id.clone(),
-            pr_number: 1,
-            title: "feat: implement Kademlia DHT peer discovery".to_string(),
-            author: "GranthikSom".to_string(),
-            source_branch: "feature/dht-routing".to_string(),
-            target_branch: "main".to_string(),
-            status: "open".to_string(),
-        },
-    ];
+    let pulls = vec![PullRequestItem {
+        id: "pr-201".to_string(),
+        repo_id: repo_id.clone(),
+        pr_number: 1,
+        title: "feat: implement Kademlia DHT peer discovery".to_string(),
+        author: "GranthikSom".to_string(),
+        source_branch: "feature/dht-routing".to_string(),
+        target_branch: "main".to_string(),
+        status: "open".to_string(),
+    }];
     Json(ApiResponse {
         success: true,
         message: format!("Pull requests retrieved for repository '{}'", repo_id),
@@ -1148,9 +1451,7 @@ async fn create_pull_request(
     )
 }
 
-async fn fork_repository(
-    Path(repo_id): Path<String>,
-) -> (StatusCode, Json<ApiResponse<String>>) {
+async fn fork_repository(Path(repo_id): Path<String>) -> (StatusCode, Json<ApiResponse<String>>) {
     (
         StatusCode::CREATED,
         Json(ApiResponse {
@@ -1187,7 +1488,10 @@ async fn merge_pull_request_handler(
 ) -> Json<ApiResponse<String>> {
     Json(ApiResponse {
         success: true,
-        message: format!("Pull Request #{} for repository '{}' successfully MERGED into main", pr_id, repo_id),
+        message: format!(
+            "Pull Request #{} for repository '{}' successfully MERGED into main",
+            pr_id, repo_id
+        ),
         data: Some("merge_commit_hash=8f91ab77221144332211".to_string()),
     })
 }
@@ -1197,22 +1501,64 @@ async fn merge_pull_request_handler(
 // -----------------------------------------------------------------------------
 
 async fn star_repository(Path(repo_id): Path<String>) -> Json<ApiResponse<String>> {
+    let repo_store = get_repo_db_store();
+    let repo_name = repo_store
+        .get_repository(&repo_id)
+        .map(|r| r.name)
+        .unwrap_or_else(|| repo_id.clone());
+
+    let event_payload = serde_json::json!({
+        "event": "repository_updated",
+        "type": "repository.updated",
+        "action": "STAR_REPOSITORY",
+        "repository_id": repo_id,
+        "repository": {
+            "id": repo_id,
+            "name": repo_name,
+            "starred": true
+        },
+        "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
+    });
+    let _ = get_event_bus().send(event_payload.to_string());
+
     Json(ApiResponse {
         success: true,
-        message: format!("Repository '{}' starred", repo_id),
+        message: format!("Repository '{}' starred and broadcast live", repo_id),
         data: Some("starred=true".to_string()),
     })
 }
 
 async fn unstar_repository(Path(repo_id): Path<String>) -> Json<ApiResponse<String>> {
+    let repo_store = get_repo_db_store();
+    let repo_name = repo_store
+        .get_repository(&repo_id)
+        .map(|r| r.name)
+        .unwrap_or_else(|| repo_id.clone());
+
+    let event_payload = serde_json::json!({
+        "event": "repository_updated",
+        "type": "repository.updated",
+        "action": "UNSTAR_REPOSITORY",
+        "repository_id": repo_id,
+        "repository": {
+            "id": repo_id,
+            "name": repo_name,
+            "starred": false
+        },
+        "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
+    });
+    let _ = get_event_bus().send(event_payload.to_string());
+
     Json(ApiResponse {
         success: true,
-        message: format!("Repository '{}' unstarred", repo_id),
+        message: format!("Repository '{}' unstarred and broadcast live", repo_id),
         data: Some("starred=false".to_string()),
     })
 }
 
-async fn list_stargazers(Path(repo_id): Path<String>) -> Json<ApiResponse<Vec<repository::StargazerItem>>> {
+async fn list_stargazers(
+    Path(repo_id): Path<String>,
+) -> Json<ApiResponse<Vec<repository::StargazerItem>>> {
     let stargazers = vec![
         repository::StargazerItem {
             user_id: "user_101".to_string(),
@@ -1249,14 +1595,14 @@ async fn unfollow_user(Path(username): Path<String>) -> Json<ApiResponse<String>
     })
 }
 
-async fn list_followers(Path(username): Path<String>) -> Json<ApiResponse<Vec<repository::FollowerItem>>> {
-    let followers = vec![
-        repository::FollowerItem {
-            follower_id: "user_201".to_string(),
-            follower_username: "rust_dev".to_string(),
-            followed_at: "2026-08-20T14:22:00Z".to_string(),
-        },
-    ];
+async fn list_followers(
+    Path(username): Path<String>,
+) -> Json<ApiResponse<Vec<repository::FollowerItem>>> {
+    let followers = vec![repository::FollowerItem {
+        follower_id: "user_201".to_string(),
+        follower_username: "rust_dev".to_string(),
+        followed_at: "2026-08-20T14:22:00Z".to_string(),
+    }];
 
     Json(ApiResponse {
         success: true,
@@ -1265,14 +1611,14 @@ async fn list_followers(Path(username): Path<String>) -> Json<ApiResponse<Vec<re
     })
 }
 
-async fn list_following(Path(username): Path<String>) -> Json<ApiResponse<Vec<repository::FollowerItem>>> {
-    let following = vec![
-        repository::FollowerItem {
-            follower_id: "user_301".to_string(),
-            follower_username: "p2p_architect".to_string(),
-            followed_at: "2026-08-19T09:10:00Z".to_string(),
-        },
-    ];
+async fn list_following(
+    Path(username): Path<String>,
+) -> Json<ApiResponse<Vec<repository::FollowerItem>>> {
+    let following = vec![repository::FollowerItem {
+        follower_id: "user_301".to_string(),
+        follower_username: "p2p_architect".to_string(),
+        followed_at: "2026-08-19T09:10:00Z".to_string(),
+    }];
 
     Json(ApiResponse {
         success: true,
@@ -1384,7 +1730,9 @@ async fn create_branch(
     let new_branch = BranchItem {
         name: payload.name.clone(),
         is_default: false,
-        commit_sha: payload.target_sha.unwrap_or_else(|| "8f2a1b9c4e21a3b5".to_string()),
+        commit_sha: payload
+            .target_sha
+            .unwrap_or_else(|| "8f2a1b9c4e21a3b5".to_string()),
         updated_at: "2026-08-21T12:15:00Z".to_string(),
     };
 
@@ -1402,20 +1750,21 @@ async fn create_branch(
 async fn list_pr_reviews(
     Path((repo_id, pr_id)): Path<(String, String)>,
 ) -> Json<ApiResponse<Vec<repository::PullRequestReviewItem>>> {
-    let reviews = vec![
-        repository::PullRequestReviewItem {
-            id: format!("review_1_{}", pr_id),
-            pr_id: pr_id.clone(),
-            reviewer: "GranthikSom".to_string(),
-            state: "APPROVED".to_string(),
-            body: "LGTM! SHA-256 integrity checks pass and tests are green.".to_string(),
-            submitted_at: "2026-08-21T12:30:00Z".to_string(),
-        },
-    ];
+    let reviews = vec![repository::PullRequestReviewItem {
+        id: format!("review_1_{}", pr_id),
+        pr_id: pr_id.clone(),
+        reviewer: "GranthikSom".to_string(),
+        state: "APPROVED".to_string(),
+        body: "LGTM! SHA-256 integrity checks pass and tests are green.".to_string(),
+        submitted_at: "2026-08-21T12:30:00Z".to_string(),
+    }];
 
     Json(ApiResponse {
         success: true,
-        message: format!("PR Reviews retrieved for PR #{} in repo '{}'", pr_id, repo_id),
+        message: format!(
+            "PR Reviews retrieved for PR #{} in repo '{}'",
+            pr_id, repo_id
+        ),
         data: Some(reviews),
     })
 }
@@ -1423,7 +1772,10 @@ async fn list_pr_reviews(
 async fn create_pr_review(
     Path((repo_id, pr_id)): Path<(String, String)>,
     Json(payload): Json<repository::PullRequestReviewItem>,
-) -> (StatusCode, Json<ApiResponse<repository::PullRequestReviewItem>>) {
+) -> (
+    StatusCode,
+    Json<ApiResponse<repository::PullRequestReviewItem>>,
+) {
     let mut review = payload;
     review.pr_id = pr_id.clone();
 
@@ -1431,7 +1783,10 @@ async fn create_pr_review(
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("PR Review submitted for PR #{} in repo '{}'", pr_id, repo_id),
+            message: format!(
+                "PR Review submitted for PR #{} in repo '{}'",
+                pr_id, repo_id
+            ),
             data: Some(review),
         }),
     )
@@ -1440,21 +1795,22 @@ async fn create_pr_review(
 async fn list_pr_comments(
     Path((repo_id, pr_id)): Path<(String, String)>,
 ) -> Json<ApiResponse<Vec<repository::PullRequestCommentItem>>> {
-    let comments = vec![
-        repository::PullRequestCommentItem {
-            id: format!("pr_comment_1_{}", pr_id),
-            pr_id: pr_id.clone(),
-            author: "soham_dev".to_string(),
-            file_path: "native/p2p_engine/src/discovery.rs".to_string(),
-            line_number: 42,
-            body: "Consider using XOR distance caching here for faster DHT routing.".to_string(),
-            created_at: "2026-08-21T12:45:00Z".to_string(),
-        },
-    ];
+    let comments = vec![repository::PullRequestCommentItem {
+        id: format!("pr_comment_1_{}", pr_id),
+        pr_id: pr_id.clone(),
+        author: "soham_dev".to_string(),
+        file_path: "native/p2p_engine/src/discovery.rs".to_string(),
+        line_number: 42,
+        body: "Consider using XOR distance caching here for faster DHT routing.".to_string(),
+        created_at: "2026-08-21T12:45:00Z".to_string(),
+    }];
 
     Json(ApiResponse {
         success: true,
-        message: format!("PR Code Comments retrieved for PR #{} in repo '{}'", pr_id, repo_id),
+        message: format!(
+            "PR Code Comments retrieved for PR #{} in repo '{}'",
+            pr_id, repo_id
+        ),
         data: Some(comments),
     })
 }
@@ -1462,7 +1818,10 @@ async fn list_pr_comments(
 async fn create_pr_comment(
     Path((repo_id, pr_id)): Path<(String, String)>,
     Json(payload): Json<repository::PullRequestCommentItem>,
-) -> (StatusCode, Json<ApiResponse<repository::PullRequestCommentItem>>) {
+) -> (
+    StatusCode,
+    Json<ApiResponse<repository::PullRequestCommentItem>>,
+) {
     let mut comment = payload;
     comment.pr_id = pr_id.clone();
 
@@ -1470,7 +1829,10 @@ async fn create_pr_comment(
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Inline Code Comment added to PR #{} in repo '{}'", pr_id, repo_id),
+            message: format!(
+                "Inline Code Comment added to PR #{} in repo '{}'",
+                pr_id, repo_id
+            ),
             data: Some(comment),
         }),
     )
@@ -1520,15 +1882,16 @@ async fn create_release(
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Release '{}' published for repository '{}'", release.tag_name, repo_id),
+            message: format!(
+                "Release '{}' published for repository '{}'",
+                release.tag_name, repo_id
+            ),
             data: Some(release),
         }),
     )
 }
 
-async fn list_tags(
-    Path(repo_id): Path<String>,
-) -> Json<ApiResponse<Vec<repository::GitTagItem>>> {
+async fn list_tags(Path(repo_id): Path<String>) -> Json<ApiResponse<Vec<repository::GitTagItem>>> {
     let tags = vec![
         repository::GitTagItem {
             name: "v1.0.0".to_string(),
@@ -1561,7 +1924,10 @@ async fn create_tag(
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Git Tag '{}' created in repository '{}'", payload.name, repo_id),
+            message: format!(
+                "Git Tag '{}' created in repository '{}'",
+                payload.name, repo_id
+            ),
             data: Some(payload),
         }),
     )
@@ -1570,24 +1936,25 @@ async fn create_tag(
 async fn list_workflow_runs(
     Path(repo_id): Path<String>,
 ) -> Json<ApiResponse<Vec<repository::WorkflowRunItem>>> {
-    let runs = vec![
-        repository::WorkflowRunItem {
-            id: "run_101".to_string(),
-            repo_id: repo_id.clone(),
-            name: "P2P Engine Integration Suite".to_string(),
-            event: "push".to_string(),
-            status: "success".to_string(),
-            commit_sha: "4668e20a11223344".to_string(),
-            actor: "GranthikSom".to_string(),
-            run_number: 42,
-            duration_secs: 18,
-            created_at: "2026-08-21T13:00:00Z".to_string(),
-        },
-    ];
+    let runs = vec![repository::WorkflowRunItem {
+        id: "run_101".to_string(),
+        repo_id: repo_id.clone(),
+        name: "P2P Engine Integration Suite".to_string(),
+        event: "push".to_string(),
+        status: "success".to_string(),
+        commit_sha: "4668e20a11223344".to_string(),
+        actor: "GranthikSom".to_string(),
+        run_number: 42,
+        duration_secs: 18,
+        created_at: "2026-08-21T13:00:00Z".to_string(),
+    }];
 
     Json(ApiResponse {
         success: true,
-        message: format!("Actions/CI Workflow Runs retrieved for repository '{}'", repo_id),
+        message: format!(
+            "Actions/CI Workflow Runs retrieved for repository '{}'",
+            repo_id
+        ),
         data: Some(runs),
     })
 }
@@ -1604,7 +1971,10 @@ async fn trigger_workflow_run(
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Workflow Run '{}' triggered for repository '{}'", run.name, repo_id),
+            message: format!(
+                "Workflow Run '{}' triggered for repository '{}'",
+                run.name, repo_id
+            ),
             data: Some(run),
         }),
     )
@@ -1613,16 +1983,18 @@ async fn trigger_workflow_run(
 async fn list_webhooks(
     Path(repo_id): Path<String>,
 ) -> Json<ApiResponse<Vec<repository::WebhookItem>>> {
-    let webhooks = vec![
-        repository::WebhookItem {
-            id: "wh_101".to_string(),
-            repo_id: repo_id.clone(),
-            url: "https://discord.com/api/webhooks/123456789/codehub".to_string(),
-            events: vec!["push".to_string(), "pull_request".to_string(), "issues".to_string()],
-            is_active: true,
-            created_at: "2026-08-20T10:00:00Z".to_string(),
-        },
-    ];
+    let webhooks = vec![repository::WebhookItem {
+        id: "wh_101".to_string(),
+        repo_id: repo_id.clone(),
+        url: "https://discord.com/api/webhooks/123456789/codehub".to_string(),
+        events: vec![
+            "push".to_string(),
+            "pull_request".to_string(),
+            "issues".to_string(),
+        ],
+        is_active: true,
+        created_at: "2026-08-20T10:00:00Z".to_string(),
+    }];
 
     Json(ApiResponse {
         success: true,
@@ -1642,7 +2014,10 @@ async fn create_webhook(
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Webhook configured for URL '{}' in repo '{}'", wh.url, repo_id),
+            message: format!(
+                "Webhook configured for URL '{}' in repo '{}'",
+                wh.url, repo_id
+            ),
             data: Some(wh),
         }),
     )
@@ -1651,24 +2026,37 @@ async fn create_webhook(
 async fn list_projects(
     Path(repo_id): Path<String>,
 ) -> Json<ApiResponse<Vec<repository::ProjectBoardItem>>> {
-    let projects = vec![
-        repository::ProjectBoardItem {
-            id: "proj_101".to_string(),
-            repo_id: repo_id.clone(),
-            name: "v1.0 P2P Engine Roadmap".to_string(),
-            body: "Tracking Phase 1 through 12 implementation progress.".to_string(),
-            columns: vec![
-                repository::ProjectColumnItem { id: "col_todo".to_string(), name: "To Do".to_string(), cards_count: 2 },
-                repository::ProjectColumnItem { id: "col_in_progress".to_string(), name: "In Progress".to_string(), cards_count: 3 },
-                repository::ProjectColumnItem { id: "col_done".to_string(), name: "Done".to_string(), cards_count: 10 },
-            ],
-            created_at: "2026-08-01T00:00:00Z".to_string(),
-        },
-    ];
+    let projects = vec![repository::ProjectBoardItem {
+        id: "proj_101".to_string(),
+        repo_id: repo_id.clone(),
+        name: "v1.0 P2P Engine Roadmap".to_string(),
+        body: "Tracking Phase 1 through 12 implementation progress.".to_string(),
+        columns: vec![
+            repository::ProjectColumnItem {
+                id: "col_todo".to_string(),
+                name: "To Do".to_string(),
+                cards_count: 2,
+            },
+            repository::ProjectColumnItem {
+                id: "col_in_progress".to_string(),
+                name: "In Progress".to_string(),
+                cards_count: 3,
+            },
+            repository::ProjectColumnItem {
+                id: "col_done".to_string(),
+                name: "Done".to_string(),
+                cards_count: 10,
+            },
+        ],
+        created_at: "2026-08-01T00:00:00Z".to_string(),
+    }];
 
     Json(ApiResponse {
         success: true,
-        message: format!("Project Kanban Boards retrieved for repository '{}'", repo_id),
+        message: format!(
+            "Project Kanban Boards retrieved for repository '{}'",
+            repo_id
+        ),
         data: Some(projects),
     })
 }
@@ -1684,7 +2072,10 @@ async fn create_project(
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Project Board '{}' created for repo '{}'", proj.name, repo_id),
+            message: format!(
+                "Project Board '{}' created for repo '{}'",
+                proj.name, repo_id
+            ),
             data: Some(proj),
         }),
     )
@@ -1693,24 +2084,25 @@ async fn create_project(
 async fn list_discussions(
     Path(repo_id): Path<String>,
 ) -> Json<ApiResponse<Vec<repository::DiscussionItem>>> {
-    let discussions = vec![
-        repository::DiscussionItem {
-            id: "disc_101".to_string(),
-            repo_id: repo_id.clone(),
-            discussion_number: 1,
-            title: "Q&A: How to configure zero-trust seeder nodes?".to_string(),
-            body: "What are the recommended NAT traversal settings for home routers?".to_string(),
-            author: "community_user".to_string(),
-            category: "Q&A".to_string(),
-            upvotes_count: 19,
-            comments_count: 7,
-            created_at: "2026-08-20T16:00:00Z".to_string(),
-        },
-    ];
+    let discussions = vec![repository::DiscussionItem {
+        id: "disc_101".to_string(),
+        repo_id: repo_id.clone(),
+        discussion_number: 1,
+        title: "Q&A: How to configure zero-trust seeder nodes?".to_string(),
+        body: "What are the recommended NAT traversal settings for home routers?".to_string(),
+        author: "community_user".to_string(),
+        category: "Q&A".to_string(),
+        upvotes_count: 19,
+        comments_count: 7,
+        created_at: "2026-08-20T16:00:00Z".to_string(),
+    }];
 
     Json(ApiResponse {
         success: true,
-        message: format!("Community Discussions retrieved for repository '{}'", repo_id),
+        message: format!(
+            "Community Discussions retrieved for repository '{}'",
+            repo_id
+        ),
         data: Some(discussions),
     })
 }
@@ -1726,7 +2118,10 @@ async fn create_discussion(
         StatusCode::CREATED,
         Json(ApiResponse {
             success: true,
-            message: format!("Discussion #{} created in repo '{}'", disc.discussion_number, repo_id),
+            message: format!(
+                "Discussion #{} created in repo '{}'",
+                disc.discussion_number, repo_id
+            ),
             data: Some(disc),
         }),
     )
@@ -1752,14 +2147,16 @@ async fn get_security_hardening_status() -> Json<ApiResponse<SecurityHardeningRe
         tls_enabled: true,
         rate_limiting_active: true,
         ddos_protection_status: "Active (Burst limit: 50 reqs/sec)".to_string(),
-        authentication_hardening: "Hardened (HMAC SHA-256 JWT, Key Grants, Peer Identity Signatures)".to_string(),
+        authentication_hardening:
+            "Hardened (HMAC SHA-256 JWT, Key Grants, Peer Identity Signatures)".to_string(),
         zero_knowledge_encryption: "AES-256-CTR-HMAC Enabled".to_string(),
         db_replication_status: "Primary-Replica Active Sync (Healthy)".to_string(),
         active_audit_log_entries: 142,
         storage_quota_gb: 20,
         daily_bandwidth_quota_gb: 50,
         max_repo_size_limit_gb: 5,
-        malicious_object_detection_status: "Active (Zip-bomb & Multihash Integrity Filter Active)".to_string(),
+        malicious_object_detection_status: "Active (Zip-bomb & Multihash Integrity Filter Active)"
+            .to_string(),
     };
 
     Json(ApiResponse {
@@ -1794,7 +2191,8 @@ async fn get_storage_nodes_status() -> Json<ApiResponse<Vec<StorageNodeStatusIte
         StorageNodeStatusItem {
             node_id: "storage-node-us-east-1".to_string(),
             region: "US East (N. Virginia)".to_string(),
-            multiaddr: "/dns4/storage-us.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeUSEast1".to_string(),
+            multiaddr: "/dns4/storage-us.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeUSEast1"
+                .to_string(),
             uptime_percentage: 99.99,
             pinned_repositories_count: 1420,
             total_pinned_bytes: 485_000_000_000,
@@ -1803,7 +2201,8 @@ async fn get_storage_nodes_status() -> Json<ApiResponse<Vec<StorageNodeStatusIte
         StorageNodeStatusItem {
             node_id: "storage-node-eu-central-1".to_string(),
             region: "EU Central (Frankfurt)".to_string(),
-            multiaddr: "/dns4/storage-eu.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeEUCentral1".to_string(),
+            multiaddr: "/dns4/storage-eu.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeEUCentral1"
+                .to_string(),
             uptime_percentage: 99.98,
             pinned_repositories_count: 1420,
             total_pinned_bytes: 485_000_000_000,
@@ -1812,7 +2211,8 @@ async fn get_storage_nodes_status() -> Json<ApiResponse<Vec<StorageNodeStatusIte
         StorageNodeStatusItem {
             node_id: "storage-node-ap-south-1".to_string(),
             region: "AP South (Mumbai)".to_string(),
-            multiaddr: "/dns4/storage-ap.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeAPSouth1".to_string(),
+            multiaddr: "/dns4/storage-ap.codehub.net/tcp/4001/p2p/12D3KooWDedicatedNodeAPSouth1"
+                .to_string(),
             uptime_percentage: 99.99,
             pinned_repositories_count: 1418,
             total_pinned_bytes: 483_500_000_000,
@@ -1833,7 +2233,8 @@ async fn pin_repository_on_storage_nodes(
     let pin_resp = RepoPinResponse {
         repo_id: repo_id.clone(),
         dedicated_replicas_count: 3,
-        availability_guarantee: "GitHub-Grade Durability (3/3 Dedicated 24/7 Storage Nodes Active)".to_string(),
+        availability_guarantee: "GitHub-Grade Durability (3/3 Dedicated 24/7 Storage Nodes Active)"
+            .to_string(),
         is_durability_guaranteed: true,
         pinned_node_ids: vec![
             "storage-node-us-east-1".to_string(),
@@ -1850,12 +2251,12 @@ async fn pin_repository_on_storage_nodes(
 }
 
 async fn get_server_peer_node_status() -> Json<ApiResponse<p2p_node::ServerPeerNodeStatus>> {
-    let peer_service = p2p_node::ServerP2pStoragePeer::new();
-    let status = peer_service.get_status();
+    let status = get_server_p2p_peer().get_status();
 
     Json(ApiResponse {
         success: true,
-        message: "Dual-Role Control Server & Embedded P2P Storage Peer Status Retrieved".to_string(),
+        message: "Dual-Role Control Server & Embedded P2P Storage Peer Status Retrieved"
+            .to_string(),
         data: Some(status),
     })
 }
@@ -1869,42 +2270,53 @@ async fn get_repository_replication_mesh(
 
     Json(ApiResponse {
         success: true,
-        message: format!("Multi-Tier Seed Server Mesh Report for repository '{}' (Replication Score = 9)", repo_id),
+        message: format!(
+            "Multi-Tier Seed Server Mesh Report for repository '{}' (Replication Score = 9)",
+            repo_id
+        ),
         data: Some(report),
     })
 }
 
-async fn get_production_architecture_status() -> Json<ApiResponse<p2p_engine::FinalProductionArchitectureReport>> {
+async fn get_production_architecture_status(
+) -> Json<ApiResponse<p2p_engine::FinalProductionArchitectureReport>> {
     let report = p2p_engine::ProductionArchitectureInspector::generate_production_blueprint();
 
     Json(ApiResponse {
         success: true,
-        message: "Final Target Production Architecture Blueprint & Health Metrics Retrieved".to_string(),
+        message: "Final Target Production Architecture Blueprint & Health Metrics Retrieved"
+            .to_string(),
         data: Some(report),
     })
 }
 
-async fn get_technology_stack_audit_status() -> Json<ApiResponse<p2p_engine::TechStackAuditReport>> {
+async fn get_technology_stack_audit_status() -> Json<ApiResponse<p2p_engine::TechStackAuditReport>>
+{
     let report = p2p_engine::TechnologyStackInspector::perform_audit();
 
     Json(ApiResponse {
         success: true,
-        message: "Production Technology Matrix Audit (Standard Infrastructure + P2P Core Innovations)".to_string(),
+        message:
+            "Production Technology Matrix Audit (Standard Infrastructure + P2P Core Innovations)"
+                .to_string(),
         data: Some(report),
     })
 }
 
-async fn get_product_positioning_status() -> Json<ApiResponse<p2p_engine::ProductPositioningReport>> {
+async fn get_product_positioning_status() -> Json<ApiResponse<p2p_engine::ProductPositioningReport>>
+{
     let report = p2p_engine::ProductPositioningInspector::get_positioning();
 
     Json(ApiResponse {
         success: true,
-        message: "CodeHub Product Value Proposition & 7-Pillar Differentiation Blueprint".to_string(),
+        message: "CodeHub Product Value Proposition & 7-Pillar Differentiation Blueprint"
+            .to_string(),
         data: Some(report),
     })
 }
 
-async fn get_p2p_protocol_spec_status() -> Json<ApiResponse<p2p_engine::P2PProtocolArchitectureReport>> {
+async fn get_p2p_protocol_spec_status(
+) -> Json<ApiResponse<p2p_engine::P2PProtocolArchitectureReport>> {
     let report = p2p_engine::NativeP2PProtocolInspector::inspect_protocol_stack();
 
     Json(ApiResponse {
@@ -1924,12 +2336,15 @@ async fn get_release_roadmap_status() -> Json<ApiResponse<p2p_engine::ReleaseRoa
     })
 }
 
-async fn get_development_roadmap_status() -> Json<ApiResponse<p2p_engine::InfrastructureRoadmapReport>> {
+async fn get_development_roadmap_status(
+) -> Json<ApiResponse<p2p_engine::InfrastructureRoadmapReport>> {
     let report = p2p_engine::InfrastructureDevelopmentInspector::get_infrastructure_roadmap();
 
     Json(ApiResponse {
         success: true,
-        message: "7-Month Infrastructure Engineering Roadmap & 13-Step Sequential Construction Order".to_string(),
+        message:
+            "7-Month Infrastructure Engineering Roadmap & 13-Step Sequential Construction Order"
+                .to_string(),
         data: Some(report),
     })
 }
@@ -1967,32 +2382,49 @@ async fn list_all_users_admin() -> Json<ApiResponse<Vec<auth::UserSafe>>> {
     let users = get_user_store().get_all_users();
     Json(ApiResponse {
         success: true,
-        message: format!("Retrieved {} registered user records from persistent database", users.len()),
+        message: format!(
+            "Retrieved {} registered user records from persistent database",
+            users.len()
+        ),
         data: Some(users),
     })
 }
 
-async fn toggle_suspend_user_admin(Path(id): Path<String>) -> (StatusCode, Json<ApiResponse<auth::UserSafe>>) {
+async fn toggle_suspend_user_admin(
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse<auth::UserSafe>>) {
     let store = get_user_store();
     match store.toggle_suspend_user(&id) {
         Ok(user) => {
-            let msg = format!("User '{}' status updated to '{}'", user.username, user.status);
-            let _ = get_event_bus().send(serde_json::json!({
-                "event": "user_status_changed",
-                "user_id": user.id,
-                "status": user.status
-            }).to_string());
-            (StatusCode::OK, Json(ApiResponse {
-                success: true,
-                message: msg,
-                data: Some(user),
-            }))
+            let msg = format!(
+                "User '{}' status updated to '{}'",
+                user.username, user.status
+            );
+            let _ = get_event_bus().send(
+                serde_json::json!({
+                    "event": "user_status_changed",
+                    "user_id": user.id,
+                    "status": user.status
+                })
+                .to_string(),
+            );
+            (
+                StatusCode::OK,
+                Json(ApiResponse {
+                    success: true,
+                    message: msg,
+                    data: Some(user),
+                }),
+            )
         }
-        Err(err) => (StatusCode::NOT_FOUND, Json(ApiResponse {
-            success: false,
-            message: err,
-            data: None,
-        }))
+        Err(err) => (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse {
+                success: false,
+                message: err,
+                data: None,
+            }),
+        ),
     }
 }
 
@@ -2000,21 +2432,30 @@ async fn delete_user_admin(Path(id): Path<String>) -> (StatusCode, Json<ApiRespo
     let store = get_user_store();
     match store.delete_user(&id) {
         Ok(_) => {
-            let _ = get_event_bus().send(serde_json::json!({
-                "event": "user_deleted",
-                "user_id": id
-            }).to_string());
-            (StatusCode::OK, Json(ApiResponse {
-                success: true,
-                message: format!("User '{}' removed successfully", id),
-                data: None,
-            }))
+            let _ = get_event_bus().send(
+                serde_json::json!({
+                    "event": "user_deleted",
+                    "user_id": id
+                })
+                .to_string(),
+            );
+            (
+                StatusCode::OK,
+                Json(ApiResponse {
+                    success: true,
+                    message: format!("User '{}' removed successfully", id),
+                    data: None,
+                }),
+            )
         }
-        Err(err) => (StatusCode::NOT_FOUND, Json(ApiResponse {
-            success: false,
-            message: err,
-            data: None,
-        }))
+        Err(err) => (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse {
+                success: false,
+                message: err,
+                data: None,
+            }),
+        ),
     }
 }
 
@@ -2027,10 +2468,65 @@ async fn events_ws_handler(ws: WebSocketUpgrade) -> impl axum::response::IntoRes
 }
 
 async fn handle_events_socket(mut socket: WebSocket) {
+    // Send immediate initial pipeline greeting handshake
+    let initial_msg = serde_json::json!({
+        "event": "pipeline_connected",
+        "type": "system.pipeline_connected",
+        "status": "online",
+        "server": "CodeHub Axum Control Plane",
+        "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
+        "active_peers": 14,
+        "indexed_repositories": get_repo_db_store().get_all_repositories().len()
+    });
+    if socket
+        .send(Message::Text(initial_msg.to_string()))
+        .await
+        .is_err()
+    {
+        return;
+    }
+
     let mut rx = get_event_bus().subscribe();
-    while let Ok(msg) = rx.recv().await {
-        if socket.send(Message::Text(msg)).await.is_err() {
-            break;
+    let mut ping_interval = tokio::time::interval(std::time::Duration::from_secs(15));
+    // Skip the immediate first tick
+    ping_interval.tick().await;
+
+    loop {
+        tokio::select! {
+            _ = ping_interval.tick() => {
+                let heartbeat = serde_json::json!({
+                    "event": "heartbeat",
+                    "type": "system.heartbeat",
+                    "timestamp": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs(),
+                });
+                if socket.send(Message::Text(heartbeat.to_string())).await.is_err() {
+                    break;
+                }
+            }
+            msg = rx.recv() => {
+                match msg {
+                    Ok(text) => {
+                        if socket.send(Message::Text(text)).await.is_err() {
+                            break;
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                        continue;
+                    }
+                    Err(_) => break,
+                }
+            }
+            Some(client_msg) = socket.recv() => {
+                match client_msg {
+                    Ok(Message::Close(_)) | Err(_) => break,
+                    Ok(Message::Ping(v)) => {
+                        if socket.send(Message::Pong(v)).await.is_err() {
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+            }
         }
     }
 }
@@ -2203,5 +2699,3 @@ mod tests {
         assert!(!res_empty.0.data.unwrap().available);
     }
 }
-
-

@@ -128,7 +128,13 @@ mod tests {
         // Verify v0.1 scope contains core features
         assert!(roadmap.mvp_v01_scope.iter().any(|f| f.contains("Register")));
         assert!(roadmap.mvp_v01_scope.iter().any(|f| f.contains("Chunking")));
-        assert!(roadmap.mvp_v01_scope.iter().any(|f| f.contains("Peer discovery")));
-        assert!(roadmap.mvp_v01_scope.iter().any(|f| f.contains("Repository browser")));
+        assert!(roadmap
+            .mvp_v01_scope
+            .iter()
+            .any(|f| f.contains("Peer discovery")));
+        assert!(roadmap
+            .mvp_v01_scope
+            .iter()
+            .any(|f| f.contains("Repository browser")));
     }
 }

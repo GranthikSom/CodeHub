@@ -1,18 +1,18 @@
 //! C-ABI FFI API Export Interface for Flutter integration via Dart FFI (`package_ffi`)
 
+use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::sync::Mutex;
-use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
 
 use crate::blockstore::{Blockstore, GitObjectType};
-use crate::p2p_swarm::CodeHubSwarmEngine;
-use crate::storage_engine::LocalEngine;
-use crate::content_addressing::ContentAddressedStore;
 use crate::chunking_engine::{RepositoryChunker, DEFAULT_CHUNK_SIZE_BYTES};
-use crate::piece_availability::{PeerBitfield, PieceAvailabilitySystem};
+use crate::content_addressing::ContentAddressedStore;
+use crate::p2p_swarm::CodeHubSwarmEngine;
 use crate::peer_identity::PeerIdentityManager;
+use crate::piece_availability::{PeerBitfield, PieceAvailabilitySystem};
+use crate::storage_engine::LocalEngine;
 
 lazy_static! {
     static ref GLOBAL_ENGINE: Mutex<Option<CodeHubSwarmEngine>> = Mutex::new(None);
@@ -154,7 +154,8 @@ pub extern "C" fn codehub_chunk_repository_payload(
         None => std::path::PathBuf::from("/tmp/codehub_chunks"),
     };
 
-    match RepositoryChunker::chunk_payload(repo_id, payload, DEFAULT_CHUNK_SIZE_BYTES, &chunks_dir) {
+    match RepositoryChunker::chunk_payload(repo_id, payload, DEFAULT_CHUNK_SIZE_BYTES, &chunks_dir)
+    {
         Ok(metadata) => {
             let json_str = serde_json::to_string(&metadata).unwrap_or_default();
             CString::new(json_str).unwrap().into_raw()
@@ -210,7 +211,11 @@ pub extern "C" fn codehub_has_object(hash_ptr: *const c_char) -> i32 {
     };
 
     let store = ContentAddressedStore::new(objects_dir).unwrap();
-    if store.has_object(hash) { 1 } else { 0 }
+    if store.has_object(hash) {
+        1
+    } else {
+        0
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -373,7 +378,11 @@ pub extern "C" fn codehub_confirm_push_replication(repo_id_ptr: *const c_char) -
     };
 
     let engine = crate::replication_guarantee::ReplicationGuaranteeEngine::new(3, 5);
-    let seeders = vec!["Peer A (India 🇮🇳)", "Peer B (Germany 🇩🇪)", "Peer C (USA 🇺🇸)"];
+    let seeders = vec![
+        "Peer A (India 🇮🇳)",
+        "Peer B (Germany 🇩🇪)",
+        "Peer C (USA 🇺🇸)",
+    ];
     let result = engine.verify_push_replication(&repo_id, &seeders);
 
     let json_str = serde_json::to_string(&result).unwrap_or_default();
@@ -412,11 +421,7 @@ pub extern "C" fn codehub_verify_sync_chunk(
     let payload_bytes = if payload_ptr.is_null() {
         b"Hello CodeHub Sync Engine".to_vec()
     } else {
-        unsafe {
-            CStr::from_ptr(payload_ptr)
-                .to_bytes()
-                .to_vec()
-        }
+        unsafe { CStr::from_ptr(payload_ptr).to_bytes().to_vec() }
     };
 
     let engine = crate::sync_protocol::RepositorySyncEngine::new();
@@ -470,11 +475,7 @@ pub extern "C" fn codehub_encrypt_private_repo_chunk(
     let raw_bytes = if payload_ptr.is_null() {
         b"Private repository binary chunk content".to_vec()
     } else {
-        unsafe {
-            CStr::from_ptr(payload_ptr)
-                .to_bytes()
-                .to_vec()
-        }
+        unsafe { CStr::from_ptr(payload_ptr).to_bytes().to_vec() }
     };
 
     let key = crate::repository_encryption::RepositoryEncryptionEngine::derive_key(&passphrase);
@@ -514,7 +515,8 @@ pub extern "C" fn codehub_package_native_git_objects(
     };
 
     let sample_commit = b"tree 7c9f11223344\nauthor Developer <dev@codehub.p2p>\n\nInitial Commit";
-    let hash = crate::git_interop::GitRepositoryAdapter::compute_git_object_hash("commit", sample_commit);
+    let hash =
+        crate::git_interop::GitRepositoryAdapter::compute_git_object_hash("commit", sample_commit);
 
     let obj = crate::git_interop::CanonicalGitObject {
         hash,
@@ -523,7 +525,11 @@ pub extern "C" fn codehub_package_native_git_objects(
         raw_content: sample_commit.to_vec(),
     };
 
-    let manifest = crate::git_interop::GitRepositoryAdapter::package_git_repository(&repo_id, &branch, vec![obj]);
+    let manifest = crate::git_interop::GitRepositoryAdapter::package_git_repository(
+        &repo_id,
+        &branch,
+        vec![obj],
+    );
 
     let json_str = serde_json::to_string(&manifest).unwrap_or_default();
     CString::new(json_str).unwrap().into_raw()
@@ -549,14 +555,11 @@ pub extern "C" fn codehub_parse_git_commit_dag(
     let raw_payload = if raw_payload_ptr.is_null() {
         b"tree 7c9f11223344\nparent 3a2c417c8899\nauthor Soham Mondal <soham@codehub.p2p>\ncommitter Soham Mondal <soham@codehub.p2p>\n\nfeat: implement P2P Git DAG operations".to_vec()
     } else {
-        unsafe {
-            CStr::from_ptr(raw_payload_ptr)
-                .to_bytes()
-                .to_vec()
-        }
+        unsafe { CStr::from_ptr(raw_payload_ptr).to_bytes().to_vec() }
     };
 
-    let commit_result = crate::git_dag::GitDagEngine::parse_commit_payload(&commit_hash, &raw_payload);
+    let commit_result =
+        crate::git_dag::GitDagEngine::parse_commit_payload(&commit_hash, &raw_payload);
     let json_str = match commit_result {
         Ok(commit) => serde_json::to_string(&commit).unwrap_or_default(),
         Err(e) => format!(r#"{{"error":"{}"}}"#, e),
@@ -662,7 +665,11 @@ pub extern "C" fn codehub_set_seeding_enabled(enabled: i32) -> i32 {
     if let Some(ref mut engine) = *engine_guard {
         engine.set_seeding_active(is_enabled);
     }
-    if is_enabled { 1 } else { 0 }
+    if is_enabled {
+        1
+    } else {
+        0
+    }
 }
 
 /// Configures upload & download speed limits (MB/s) for P2P chunk transfer
@@ -705,7 +712,10 @@ pub extern "C" fn codehub_get_peer_reputations() -> *mut c_char {
 
 /// Evaluates repository health and returns JSON report for Flutter UI consumption
 #[no_mangle]
-pub extern "C" fn codehub_get_repository_health(repo_id_ptr: *const c_char, replica_count: u32) -> *mut c_char {
+pub extern "C" fn codehub_get_repository_health(
+    repo_id_ptr: *const c_char,
+    replica_count: u32,
+) -> *mut c_char {
     let repo_id = if !repo_id_ptr.is_null() {
         unsafe { CStr::from_ptr(repo_id_ptr).to_string_lossy().to_string() }
     } else {
@@ -747,7 +757,9 @@ pub extern "C" fn codehub_run_garbage_collection() -> *mut c_char {
             reclaimable_gb: 1.85,
             grace_period_days: 30,
             purged_expired_blocks: 12,
-            status_message: "GC Complete: 342 unreferenced chunks in 30-day grace period. 1.85 GB reclaimable.".to_string(),
+            status_message:
+                "GC Complete: 342 unreferenced chunks in 30-day grace period. 1.85 GB reclaimable."
+                    .to_string(),
         }
     };
 
@@ -757,14 +769,25 @@ pub extern "C" fn codehub_run_garbage_collection() -> *mut c_char {
 
 /// Calculates missing object delta between Base Commit and Target Commit returning JSON report
 #[no_mangle]
-pub extern "C" fn codehub_calculate_delta_sync(base_commit_ptr: *const c_char, target_commit_ptr: *const c_char) -> *mut c_char {
+pub extern "C" fn codehub_calculate_delta_sync(
+    base_commit_ptr: *const c_char,
+    target_commit_ptr: *const c_char,
+) -> *mut c_char {
     let base_commit = if !base_commit_ptr.is_null() {
-        unsafe { CStr::from_ptr(base_commit_ptr).to_string_lossy().to_string() }
+        unsafe {
+            CStr::from_ptr(base_commit_ptr)
+                .to_string_lossy()
+                .to_string()
+        }
     } else {
         "commit_a".to_string()
     };
     let target_commit = if !target_commit_ptr.is_null() {
-        unsafe { CStr::from_ptr(target_commit_ptr).to_string_lossy().to_string() }
+        unsafe {
+            CStr::from_ptr(target_commit_ptr)
+                .to_string_lossy()
+                .to_string()
+        }
     } else {
         "commit_c".to_string()
     };
@@ -782,7 +805,9 @@ pub extern "C" fn codehub_calculate_delta_sync(base_commit_ptr: *const c_char, t
             new_objects_count: 142,
             deduplicated_objects_count: 14678,
             bandwidth_saved_percent: 99.01,
-            status_message: "Immutable object deduplication active. Only 5 MB of new objects fetched.".to_string(),
+            status_message:
+                "Immutable object deduplication active. Only 5 MB of new objects fetched."
+                    .to_string(),
         }
     };
 
@@ -818,7 +843,9 @@ pub extern "C" fn codehub_create_repository(repo_name_ptr: *const c_char) -> *mu
         None => {
             let res = LocalEngine::init(None);
             if res.is_err() {
-                return CString::new("{\"error\":\"Failed to init LocalEngine\"}").unwrap().into_raw();
+                return CString::new("{\"error\":\"Failed to init LocalEngine\"}")
+                    .unwrap()
+                    .into_raw();
             }
             // Fallback response for uninitialized singleton state
             return CString::new(format!("{{\"status\":\"created\",\"repo\":\"{}\",\"path\":\"~/.codehub/repositories/{}\"}}", repo_name, repo_name)).unwrap().into_raw();
@@ -827,7 +854,11 @@ pub extern "C" fn codehub_create_repository(repo_name_ptr: *const c_char) -> *mu
 
     match engine.create_repository(&repo_name) {
         Ok(path) => {
-            let json_res = format!("{{\"success\":true,\"repo\":\"{}\",\"path\":\"{}\"}}", repo_name, path.to_string_lossy());
+            let json_res = format!(
+                "{{\"success\":true,\"repo\":\"{}\",\"path\":\"{}\"}}",
+                repo_name,
+                path.to_string_lossy()
+            );
             CString::new(json_res).unwrap().into_raw()
         }
         Err(e) => {
@@ -849,7 +880,11 @@ pub extern "C" fn codehub_open_repository(repo_name_ptr: *const c_char) -> *mut 
     if let Some(ref engine) = *guard {
         match engine.open_repository(&repo_name) {
             Ok(path) => {
-                let json_res = format!("{{\"success\":true,\"repo\":\"{}\",\"path\":\"{}\"}}", repo_name, path.to_string_lossy());
+                let json_res = format!(
+                    "{{\"success\":true,\"repo\":\"{}\",\"path\":\"{}\"}}",
+                    repo_name,
+                    path.to_string_lossy()
+                );
                 return CString::new(json_res).unwrap().into_raw();
             }
             Err(e) => {
@@ -859,12 +894,20 @@ pub extern "C" fn codehub_open_repository(repo_name_ptr: *const c_char) -> *mut 
         }
     }
 
-    CString::new(format!("{{\"success\":true,\"repo\":\"{}\",\"status\":\"opened\"}}", repo_name)).unwrap().into_raw()
+    CString::new(format!(
+        "{{\"success\":true,\"repo\":\"{}\",\"status\":\"opened\"}}",
+        repo_name
+    ))
+    .unwrap()
+    .into_raw()
 }
 
 /// 3. Read File: Reads working copy file from repository
 #[no_mangle]
-pub extern "C" fn codehub_read_file(repo_name_ptr: *const c_char, path_ptr: *const c_char) -> *mut c_char {
+pub extern "C" fn codehub_read_file(
+    repo_name_ptr: *const c_char,
+    path_ptr: *const c_char,
+) -> *mut c_char {
     if repo_name_ptr.is_null() || path_ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -876,7 +919,10 @@ pub extern "C" fn codehub_read_file(repo_name_ptr: *const c_char, path_ptr: *con
         match engine.read_file(&repo_name, &path) {
             Ok(bytes) => {
                 let content = String::from_utf8_lossy(&bytes).to_string();
-                let json_res = format!("{{\"success\":true,\"path\":\"{}\",\"content\":{:?}}}", path, content);
+                let json_res = format!(
+                    "{{\"success\":true,\"path\":\"{}\",\"content\":{:?}}}",
+                    path, content
+                );
                 return CString::new(json_res).unwrap().into_raw();
             }
             Err(e) => {
@@ -886,12 +932,21 @@ pub extern "C" fn codehub_read_file(repo_name_ptr: *const c_char, path_ptr: *con
         }
     }
 
-    CString::new(format!("{{\"success\":true,\"path\":\"{}\",\"content\":\"Mock repo file payload\"}}", path)).unwrap().into_raw()
+    CString::new(format!(
+        "{{\"success\":true,\"path\":\"{}\",\"content\":\"Mock repo file payload\"}}",
+        path
+    ))
+    .unwrap()
+    .into_raw()
 }
 
 /// 4. Write File: Writes working copy file and hashes/stores Git object
 #[no_mangle]
-pub extern "C" fn codehub_write_file(repo_name_ptr: *const c_char, path_ptr: *const c_char, content_ptr: *const c_char) -> *mut c_char {
+pub extern "C" fn codehub_write_file(
+    repo_name_ptr: *const c_char,
+    path_ptr: *const c_char,
+    content_ptr: *const c_char,
+) -> *mut c_char {
     if repo_name_ptr.is_null() || path_ptr.is_null() || content_ptr.is_null() {
         return std::ptr::null_mut();
     }
@@ -903,7 +958,10 @@ pub extern "C" fn codehub_write_file(repo_name_ptr: *const c_char, path_ptr: *co
     if let Some(ref engine) = *guard {
         match engine.write_file(&repo_name, &path, content.as_bytes()) {
             Ok(hash) => {
-                let json_res = format!("{{\"success\":true,\"path\":\"{}\",\"object_hash\":\"{}\"}}", path, hash);
+                let json_res = format!(
+                    "{{\"success\":true,\"path\":\"{}\",\"object_hash\":\"{}\"}}",
+                    path, hash
+                );
                 return CString::new(json_res).unwrap().into_raw();
             }
             Err(e) => {
@@ -914,7 +972,12 @@ pub extern "C" fn codehub_write_file(repo_name_ptr: *const c_char, path_ptr: *co
     }
 
     let hash = LocalEngine::hash_object(content.as_bytes());
-    CString::new(format!("{{\"success\":true,\"path\":\"{}\",\"object_hash\":\"{}\"}}", path, hash)).unwrap().into_raw()
+    CString::new(format!(
+        "{{\"success\":true,\"path\":\"{}\",\"object_hash\":\"{}\"}}",
+        path, hash
+    ))
+    .unwrap()
+    .into_raw()
 }
 
 /// 5. Hash Objects: Computes SHA-256 digest without writing to disk
@@ -953,7 +1016,9 @@ pub extern "C" fn codehub_store_object(payload_ptr: *const c_char) -> *mut c_cha
     }
 
     let hash = LocalEngine::hash_object(payload.as_bytes());
-    CString::new(format!("{{\"success\":true,\"hash\":\"{}\"}}", hash)).unwrap().into_raw()
+    CString::new(format!("{{\"success\":true,\"hash\":\"{}\"}}", hash))
+        .unwrap()
+        .into_raw()
 }
 
 /// 7. Retrieve Objects: Retrieves object payload by SHA-256 hash from global blockstore
@@ -969,7 +1034,10 @@ pub extern "C" fn codehub_retrieve_object(hash_ptr: *const c_char) -> *mut c_cha
         match engine.retrieve_object(&hash) {
             Ok(bytes) => {
                 let content = String::from_utf8_lossy(&bytes).to_string();
-                let json_res = format!("{{\"success\":true,\"hash\":\"{}\",\"payload\":{:?}}}", hash, content);
+                let json_res = format!(
+                    "{{\"success\":true,\"hash\":\"{}\",\"payload\":{:?}}}",
+                    hash, content
+                );
                 return CString::new(json_res).unwrap().into_raw();
             }
             Err(e) => {
@@ -979,6 +1047,10 @@ pub extern "C" fn codehub_retrieve_object(hash_ptr: *const c_char) -> *mut c_cha
         }
     }
 
-    CString::new(format!("{{\"success\":true,\"hash\":\"{}\",\"payload\":\"Git Object Payload\"}}", hash)).unwrap().into_raw()
+    CString::new(format!(
+        "{{\"success\":true,\"hash\":\"{}\",\"payload\":\"Git Object Payload\"}}",
+        hash
+    ))
+    .unwrap()
+    .into_raw()
 }
-

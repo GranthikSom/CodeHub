@@ -79,22 +79,47 @@ class NativeP2PEngine {
 
     try {
       if (Platform.isLinux) {
-        try {
-          _lib = DynamicLibrary.open('libp2p_engine.so');
-        } catch (_) {
-          _lib = DynamicLibrary.open('libcodehub_core.so');
+        final candidates = [
+          'libp2p_engine.so',
+          'libcodehub_core.so',
+          'target/debug/libp2p_engine.so',
+          'target/debug/deps/libp2p_engine.so',
+          '../../target/debug/libp2p_engine.so',
+          '../../target/debug/deps/libp2p_engine.so',
+          '/home/soham-momdal/Documents/codehub/target/debug/libp2p_engine.so',
+          '/home/soham-momdal/Documents/codehub/target/debug/deps/libp2p_engine.so',
+        ];
+        for (final p in candidates) {
+          try {
+            _lib = DynamicLibrary.open(p);
+            if (_lib != null) break;
+          } catch (_) {}
         }
       } else if (Platform.isMacOS) {
-        try {
-          _lib = DynamicLibrary.open('libp2p_engine.dylib');
-        } catch (_) {
-          _lib = DynamicLibrary.open('libcodehub_core.dylib');
+        final candidates = [
+          'libp2p_engine.dylib',
+          'libcodehub_core.dylib',
+          'target/debug/libp2p_engine.dylib',
+          '../../target/debug/libp2p_engine.dylib',
+        ];
+        for (final p in candidates) {
+          try {
+            _lib = DynamicLibrary.open(p);
+            if (_lib != null) break;
+          } catch (_) {}
         }
       } else if (Platform.isWindows) {
-        try {
-          _lib = DynamicLibrary.open('p2p_engine.dll');
-        } catch (_) {
-          _lib = DynamicLibrary.open('codehub_core.dll');
+        final candidates = [
+          'p2p_engine.dll',
+          'codehub_core.dll',
+          'target/debug/p2p_engine.dll',
+          '../../target/debug/p2p_engine.dll',
+        ];
+        for (final p in candidates) {
+          try {
+            _lib = DynamicLibrary.open(p);
+            if (_lib != null) break;
+          } catch (_) {}
         }
       }
 

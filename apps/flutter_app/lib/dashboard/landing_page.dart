@@ -111,7 +111,55 @@ class Landingpage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          ...filtered.map((repo) => RepoCard(repo: repo, state: state)),
+          if (filtered.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF161B22) : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade300),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.folder_open_rounded, size: 48, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade500),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No repositories created yet',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Create your first sovereign Git repository to begin seeding across the P2P swarm.',
+                    style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => CreateRepositoryDialog(state: state),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF238636),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Create Repository', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...filtered.map((repo) => RepoCard(repo: repo, state: state)),
         ],
       ),
     );
@@ -170,12 +218,35 @@ class Landingpage extends StatelessWidget {
         const SizedBox(height: 12),
 
         Expanded(
-          child: ListView.builder(
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              return RepoCard(repo: filtered[index], state: state);
-            },
-          ),
+          child: filtered.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.source_outlined, size: 48, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade500),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Swarm repository index is currently empty',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Initialize or clone a repository to connect with distributed peers.',
+                        style: TextStyle(fontSize: 13, color: isDark ? const Color(0xFF8B949E) : Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    return RepoCard(repo: filtered[index], state: state);
+                  },
+                ),
         ),
       ],
     );

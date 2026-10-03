@@ -47,19 +47,24 @@ impl KademliaDiscoveryEngine {
 
         let default_bootstraps = vec![
             BootstrapNode {
-                multiaddr: "/dnsaddr/bootstrap1.codehub.p2p/tcp/4001/p2p/12D3KooWBootstrapNodeIndia".to_string(),
+                multiaddr:
+                    "/dnsaddr/bootstrap1.codehub.p2p/tcp/4001/p2p/12D3KooWBootstrapNodeIndia"
+                        .to_string(),
                 peer_id: "12D3KooWBootstrapNodeIndia".to_string(),
                 is_online: true,
                 latency_ms: 18,
             },
             BootstrapNode {
-                multiaddr: "/dnsaddr/bootstrap2.codehub.p2p/tcp/4001/p2p/12D3KooWBootstrapNodeEurope".to_string(),
+                multiaddr:
+                    "/dnsaddr/bootstrap2.codehub.p2p/tcp/4001/p2p/12D3KooWBootstrapNodeEurope"
+                        .to_string(),
                 peer_id: "12D3KooWBootstrapNodeEurope".to_string(),
                 is_online: true,
                 latency_ms: 82,
             },
             BootstrapNode {
-                multiaddr: "/dnsaddr/bootstrap3.codehub.p2p/tcp/4001/p2p/12D3KooWBootstrapNodeUS".to_string(),
+                multiaddr: "/dnsaddr/bootstrap3.codehub.p2p/tcp/4001/p2p/12D3KooWBootstrapNodeUS"
+                    .to_string(),
                 peer_id: "12D3KooWBootstrapNodeUS".to_string(),
                 is_online: true,
                 latency_ms: 110,
@@ -78,7 +83,7 @@ impl KademliaDiscoveryEngine {
     pub fn compute_xor_distance(key_a: &str, key_b: &str) -> String {
         let hash_a = Sha256::digest(key_a.as_bytes());
         let hash_b = Sha256::digest(key_b.as_bytes());
-        
+
         let mut xor_result = vec![0u8; 32];
         for i in 0..32 {
             xor_result[i] = hash_a[i] ^ hash_b[i];
@@ -91,7 +96,8 @@ impl KademliaDiscoveryEngine {
         let mut connected_count = 0;
         for node in &self.bootstrap_nodes {
             if node.is_online {
-                self.routing_table_peers.insert(node.peer_id.clone(), node.multiaddr.clone());
+                self.routing_table_peers
+                    .insert(node.peer_id.clone(), node.multiaddr.clone());
                 connected_count += 1;
             }
         }
@@ -135,7 +141,8 @@ impl KademliaDiscoveryEngine {
 
     /// Register external peer provider for repository
     pub fn register_peer_provider(&mut self, repository_id: &str, peer_id: &str, multiaddr: &str) {
-        self.routing_table_peers.insert(peer_id.to_string(), multiaddr.to_string());
+        self.routing_table_peers
+            .insert(peer_id.to_string(), multiaddr.to_string());
         self.provider_records
             .entry(repository_id.to_string())
             .or_insert_with(HashSet::new)
@@ -148,12 +155,14 @@ impl KademliaDiscoveryEngine {
             providers
                 .iter()
                 .filter_map(|peer_id| {
-                    self.routing_table_peers.get(peer_id).map(|addr| DiscoveredPeer {
-                        peer_id: peer_id.clone(),
-                        multiaddr: addr.clone(),
-                        distance_xor: Self::compute_xor_distance(repository_id, peer_id),
-                        reputation_score: 99,
-                    })
+                    self.routing_table_peers
+                        .get(peer_id)
+                        .map(|addr| DiscoveredPeer {
+                            peer_id: peer_id.clone(),
+                            multiaddr: addr.clone(),
+                            distance_xor: Self::compute_xor_distance(repository_id, peer_id),
+                            reputation_score: 99,
+                        })
                 })
                 .collect()
         } else {
@@ -176,7 +185,10 @@ mod tests {
         assert_eq!(engine.routing_table_peers.len(), 3);
 
         // 2. XOR distance metric calculation
-        let distance = KademliaDiscoveryEngine::compute_xor_distance("target_key_repo_a", "12D3KooWBootstrapNodeIndia");
+        let distance = KademliaDiscoveryEngine::compute_xor_distance(
+            "target_key_repo_a",
+            "12D3KooWBootstrapNodeIndia",
+        );
         assert_eq!(distance.len(), 16); // 8 hex bytes = 16 hex chars
     }
 
@@ -188,8 +200,16 @@ mod tests {
         let repo_id = "codehub_decentralized_engine_v1";
 
         // 1. Register 2 external seeder peers providing repository
-        engine.register_peer_provider(repo_id, "12D3KooWPeerIndiaSeeder", "/ip4/103.21.244.18/tcp/4001");
-        engine.register_peer_provider(repo_id, "12D3KooWPeerGermanySeeder", "/ip4/159.69.112.45/tcp/4001");
+        engine.register_peer_provider(
+            repo_id,
+            "12D3KooWPeerIndiaSeeder",
+            "/ip4/103.21.244.18/tcp/4001",
+        );
+        engine.register_peer_provider(
+            repo_id,
+            "12D3KooWPeerGermanySeeder",
+            "/ip4/159.69.112.45/tcp/4001",
+        );
 
         // 2. Local peer announces itself as provider
         engine.announce_repository_provider(repo_id);

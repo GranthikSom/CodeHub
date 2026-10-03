@@ -118,19 +118,85 @@ impl InfrastructureDevelopmentInspector {
         ];
 
         let construction_sequence = vec![
-            ConstructionStep { step: 1, name: "Flutter UI".to_string(), description: "Desktop GUI dashboard & navigation frame".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 2, name: "Rust local engine".to_string(), description: "Native blockstore & local directory lifecycle".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 3, name: "Git object store".to_string(), description: "Parsing & serializing Git commit DAG objects".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 4, name: "Chunk engine".to_string(), description: "FastCDC variable chunking & SHA-256 indexing".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 5, name: "Two-peer P2P".to_string(), description: "Direct BitSwap chunk transfers between 2 nodes".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 6, name: "Multi-peer P2P".to_string(), description: "Parallel chunk downloading across multi-node swarm".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 7, name: "DHT Discovery".to_string(), description: "Kademlia DHT provider queries & peer routing".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 8, name: "Replication Mesh".to_string(), description: "9-replica geo seed cluster & SLA scoring".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 9, name: "Own server".to_string(), description: "Dual-role API server + embedded storage peer".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 10, name: "Authentication / Permissions".to_string(), description: "JWT auth, RBAC permissions, member key grants".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 11, name: "Git CLI".to_string(), description: "Custom Rust Git CLI for developer terminal workflow".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 12, name: "GitHub-like features".to_string(), description: "Issues, PRs, Reviews, Webhooks, CI Actions".to_string(), status: "DONE".to_string() },
-            ConstructionStep { step: 13, name: "Production infrastructure".to_string(), description: "Cloudflare WAF, TLS, rate limiting, 99.999% SLA durability".to_string(), status: "DONE".to_string() },
+            ConstructionStep {
+                step: 1,
+                name: "Flutter UI".to_string(),
+                description: "Desktop GUI dashboard & navigation frame".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 2,
+                name: "Rust local engine".to_string(),
+                description: "Native blockstore & local directory lifecycle".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 3,
+                name: "Git object store".to_string(),
+                description: "Parsing & serializing Git commit DAG objects".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 4,
+                name: "Chunk engine".to_string(),
+                description: "FastCDC variable chunking & SHA-256 indexing".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 5,
+                name: "Two-peer P2P".to_string(),
+                description: "Direct BitSwap chunk transfers between 2 nodes".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 6,
+                name: "Multi-peer P2P".to_string(),
+                description: "Parallel chunk downloading across multi-node swarm".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 7,
+                name: "DHT Discovery".to_string(),
+                description: "Kademlia DHT provider queries & peer routing".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 8,
+                name: "Replication Mesh".to_string(),
+                description: "9-replica geo seed cluster & SLA scoring".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 9,
+                name: "Own server".to_string(),
+                description: "Dual-role API server + embedded storage peer".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 10,
+                name: "Authentication / Permissions".to_string(),
+                description: "JWT auth, RBAC permissions, member key grants".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 11,
+                name: "Git CLI".to_string(),
+                description: "Custom Rust Git CLI for developer terminal workflow".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 12,
+                name: "GitHub-like features".to_string(),
+                description: "Issues, PRs, Reviews, Webhooks, CI Actions".to_string(),
+                status: "DONE".to_string(),
+            },
+            ConstructionStep {
+                step: 13,
+                name: "Production infrastructure".to_string(),
+                description: "Cloudflare WAF, TLS, rate limiting, 99.999% SLA durability"
+                    .to_string(),
+                status: "DONE".to_string(),
+            },
         ];
 
         InfrastructureRoadmapReport {
@@ -158,6 +224,9 @@ mod tests {
         assert_eq!(report.construction_sequence[1].name, "Rust local engine");
         assert_eq!(report.construction_sequence[2].name, "Git object store");
         assert_eq!(report.construction_sequence[3].name, "Chunk engine");
-        assert_eq!(report.construction_sequence[12].name, "Production infrastructure");
+        assert_eq!(
+            report.construction_sequence[12].name,
+            "Production infrastructure"
+        );
     }
 }

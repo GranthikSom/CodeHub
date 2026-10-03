@@ -1,3 +1,3 @@
-pub mod users;
-pub mod repositories;
 pub mod events;
+pub mod repositories;
+pub mod users;

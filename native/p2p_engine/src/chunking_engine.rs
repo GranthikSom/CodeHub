@@ -3,11 +3,11 @@
 //! Splits large repositories and files into 1 MB chunks, manages chunk checksums,
 //! reassembles chunk streams, and tracks missing chunks for resumable P2P downloads.
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::{self, Read};
 use std::path::Path;
-use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_CHUNK_SIZE_BYTES: usize = 1_048_576; // 1 MB per chunk
 
@@ -88,10 +88,7 @@ impl RepositoryChunker {
     }
 
     /// Reassembles a repository payload from its chunks in strict sequence, checking SHA-256 integrity
-    pub fn reassemble_chunks(
-        chunks: &[RepositoryChunk],
-        chunks_dir: &Path,
-    ) -> io::Result<Vec<u8>> {
+    pub fn reassemble_chunks(chunks: &[RepositoryChunk], chunks_dir: &Path) -> io::Result<Vec<u8>> {
         let mut sorted_chunks = chunks.to_vec();
         sorted_chunks.sort_by_key(|c| c.chunk_index);
 
@@ -103,7 +100,10 @@ impl RepositoryChunker {
             if !chunk_file_path.exists() {
                 return Err(io::Error::new(
                     io::ErrorKind::NotFound,
-                    format!("Missing chunk {} at index {}", chunk_meta.chunk_id, chunk_meta.chunk_index),
+                    format!(
+                        "Missing chunk {} at index {}",
+                        chunk_meta.chunk_id, chunk_meta.chunk_index
+                    ),
                 ));
             }
 
@@ -121,7 +121,10 @@ impl RepositoryChunker {
     }
 
     /// Returns a list of missing chunk indices for resumable P2P downloads
-    pub fn get_missing_chunk_indices(total_chunks: usize, existing_indices: &[usize]) -> Vec<usize> {
+    pub fn get_missing_chunk_indices(
+        total_chunks: usize,
+        existing_indices: &[usize],
+    ) -> Vec<usize> {
         let mut missing = Vec::new();
         for i in 0..total_chunks {
             if !existing_indices.contains(&i) {
@@ -178,13 +181,9 @@ mod tests {
         let original_object = b"ABCDEF";
 
         // 2. Chunk -> Hash -> Store
-        let chunks_meta = RepositoryChunker::chunk_payload(
-            "phase5_repo",
-            original_object,
-            64,
-            &chunks_dir,
-        )
-        .unwrap();
+        let chunks_meta =
+            RepositoryChunker::chunk_payload("phase5_repo", original_object, 64, &chunks_dir)
+                .unwrap();
 
         assert_eq!(chunks_meta.len(), 1);
         let original_hash = &chunks_meta[0].hash;
@@ -195,7 +194,8 @@ mod tests {
 
         assert!(RepositoryChunker::verify_chunk(original_hash, &chunk_bytes).is_ok());
 
-        let restored_original = RepositoryChunker::reassemble_chunks(&chunks_meta, &chunks_dir).unwrap();
+        let restored_original =
+            RepositoryChunker::reassemble_chunks(&chunks_meta, &chunks_dir).unwrap();
         assert_eq!(restored_original, b"ABCDEF");
 
         // 4. Test Corruption Rejection: Modify chunk on disk to ABCDEZ
@@ -204,10 +204,16 @@ mod tests {
 
         // 5. Verify & Restore MUST REJECT corrupted payload (Hash mismatch)
         let verify_result = RepositoryChunker::verify_chunk(original_hash, corrupted_payload);
-        assert!(verify_result.is_err(), "Engine MUST reject corrupted ABCDEZ chunk!");
+        assert!(
+            verify_result.is_err(),
+            "Engine MUST reject corrupted ABCDEZ chunk!"
+        );
 
         let restore_result = RepositoryChunker::reassemble_chunks(&chunks_meta, &chunks_dir);
-        assert!(restore_result.is_err(), "Engine MUST refuse to reassemble corrupted chunks!");
+        assert!(
+            restore_result.is_err(),
+            "Engine MUST refuse to reassemble corrupted chunks!"
+        );
 
         let err_msg = restore_result.unwrap_err().to_string();
         assert!(err_msg.contains("Corruption detected") || err_msg.contains("Hash mismatch"));

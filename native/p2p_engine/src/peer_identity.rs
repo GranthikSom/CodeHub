@@ -3,22 +3,22 @@
 //! Generates persistent Ed25519 cryptographic keypairs, derives base58 libp2p multihash Peer IDs,
 //! manages device UUIDs, and provides sign/verify capabilities for P2P authentication.
 
-use ed25519_dalek::{SigningKey, VerifyingKey, Signer, Verifier, Signature};
-use sha2::{Sha256, Digest};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::io::{self};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CryptographicPeerIdentity {
-    pub peer_id: String,          // Base58 libp2p multihash starting with 12D3KooW...
-    pub public_key_hex: String,   // 32-byte Ed25519 public key hex
-    pub device_id: String,        // Hardware UUID v4
-    pub algorithm: String,        // Ed25519
-    pub created_at: u64,          // Unix timestamp in seconds
+    pub peer_id: String,        // Base58 libp2p multihash starting with 12D3KooW...
+    pub public_key_hex: String, // 32-byte Ed25519 public key hex
+    pub device_id: String,      // Hardware UUID v4
+    pub algorithm: String,      // Ed25519
+    pub created_at: u64,        // Unix timestamp in seconds
 }
 
 pub struct PeerIdentityManager {
@@ -32,7 +32,7 @@ impl PeerIdentityManager {
         // libp2p multihash prefix for Ed25519 public key: 0x00, 0x24 (identity protobuf tag), 0x08, 0x01, 0x12, 0x20
         let mut raw = vec![0x00, 0x24, 0x08, 0x01, 0x12, 0x20];
         raw.extend_from_slice(public_key_bytes);
-        
+
         let hash = Sha256::digest(&raw);
         let mut multihash = vec![0x00, 0x24]; // Multihash code
         multihash.extend_from_slice(&hash);
@@ -65,7 +65,10 @@ impl PeerIdentityManager {
             created_at,
         };
 
-        Self { identity, signing_key }
+        Self {
+            identity,
+            signing_key,
+        }
     }
 
     /// Parses a 32-byte Ed25519 seed from either Base64 or Hex encoding and initializes the peer identity
@@ -129,14 +132,20 @@ impl PeerIdentityManager {
                 .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
             if key_bytes.len() != 32 {
-                return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid private key length"));
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "Invalid private key length",
+                ));
             }
 
             let mut secret_arr = [0u8; 32];
             secret_arr.copy_from_slice(&key_bytes);
             let signing_key = SigningKey::from_bytes(&secret_arr);
 
-            Ok(Self { identity, signing_key })
+            Ok(Self {
+                identity,
+                signing_key,
+            })
         } else {
             // Generate fresh Ed25519 keypair
             let mut rng = rand::thread_rng();
@@ -169,7 +178,10 @@ impl PeerIdentityManager {
             let priv_key_hex = hex::encode(signing_key.to_bytes());
             fs::write(&key_file, priv_key_hex)?;
 
-            Ok(Self { identity, signing_key })
+            Ok(Self {
+                identity,
+                signing_key,
+            })
         }
     }
 
@@ -343,23 +355,41 @@ mod tests {
     #[test]
     fn test_peer_identity_from_base64_and_hex_seed() {
         let base64_seed = "EsdZoTk5jzU52YIBZMdTUfYXzld3Y2KheUmHg5t0lo0=";
-        let manager_b64 = PeerIdentityManager::from_seed_string(base64_seed, Some("test-server".to_string())).unwrap();
+        let manager_b64 =
+            PeerIdentityManager::from_seed_string(base64_seed, Some("test-server".to_string()))
+                .unwrap();
 
         assert!(manager_b64.identity.peer_id.starts_with("12D3KooW"));
-        assert_eq!(manager_b64.identity.peer_id, "12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ");
-        assert_eq!(manager_b64.identity.public_key_hex, "72818eca3e648c211eaf5ce8fd6d10933fe010008f708339d2d2782968764c3b");
+        assert_eq!(
+            manager_b64.identity.peer_id,
+            "12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ"
+        );
+        assert_eq!(
+            manager_b64.identity.public_key_hex,
+            "72818eca3e648c211eaf5ce8fd6d10933fe010008f708339d2d2782968764c3b"
+        );
         assert_eq!(manager_b64.identity.algorithm, "Ed25519");
         assert_eq!(manager_b64.identity.device_id, "test-server");
         assert_eq!(manager_b64.secret_seed_base64(), base64_seed);
 
         // Deterministic reproduction: loading same seed yields identical peer_id and public_key
         let manager_repeat = PeerIdentityManager::from_seed_string(base64_seed, None).unwrap();
-        assert_eq!(manager_b64.identity.peer_id, manager_repeat.identity.peer_id);
-        assert_eq!(manager_b64.identity.public_key_hex, manager_repeat.identity.public_key_hex);
+        assert_eq!(
+            manager_b64.identity.peer_id,
+            manager_repeat.identity.peer_id
+        );
+        assert_eq!(
+            manager_b64.identity.public_key_hex,
+            manager_repeat.identity.public_key_hex
+        );
 
         // Test sign and verify
         let msg = b"Verification of Base64 Seed Identity";
         let sig = manager_b64.sign_message(msg);
-        assert!(PeerIdentityManager::verify_signature(&manager_b64.identity.public_key_hex, msg, &sig));
+        assert!(PeerIdentityManager::verify_signature(
+            &manager_b64.identity.public_key_hex,
+            msg,
+            &sig
+        ));
     }
 }

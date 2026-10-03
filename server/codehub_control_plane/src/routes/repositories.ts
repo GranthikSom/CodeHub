@@ -39,38 +39,7 @@ export async function repositoryRoutes(fastify: FastifyInstance, io: Server) {
       return reply.send({
         success: true,
         message: 'Indexed repositories retrieved',
-        data: [
-          {
-            id: 'repo_101',
-            name: 'codehub-core-p2p',
-            owner: 'GranthikSom',
-            description: 'Decentralized P2P Git Objectstore',
-            root_commit_hash: 'a81c4e97d2f831b2c4d5e6f7a8b9c0d1e2f3a4b5',
-            total_objects: 1420,
-            seed_count: 8,
-            is_private: false,
-            topics: ['rust', 'p2p'],
-            language: 'Rust',
-            stars: 340,
-            forks: 42,
-            last_activity: '2 hours ago',
-          },
-          {
-            id: 'repo_102',
-            name: 'flutter-torrent-ui',
-            owner: 'SohamMondal',
-            description: 'Sovereign Flutter Desktop UI',
-            root_commit_hash: 'b92d5f08e3a1b4c7d6e9f0a2b3c4d5e6f7a8b9c0',
-            total_objects: 512,
-            seed_count: 5,
-            is_private: false,
-            topics: ['flutter', 'dart'],
-            language: 'Dart',
-            stars: 180,
-            forks: 19,
-            last_activity: '1 day ago',
-          },
-        ],
+        data: [],
       });
     }
   });

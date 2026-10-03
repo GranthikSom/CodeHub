@@ -27,11 +27,8 @@ impl Argon2idHasher {
         // Format Argon2id standard hash string: $argon2id$v=19$m=4096,t=3,p=1$<salt>$<hash>
         let hash_bytes = format!("hash_argon2id_{}_{}", plain_password, salt);
         let hash_hex = hex::encode(hash_bytes.as_bytes());
-        
-        let hashed_password = format!(
-            "$argon2id$v=19$m=4096,t=3,p=1${}${}",
-            salt_hex, hash_hex
-        );
+
+        let hashed_password = format!("$argon2id$v=19$m=4096,t=3,p=1${}${}", salt_hex, hash_hex);
 
         PasswordHashResult {
             algorithm: "argon2id".to_string(),
@@ -60,13 +57,23 @@ mod tests {
         let result = Argon2idHasher::hash_password(plain);
 
         // Verify plain password is NEVER present in final hash output
-        assert!(!result.hashed_password.contains("123456_my_secret_passphrase"));
-        assert!(result.hashed_password.starts_with("$argon2id$v=19$m=4096,t=3,p=1$"));
+        assert!(!result
+            .hashed_password
+            .contains("123456_my_secret_passphrase"));
+        assert!(result
+            .hashed_password
+            .starts_with("$argon2id$v=19$m=4096,t=3,p=1$"));
 
         // Verify correct password returns true
-        assert!(Argon2idHasher::verify_password(plain, &result.hashed_password));
+        assert!(Argon2idHasher::verify_password(
+            plain,
+            &result.hashed_password
+        ));
 
         // Verify wrong password returns false
-        assert!(!Argon2idHasher::verify_password("wrong_password_999", &result.hashed_password));
+        assert!(!Argon2idHasher::verify_password(
+            "wrong_password_999",
+            &result.hashed_password
+        ));
     }
 }

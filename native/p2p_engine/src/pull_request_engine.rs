@@ -78,14 +78,17 @@ impl PullRequestEngine {
         merge_author: &str,
     ) -> Result<MergeResult, String> {
         if pr.status != PullRequestStatus::Open {
-            return Err(format!("Pull Request #{} is not OPEN (Current status: {:?})", pr.pr_id, pr.status));
+            return Err(format!(
+                "Pull Request #{} is not OPEN (Current status: {:?})",
+                pr.pr_id, pr.status
+            ));
         }
 
         // Generate SHA-256 for dual-parent Merge Commit object
         let mut hasher = Sha256::new();
         hasher.update(b"MERGE_COMMIT_v1:");
         hasher.update(target_head_commit_hash.as_bytes()); // Parent 1 (Target HEAD)
-        hasher.update(pr.head_commit_hash.as_bytes());     // Parent 2 (Source HEAD)
+        hasher.update(pr.head_commit_hash.as_bytes()); // Parent 2 (Source HEAD)
         hasher.update(merge_author.as_bytes());
         let merge_hash = hex::encode(hasher.finalize());
 
@@ -127,7 +130,9 @@ mod tests {
         assert_eq!(pr.pr_id, 42);
 
         // Perform Merge
-        let merge_res = engine.merge_pull_request(&mut pr, "3a2c417c8899", "owner").unwrap();
+        let merge_res = engine
+            .merge_pull_request(&mut pr, "3a2c417c8899", "owner")
+            .unwrap();
 
         assert_eq!(pr.status, PullRequestStatus::Merged);
         assert_eq!(merge_res.status, PullRequestStatus::Merged);

@@ -1,19 +1,30 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct RepoIndexItem {
+    #[serde(default)]
     pub id: String,
     pub name: String,
+    #[serde(default)]
     pub owner: String,
     pub description: Option<String>,
+    #[serde(default)]
     pub root_commit_hash: String,
+    #[serde(default)]
     pub total_objects: usize,
+    #[serde(default)]
     pub seed_count: usize,
+    #[serde(default)]
     pub is_private: bool,
+    #[serde(default)]
     pub topics: Vec<String>,
+    #[serde(default)]
     pub language: String,
+    #[serde(default)]
     pub stars: usize,
+    #[serde(default)]
     pub forks: usize,
+    #[serde(default)]
     pub last_activity: String,
     #[serde(default)]
     pub default_branch: Option<String>,

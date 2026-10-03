@@ -30,7 +30,7 @@ impl ReplicationPolicyEngine {
     /// Evaluates repository replication health based on current active seeder count
     pub fn evaluate_health(&self, repo_id: &str, active_seeders: usize) -> ReplicationHealthStatus {
         let is_healthy = active_seeders >= self.default_min_replicas;
-        
+
         let (health_level, alert_message, recommended_action) = match active_seeders {
             n if n >= 5 => (
                 "Excellent".to_string(),

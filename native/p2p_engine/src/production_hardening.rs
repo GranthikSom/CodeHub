@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
-use serde::{Deserialize, Serialize};
 
 /// Production Security Audit Log Entry
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,7 +44,10 @@ impl RateLimiter {
 
     pub fn check_rate_limit(&mut self, client_key: &str) -> bool {
         let now = Instant::now();
-        let (tokens, last_refill) = self.tokens_map.entry(client_key.to_string()).or_insert((self.max_tokens, now));
+        let (tokens, last_refill) = self
+            .tokens_map
+            .entry(client_key.to_string())
+            .or_insert((self.max_tokens, now));
 
         let elapsed_secs = now.duration_since(*last_refill).as_secs() as u32;
         if elapsed_secs > 0 {
@@ -83,7 +86,10 @@ impl DdosProtectionEngine {
         }
 
         let now = Instant::now();
-        let (count, start_time) = self.request_counts.entry(ip.to_string()).or_insert((0, now));
+        let (count, start_time) = self
+            .request_counts
+            .entry(ip.to_string())
+            .or_insert((0, now));
 
         if now.duration_since(*start_time) > Duration::from_secs(1) {
             *count = 1;
@@ -137,7 +143,9 @@ impl MaliciousObjectDetector {
         if chunk_data.len() > 100 {
             let zero_count = chunk_data.iter().filter(|&&b| b == 0).count();
             if zero_count > (chunk_data.len() * 98 / 100) {
-                return Err("Malicious chunk rejected: potential compression bomb pattern detected");
+                return Err(
+                    "Malicious chunk rejected: potential compression bomb pattern detected",
+                );
             }
         }
 
@@ -147,9 +155,9 @@ impl MaliciousObjectDetector {
 
 /// Storage Quotas & Bandwidth Quotas Enforcer
 pub struct ProductionQuotaEnforcer {
-    pub max_storage_bytes: u64,    // e.g. 20 GB
-    pub max_daily_bandwidth: u64,  // e.g. 50 GB
-    pub max_repo_size_bytes: u64,  // e.g. 5 GB
+    pub max_storage_bytes: u64,   // e.g. 20 GB
+    pub max_daily_bandwidth: u64, // e.g. 50 GB
+    pub max_repo_size_bytes: u64, // e.g. 5 GB
     peer_storage_used: HashMap<String, u64>,
     peer_daily_bandwidth: HashMap<String, u64>,
 }
@@ -165,7 +173,11 @@ impl ProductionQuotaEnforcer {
         }
     }
 
-    pub fn check_storage_quota(&self, peer_id: &str, incoming_bytes: u64) -> Result<(), &'static str> {
+    pub fn check_storage_quota(
+        &self,
+        peer_id: &str,
+        incoming_bytes: u64,
+    ) -> Result<(), &'static str> {
         let current = self.peer_storage_used.get(peer_id).copied().unwrap_or(0);
         if current + incoming_bytes > self.max_storage_bytes {
             Err("Storage quota exceeded: Peer storage limit reached (20 GB limit)")
@@ -174,7 +186,11 @@ impl ProductionQuotaEnforcer {
         }
     }
 
-    pub fn check_bandwidth_quota(&self, peer_id: &str, transfer_bytes: u64) -> Result<(), &'static str> {
+    pub fn check_bandwidth_quota(
+        &self,
+        peer_id: &str,
+        transfer_bytes: u64,
+    ) -> Result<(), &'static str> {
         let current = self.peer_daily_bandwidth.get(peer_id).copied().unwrap_or(0);
         if current + transfer_bytes > self.max_daily_bandwidth {
             Err("Bandwidth quota exceeded: Peer daily transfer limit reached (50 GB limit)")
@@ -192,8 +208,14 @@ impl ProductionQuotaEnforcer {
     }
 
     pub fn record_usage(&mut self, peer_id: &str, storage_delta: u64, bandwidth_delta: u64) {
-        *self.peer_storage_used.entry(peer_id.to_string()).or_insert(0) += storage_delta;
-        *self.peer_daily_bandwidth.entry(peer_id.to_string()).or_insert(0) += bandwidth_delta;
+        *self
+            .peer_storage_used
+            .entry(peer_id.to_string())
+            .or_insert(0) += storage_delta;
+        *self
+            .peer_daily_bandwidth
+            .entry(peer_id.to_string())
+            .or_insert(0) += bandwidth_delta;
     }
 }
 
@@ -212,7 +234,10 @@ impl PeerAbuseProtectionEngine {
     }
 
     pub fn record_peer_violation(&mut self, peer_id: &str, severity_points: u32) {
-        let score = self.peer_fault_scores.entry(peer_id.to_string()).or_insert(0);
+        let score = self
+            .peer_fault_scores
+            .entry(peer_id.to_string())
+            .or_insert(0);
         *score += severity_points;
 
         if *score >= 100 {

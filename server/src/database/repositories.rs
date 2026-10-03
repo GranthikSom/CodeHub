@@ -1,3 +1,3 @@
 //! Database Repository Store module
 
-pub use crate::db::{RepositoryRecord, RepositoryDbStore};
+pub use crate::db::{RepositoryDbStore, RepositoryRecord};

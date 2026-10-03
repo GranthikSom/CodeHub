@@ -3,14 +3,12 @@
 //! Provides developer CLI commands for decentralized P2P Git synchronization:
 //! `login`, `init`, `clone`, `add`, `commit`, `push`, `pull`, `fetch`, `branch`, `checkout`.
 
+use p2p_engine::{
+    chunking_engine::RepositoryChunker, peer_identity::PeerIdentityManager,
+    replication_guarantee::ReplicationGuaranteeEngine, sync_protocol::RepositorySyncEngine,
+};
 use std::env;
 use std::process;
-use p2p_engine::{
-    chunking_engine::RepositoryChunker,
-    replication_guarantee::ReplicationGuaranteeEngine,
-    sync_protocol::RepositorySyncEngine,
-    peer_identity::PeerIdentityManager,
-};
 
 #[tokio::main]
 async fn main() {
@@ -36,14 +34,18 @@ async fn main() {
         "checkout" => handle_checkout(&args).await,
         "help" | "--help" | "-h" => print_usage(),
         unknown => {
-            eprintln!("❌ Unknown command: '{}'. Run 'codehub --help' for usage.", unknown);
+            eprintln!(
+                "❌ Unknown command: '{}'. Run 'codehub --help' for usage.",
+                unknown
+            );
             process::exit(1);
         }
     }
 }
 
 fn print_usage() {
-    println!(r#"
+    println!(
+        r#"
 🚀 CodeHub — Decentralized P2P Git Platform CLI
 
 USAGE:
@@ -60,15 +62,18 @@ COMMANDS:
     fetch                 Fetch latest remote branch heads
     branch [name]         List or create repository branches
     checkout <branch>     Switch working tree HEAD to target branch
-"#);
+"#
+    );
 }
 
 async fn handle_login(_args: &[String]) {
-    println!("🔐 Authenticating with CodeHub Control Server (http://bootstrap.codehub.p2p:8080)...");
+    println!(
+        "🔐 Authenticating with CodeHub Control Server (http://bootstrap.codehub.p2p:8080)..."
+    );
     let identity_dir = dirs::home_dir()
         .map(|h| h.join(".codehub").join("identity"))
         .unwrap_or_else(|| std::path::PathBuf::from(".codehub_identity"));
-    
+
     if let Ok(identity) = PeerIdentityManager::load_or_create(&identity_dir) {
         println!("✓ Authenticated as Peer ID: {}", identity.identity.peer_id);
     } else {
@@ -84,8 +89,11 @@ async fn handle_init(_args: &[String]) {
 }
 
 async fn handle_clone(args: &[String]) {
-    let raw_target = args.get(2).map(|s| s.as_str()).unwrap_or("codehub://username/project");
-    
+    let raw_target = args
+        .get(2)
+        .map(|s| s.as_str())
+        .unwrap_or("codehub://username/project");
+
     // Parse codehub:// protocol scheme (e.g. codehub://username/project -> owner: username, repo: project)
     let (owner, repo_name, target_dir) = if raw_target.starts_with("codehub://") {
         let path = raw_target.trim_start_matches("codehub://");
@@ -127,7 +135,10 @@ async fn handle_clone(args: &[String]) {
     println!("  -> Reassembled 2.45 MB repository payload successfully.");
     println!();
     println!("Stage 4/4: Checking out working tree to HEAD on branch 'main'...");
-    println!("✓ Repository '{}' successfully cloned into ./{}/", raw_target, target_dir);
+    println!(
+        "✓ Repository '{}' successfully cloned into ./{}/",
+        raw_target, target_dir
+    );
 }
 
 async fn handle_add(args: &[String]) {
@@ -141,7 +152,10 @@ async fn handle_add(args: &[String]) {
 }
 
 async fn handle_commit(args: &[String]) {
-    let msg = args.get(3).map(|s| s.as_str()).unwrap_or("Updated source files");
+    let msg = args
+        .get(3)
+        .map(|s| s.as_str())
+        .unwrap_or("Updated source files");
     let commit_hash = format!("8f91ab{:x}", msg.len() * 99 + 42);
     println!("📝 Creating Commit DAG Object...");
     println!("  Commit Hash: {}", commit_hash);
@@ -152,7 +166,10 @@ async fn handle_commit(args: &[String]) {
 /// 🚀 5-Stage `codehub push` Synchronization Sequence
 async fn handle_push(_args: &[String]) {
     let repo_id = "codehub-core";
-    println!("🚀 Executing P2P Push Synchronization for repository '{}'...\n", repo_id);
+    println!(
+        "🚀 Executing P2P Push Synchronization for repository '{}'...\n",
+        repo_id
+    );
 
     // Stage 1: Local Repository Chunking
     println!("Stage 1/5: Splitting local repository objects into 1 MB chunks...");
@@ -162,8 +179,13 @@ async fn handle_push(_args: &[String]) {
         sample_repo_data,
         1024 * 1024,
         std::path::Path::new(".codehub/chunks"),
-    ).unwrap_or_default();
-    println!("  -> Total Chunks: {}, Total Size: {} bytes\n", chunks_meta.len(), sample_repo_data.len());
+    )
+    .unwrap_or_default();
+    println!(
+        "  -> Total Chunks: {}, Total Size: {} bytes\n",
+        chunks_meta.len(),
+        sample_repo_data.len()
+    );
 
     // Stage 2: Peer Discovery
     println!("Stage 2/5: Querying Rendezvous & Kademlia DHT for active swarm seeders...");
@@ -177,21 +199,42 @@ async fn handle_push(_args: &[String]) {
     let sync_engine = RepositorySyncEngine::new();
     let chunk_hash = RepositoryChunker::compute_hash(sample_repo_data);
     let verify_result = sync_engine.verify_and_store_chunk(repo_id, &chunk_hash, sample_repo_data);
-    println!("  -> Transmitted Chunk {}: {} [{}]", &chunk_hash[..8], chunk_hash, verify_result.status_symbol);
+    println!(
+        "  -> Transmitted Chunk {}: {} [{}]",
+        &chunk_hash[..8],
+        chunk_hash,
+        verify_result.status_symbol
+    );
     println!();
 
     // Stage 4: Verify Push Replication Guarantees (N = 3)
     println!("Stage 4/5: Verifying Minimum Push Replication Guarantees (Target N=3)...");
     let guarantee_engine = ReplicationGuaranteeEngine::new(3, 5);
-    let seeders = vec!["Peer A (India 🇮🇳)", "Peer B (Germany 🇩🇪)", "Peer C (USA 🇺🇸)"];
+    let seeders = vec![
+        "Peer A (India 🇮🇳)",
+        "Peer B (Germany 🇩🇪)",
+        "Peer C (USA 🇺🇸)",
+    ];
     let guarantee_result = guarantee_engine.verify_push_replication(repo_id, &seeders);
-    println!("  -> Replication Status: {} {}", guarantee_result.status_symbol, guarantee_result.status_message);
-    println!("  -> Active Seeder Replicas: {:?}\n", guarantee_result.replicated_peers);
+    println!(
+        "  -> Replication Status: {} {}",
+        guarantee_result.status_symbol, guarantee_result.status_message
+    );
+    println!(
+        "  -> Active Seeder Replicas: {:?}\n",
+        guarantee_result.replicated_peers
+    );
 
     // Stage 5: Update Control Server Remote Branch Head
     println!("Stage 5/5: Announcing updated branch HEAD to Control Server...");
-    println!("  -> POST /api/v1/repositories/{}/announce -> OK 200", repo_id);
-    println!("\n✅ Push Complete! Repository '{}' successfully replicated across P2P swarm.", repo_id);
+    println!(
+        "  -> POST /api/v1/repositories/{}/announce -> OK 200",
+        repo_id
+    );
+    println!(
+        "\n✅ Push Complete! Repository '{}' successfully replicated across P2P swarm.",
+        repo_id
+    );
 }
 
 async fn handle_pull(_args: &[String]) {

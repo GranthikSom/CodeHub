@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../models/p2p_node.dart';
 import '../models/git_object.dart';
 import '../models/repository_model.dart';
+import '../models/user_profile.dart';
 import '../native/native_bindings.dart';
 import 'api_service.dart';
 import '../config/api_config.dart';
@@ -21,18 +22,38 @@ class CodeHubState extends ChangeNotifier {
   String? _selectedRepoId;
   GitObject? _selectedGitObject;
   ThemeMode _themeMode = ThemeMode.dark;
+  late UserProfile _userProfile;
+  int _dashboardNavIndex = 0;
+  void Function(int)? onNavigateToDashboardTab;
 
   // Real-Time Event Bus & Live Explore Toast State
   String? _latestLiveEventMessage;
   DateTime? _latestLiveEventTime;
-  WebSocket? _eventSocket;
+  WebSocketChannel? _eventChannel;
+  StreamSubscription? _eventSubscription;
+  Timer? _reconnectTimer;
+  bool _isBackendConnected = false;
+  String _backendStatus = 'connecting'; // 'online', 'connecting', 'offline'
+  String _activeBackendPipelineInfo = 'Direct Axum / WebSocket Event Bus';
+  bool _isDisposed = false;
+  final Set<Timer> _pendingTimers = {};
 
   String? get latestLiveEventMessage => _latestLiveEventMessage;
   DateTime? get latestLiveEventTime => _latestLiveEventTime;
+  bool get isBackendConnected => _isBackendConnected;
+  String get backendStatus => _backendStatus;
+  String get activeBackendPipelineInfo => _activeBackendPipelineInfo;
 
   void dismissLiveEventMessage() {
     _latestLiveEventMessage = null;
     notifyListeners();
+  }
+
+  void reconnectBackend() {
+    _backendStatus = 'connecting';
+    notifyListeners();
+    _connectWebSocketEventBus();
+    _syncRepositoriesFromBackend();
   }
 
 
@@ -123,12 +144,73 @@ class CodeHubState extends ChangeNotifier {
     notifyListeners();
   }
 
+  UserProfile get userProfile => _userProfile;
+  int get dashboardNavIndex => _dashboardNavIndex;
+
+  void setDashboardNavIndex(int index) {
+    _dashboardNavIndex = index;
+    if (onNavigateToDashboardTab != null) {
+      onNavigateToDashboardTab!(index);
+    }
+    notifyListeners();
+  }
+
+  void navigateToProfile() {
+    setDashboardNavIndex(8);
+  }
+
   void notifyAuthStateChanged() {
+    final username = _apiService.currentUsername ?? 'soham';
+    _userProfile = UserProfile.defaultFor(
+      username,
+      email: _apiService.currentEmail ?? '$username@codehub.p2p',
+      role: _apiService.currentRole ?? 'developer',
+      peerId: _apiService.currentPeerId ?? '12D3KooW_${username}_NodeKey',
+    );
     notifyListeners();
   }
 
   void logoutUser() {
     _apiService.logout();
+    _userProfile = UserProfile.defaultFor('User');
+    notifyListeners();
+  }
+
+  void updateUserProfile({
+    String? displayName,
+    String? bio,
+    String? company,
+    String? location,
+    String? website,
+    String? twitter,
+    String? statusEmoji,
+    String? statusText,
+    String? readmeContent,
+  }) {
+    _userProfile = _userProfile.copyWith(
+      displayName: displayName,
+      bio: bio,
+      company: company,
+      location: location,
+      website: website,
+      twitter: twitter,
+      statusEmoji: statusEmoji,
+      statusText: statusText,
+      readmeContent: readmeContent,
+    );
+    notifyListeners();
+    _apiService.updateMyProfile(
+      displayName: displayName,
+      bio: bio,
+      email: _userProfile.email,
+    );
+  }
+
+  void setProfileStatus(String emoji, String text) {
+    _userProfile = _userProfile.copyWith(
+      statusEmoji: emoji,
+      statusText: text,
+    );
     notifyListeners();
   }
 
@@ -216,7 +298,7 @@ class CodeHubState extends ChangeNotifier {
   List<CodeRepository> get repositories => _repositories;
 
   CodeRepository? get selectedRepo {
-    if (_selectedRepoId == null) return null;
+    if (_selectedRepoId == null || _repositories.isEmpty) return null;
     return _repositories.firstWhere(
       (r) => r.id == _selectedRepoId,
       orElse: () => _repositories.first,
@@ -242,16 +324,19 @@ class CodeHubState extends ChangeNotifier {
   bool isRepoStarred(String repoId) => _starredRepoIds.contains(repoId);
 
   void toggleStarRepository(String repoId) {
-    if (_starredRepoIds.contains(repoId)) {
+    final isStarred = _starredRepoIds.contains(repoId);
+    if (isStarred) {
       _starredRepoIds.remove(repoId);
+      _apiService.unstarRepository(repoId);
     } else {
       _starredRepoIds.add(repoId);
+      _apiService.starRepository(repoId);
     }
     
     final index = _repositories.indexWhere((r) => r.id == repoId);
     if (index != -1) {
       final repo = _repositories[index];
-      final newStars = _starredRepoIds.contains(repoId) ? repo.stars + 1 : (repo.stars - 1).clamp(0, 999999);
+      final newStars = !isStarred ? repo.stars + 1 : (repo.stars - 1).clamp(0, 999999);
       _repositories[index] = repo.copyWith(stars: newStars);
     }
     notifyListeners();
@@ -277,111 +362,258 @@ class CodeHubState extends ChangeNotifier {
     _initializeData();
     _startTelemetrySimulation();
     _connectWebSocketEventBus();
+    _syncRepositoriesFromBackend();
   }
 
   void _connectWebSocketEventBus() async {
+    if (_isDisposed) return;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    await _eventSubscription?.cancel();
+    _eventSubscription = null;
     try {
+      _eventChannel?.sink.close();
+    } catch (_) {}
+    _eventChannel = null;
+
+    final candidateWsUrls = <String>[
+      ApiConfig.socketWsUrl,
+      'ws://127.0.0.1:8080/api/v1/events/ws',
+      'ws://localhost:8080/api/v1/events/ws',
+      'wss://api.codehub.p2p/api/v1/events/ws',
+      'wss://api.codehub.com/api/v1/events/ws',
+    ];
+
+    bool connected = false;
+    for (final wsUrl in candidateWsUrls) {
+      if (_isDisposed) return;
       try {
-        _eventSocket = await WebSocket.connect(ApiConfig.socketWsUrl);
-      } catch (_) {
-        _eventSocket = await WebSocket.connect('ws://127.0.0.1:8080/api/v1/events/ws');
-      }
+        final uri = Uri.parse(wsUrl);
+        final channel = WebSocketChannel.connect(uri);
 
-      _eventSocket?.listen((data) {
+        final timeoutCompleter = Completer<void>();
+        final timer = Timer(const Duration(seconds: 2), () {
+          if (!timeoutCompleter.isCompleted) {
+            timeoutCompleter.completeError(TimeoutException('WebSocket timeout', const Duration(seconds: 2)));
+          }
+        });
+        _pendingTimers.add(timer);
+
         try {
-          final json = jsonDecode(data as String) as Map<String, dynamic>;
-          final evt = json['event'] ?? json['type'];
-          if (evt == 'repository_created' || evt == 'repository.created') {
+          await Future.any([
+            channel.ready,
+            timeoutCompleter.future,
+          ]);
+        } finally {
+          timer.cancel();
+          _pendingTimers.remove(timer);
+        }
 
-            final repoMap = json['repository'] as Map<String, dynamic>?;
-            if (repoMap != null) {
-              final repoId = (repoMap['id'] ?? 'repo_${DateTime.now().millisecondsSinceEpoch}').toString();
-              if (!_repositories.any((r) => r.id == repoId)) {
-                final owner = repoMap['owner']?.toString() ?? 'User A';
-                final name = repoMap['name']?.toString() ?? 'new-p2p-repo';
-                final desc = repoMap['description']?.toString() ?? 'Real-time broadcast repository';
-                final commitHash = repoMap['root_commit_hash']?.toString() ?? 'commit_live_broadcast';
+        if (_isDisposed) {
+          try {
+            channel.sink.close();
+          } catch (_) {}
+          return;
+        }
 
-                final newRepo = CodeRepository(
-                  id: repoId,
-                  name: name,
-                  owner: owner,
-                  description: desc,
-                  defaultBranch: 'main',
-                  tags: repoMap['topics'] != null
-                      ? List<String>.from(repoMap['topics'] as List)
-                      : const ['rust', 'p2p'],
-                  totalSizeMb: 1.25,
-                  seedNodeIds: const ['peer_broadcaster_01', 'peer_tokyo'],
-                  replicaCount: 3,
-                  totalObjects: 12,
-                  rootCommitHash: commitHash,
-                  lastUpdated: DateTime.now(),
-                  isPinnedLocally: false,
-                  localReplicationProgress: 0.0,
-                  stars: 1,
-                  forks: 0,
-                  rootCommit: GitObject(
-                    hash: commitHash,
-                    type: GitObjectType.commit,
-                    name: 'Initial live commit',
-                    sizeBytes: 850,
-                    replicaNodeIds: const ['peer_broadcaster_01'],
-                    author: owner,
-                    timestamp: DateTime.now(),
-                  ),
-                );
+        _eventChannel = channel;
+        _isBackendConnected = true;
+        _backendStatus = 'online';
+        _activeBackendPipelineInfo = 'Connected to $wsUrl';
+        connected = true;
+        notifyListeners();
 
-                _repositories.insert(0, newRepo);
-                _latestLiveEventMessage = '⚡ Live Control Event: User $owner created repository "$name" (Saved to PostgreSQL & broadcast live)';
-                _latestLiveEventTime = DateTime.now();
-                notifyListeners();
-              }
+        _eventSubscription = channel.stream.listen(
+          (data) {
+            if (!_isDisposed) {
+              _handleWebSocketEvent(data);
             }
-          } else if (evt == 'repository_updated' || evt == 'repository.updated') {
-            final repoMap = json['repository'] as Map<String, dynamic>?;
-            final name = repoMap?['name'] ?? 'repository';
-            _latestLiveEventMessage = '⚡ Live Control Event: Repository "$name" metadata updated';
-            _latestLiveEventTime = DateTime.now();
-            notifyListeners();
-          } else if (evt == 'repository_deleted' || evt == 'repository.deleted') {
-            final repoId = (json['repository_id'] ?? json['id'] ?? '').toString();
-            _repositories.removeWhere((r) => r.id == repoId);
-            _latestLiveEventMessage = '⚡ Live Control Event: Repository $repoId deleted from catalog';
-            _latestLiveEventTime = DateTime.now();
-            notifyListeners();
-          } else if (evt == 'issue_updated' || evt == 'issue.updated') {
-            final title = json['title'] ?? 'Issue update';
-            _latestLiveEventMessage = '⚡ Live Control Event: Issue updated "$title"';
-            _latestLiveEventTime = DateTime.now();
-            notifyListeners();
-          } else if (evt == 'PR_updated' || evt == 'PR.updated') {
-            final title = json['title'] ?? 'Pull request update';
-            _latestLiveEventMessage = '⚡ Live Control Event: Pull Request updated "$title"';
-            _latestLiveEventTime = DateTime.now();
-            notifyListeners();
-          } else if (evt == 'peer_online' || evt == 'peer.online') {
-            final peerId = json['peer_id'] ?? 'Peer';
-            _latestLiveEventMessage = '⚡ Live Control Event: Peer $peerId joined swarm';
-            _latestLiveEventTime = DateTime.now();
-            notifyListeners();
-          } else if (evt == 'replication_updated' || evt == 'replication.updated') {
-            final factor = json['replica_count'] ?? 3;
-            _latestLiveEventMessage = '⚡ Live Control Event: Swarm replication factor synchronized ($factor seeds active)';
+          },
+          onError: (err) {
+            if (!_isDisposed) {
+              _handleWebSocketDisconnect();
+            }
+          },
+          onDone: () {
+            if (!_isDisposed) {
+              _handleWebSocketDisconnect();
+            }
+          },
+        );
+        break;
+      } catch (_) {
+        // try next candidate
+      }
+    }
+
+    if (!connected && !_isDisposed) {
+      _isBackendConnected = false;
+      _backendStatus = 'offline';
+      _activeBackendPipelineInfo = 'Offline (Retrying pipeline connection...)';
+      notifyListeners();
+      _scheduleReconnect();
+    }
+  }
+
+  void _handleWebSocketDisconnect() {
+    if (_isDisposed) return;
+    _isBackendConnected = false;
+    _backendStatus = 'offline';
+    _activeBackendPipelineInfo = 'Disconnected (Reconnecting...)';
+    notifyListeners();
+    _scheduleReconnect();
+  }
+
+  void _scheduleReconnect() {
+    if (_isDisposed) return;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      if (!_isDisposed) {
+        _connectWebSocketEventBus();
+      }
+    });
+    if (_reconnectTimer != null) {
+      _pendingTimers.add(_reconnectTimer!);
+    }
+  }
+
+  void _handleWebSocketEvent(dynamic data) {
+    try {
+      final json = jsonDecode(data as String) as Map<String, dynamic>;
+      final evt = json['event'] ?? json['type'];
+
+      if (evt == 'pipeline_connected') {
+        _isBackendConnected = true;
+        _backendStatus = 'online';
+        _latestLiveEventMessage = '⚡ Connected to CodeHub Backend Pipeline (${json['server'] ?? 'Axum'})';
+        _latestLiveEventTime = DateTime.now();
+        notifyListeners();
+      } else if (evt == 'heartbeat') {
+        // Heartbeat keepalive acknowledged
+      } else if (evt == 'repository_created' || evt == 'repository.created') {
+        final repoMap = json['repository'] as Map<String, dynamic>?;
+        if (repoMap != null) {
+          final repoId = (repoMap['id'] ?? 'repo_${DateTime.now().millisecondsSinceEpoch}').toString();
+          if (!_repositories.any((r) => r.id == repoId)) {
+            final owner = repoMap['owner']?.toString() ?? 'User A';
+            final name = repoMap['name']?.toString() ?? 'new-p2p-repo';
+            final desc = repoMap['description']?.toString() ?? 'Real-time broadcast repository';
+            final commitHash = repoMap['root_commit_hash']?.toString() ?? 'commit_live_broadcast';
+
+            final newRepo = CodeRepository(
+              id: repoId,
+              name: name,
+              owner: owner,
+              description: desc,
+              defaultBranch: repoMap['default_branch']?.toString() ?? 'main',
+              tags: repoMap['topics'] != null
+                  ? List<String>.from(repoMap['topics'] as List)
+                  : const ['rust', 'p2p'],
+              totalSizeMb: 1.25,
+              seedNodeIds: const ['peer_broadcaster_01', 'peer_tokyo'],
+              replicaCount: (repoMap['seed_count'] is int) ? repoMap['seed_count'] as int : 3,
+              totalObjects: (repoMap['total_objects'] is int) ? repoMap['total_objects'] as int : 12,
+              rootCommitHash: commitHash,
+              lastUpdated: DateTime.now(),
+              isPinnedLocally: false,
+              localReplicationProgress: 0.0,
+              stars: (repoMap['stars'] is int) ? repoMap['stars'] as int : 1,
+              forks: (repoMap['forks'] is int) ? repoMap['forks'] as int : 0,
+              rootCommit: GitObject(
+                hash: commitHash,
+                type: GitObjectType.commit,
+                name: 'Initial live commit',
+                sizeBytes: 850,
+                replicaNodeIds: const ['peer_broadcaster_01'],
+                author: owner,
+                timestamp: DateTime.now(),
+              ),
+            );
+
+            _repositories.insert(0, newRepo);
+            _latestLiveEventMessage = '⚡ Live Control Event: User $owner created repository "$name" (Saved to PostgreSQL & broadcast live)';
             _latestLiveEventTime = DateTime.now();
             notifyListeners();
           }
-        } catch (e) {
-          // parse error
         }
-      }, onError: (err) {
-        Timer(const Duration(seconds: 5), _connectWebSocketEventBus);
-      }, onDone: () {
-        Timer(const Duration(seconds: 5), _connectWebSocketEventBus);
-      });
-    } catch (e) {
-      Timer(const Duration(seconds: 5), _connectWebSocketEventBus);
-    }
+      } else if (evt == 'repository_updated' || evt == 'repository.updated') {
+        final repoMap = json['repository'] as Map<String, dynamic>?;
+        final name = repoMap?['name'] ?? 'repository';
+        _latestLiveEventMessage = '⚡ Live Control Event: Repository "$name" metadata updated';
+        _latestLiveEventTime = DateTime.now();
+        notifyListeners();
+      } else if (evt == 'repository_deleted' || evt == 'repository.deleted') {
+        final repoId = (json['repository_id'] ?? json['id'] ?? '').toString();
+        _repositories.removeWhere((r) => r.id == repoId);
+        _latestLiveEventMessage = '⚡ Live Control Event: Repository $repoId deleted from catalog';
+        _latestLiveEventTime = DateTime.now();
+        notifyListeners();
+      } else if (evt == 'issue_updated' || evt == 'issue.updated') {
+        final title = json['title'] ?? 'Issue update';
+        _latestLiveEventMessage = '⚡ Live Control Event: Issue updated "$title"';
+        _latestLiveEventTime = DateTime.now();
+        notifyListeners();
+      } else if (evt == 'PR_updated' || evt == 'PR.updated') {
+        final title = json['title'] ?? 'Pull request update';
+        _latestLiveEventMessage = '⚡ Live Control Event: Pull Request updated "$title"';
+        _latestLiveEventTime = DateTime.now();
+        notifyListeners();
+      } else if (evt == 'peer_online' || evt == 'peer.online') {
+        final peerId = json['peer_id'] ?? 'Peer';
+        _latestLiveEventMessage = '⚡ Live Control Event: Peer $peerId joined swarm';
+        _latestLiveEventTime = DateTime.now();
+        notifyListeners();
+      } else if (evt == 'replication_updated' || evt == 'replication.updated') {
+        final factor = json['replica_count'] ?? 3;
+        _latestLiveEventMessage = '⚡ Live Control Event: Swarm replication factor synchronized ($factor seeds active)';
+        _latestLiveEventTime = DateTime.now();
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _syncRepositoriesFromBackend() async {
+    try {
+      final repos = await _apiService.fetchRepositories();
+      if (repos.isNotEmpty) {
+        for (final r in repos) {
+          if (r is Map<String, dynamic>) {
+            final id = r['id']?.toString() ?? '';
+            if (id.isNotEmpty && !_repositories.any((existing) => existing.id == id)) {
+              final newRepo = CodeRepository(
+                id: id,
+                name: r['name']?.toString() ?? 'repo',
+                owner: r['owner']?.toString() ?? 'User',
+                description: r['description']?.toString() ?? '',
+                defaultBranch: r['default_branch']?.toString() ?? 'main',
+                tags: r['topics'] != null ? List<String>.from(r['topics'] as List) : const ['rust', 'p2p'],
+                totalSizeMb: 1.5,
+                seedNodeIds: const ['peer_broadcaster_01'],
+                replicaCount: (r['seed_count'] is int) ? r['seed_count'] as int : 3,
+                totalObjects: (r['total_objects'] is int) ? r['total_objects'] as int : 12,
+                rootCommitHash: r['root_commit_hash']?.toString() ?? 'commit_live',
+                lastUpdated: DateTime.now(),
+                isPinnedLocally: false,
+                localReplicationProgress: 0.0,
+                stars: (r['stars'] is int) ? r['stars'] as int : 1,
+                forks: (r['forks'] is int) ? r['forks'] as int : 0,
+                rootCommit: GitObject(
+                  hash: r['root_commit_hash']?.toString() ?? 'commit_live',
+                  type: GitObjectType.commit,
+                  name: 'Initial commit',
+                  sizeBytes: 850,
+                  replicaNodeIds: const ['peer_broadcaster_01'],
+                  author: r['owner']?.toString() ?? 'User',
+                  timestamp: DateTime.now(),
+                ),
+              );
+              _repositories.add(newRepo);
+            }
+          }
+        }
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   void setActiveTab(ActiveTab tab) {
@@ -420,6 +652,7 @@ class CodeHubState extends ChangeNotifier {
         if (!updatedSeedNodes.contains(localNode.id)) {
           updatedSeedNodes.add(localNode.id);
         }
+        _apiService.announcePeer(repoId, peerId: localNode.id);
       } else {
         updatedSeedNodes.remove(localNode.id);
       }
@@ -434,6 +667,22 @@ class CodeHubState extends ChangeNotifier {
       // Update Local Node storage
       _updateLocalNodeStorage();
       notifyListeners();
+    }
+  }
+
+  Future<bool> deleteRepository(String repoId) async {
+    _repositories.removeWhere((r) => r.id == repoId);
+    if (_selectedRepoId == repoId) {
+      _selectedRepoId = _repositories.isNotEmpty ? _repositories.first.id : null;
+    }
+    _latestLiveEventMessage = '⚡ Live Control Event: Repository $repoId deleted from catalog';
+    _latestLiveEventTime = DateTime.now();
+    notifyListeners();
+    try {
+      final res = await _apiService.deleteRepository(repoId);
+      return res['success'] == true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -473,8 +722,18 @@ class CodeHubState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _telemetryTimer?.cancel();
-    _eventSocket?.close();
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    for (final t in _pendingTimers) {
+      t.cancel();
+    }
+    _pendingTimers.clear();
+    _eventSubscription?.cancel();
+    try {
+      _eventChannel?.sink.close();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -489,11 +748,11 @@ class CodeHubState extends ChangeNotifier {
         type: NodeType.localNode,
         pingMs: 0,
         storageAllocatedGb: 20.0,
-        storageUsedGb: 2.45,
+        storageUsedGb: 0.0,
         uploadSpeedMbps: 18.4,
         downloadSpeedMbps: 42.1,
         isLocal: true,
-        pinnedRepoIds: ['repo-1', 'repo-2'],
+        pinnedRepoIds: [],
       ),
       const P2PNode(
         id: '12D3KooWDeviceALaptop456',
@@ -502,10 +761,10 @@ class CodeHubState extends ChangeNotifier {
         type: NodeType.peerDevice,
         pingMs: 24,
         storageAllocatedGb: 50.0,
-        storageUsedGb: 12.8,
+        storageUsedGb: 0.0,
         uploadSpeedMbps: 45.0,
         downloadSpeedMbps: 120.0,
-        pinnedRepoIds: ['repo-1', 'repo-2', 'repo-3'],
+        pinnedRepoIds: [],
       ),
       const P2PNode(
         id: '12D3KooWDeviceBDesktop890',
@@ -514,10 +773,10 @@ class CodeHubState extends ChangeNotifier {
         type: NodeType.peerDevice,
         pingMs: 142,
         storageAllocatedGb: 100.0,
-        storageUsedGb: 48.2,
+        storageUsedGb: 0.0,
         uploadSpeedMbps: 85.0,
         downloadSpeedMbps: 250.0,
-        pinnedRepoIds: ['repo-1', 'repo-3', 'repo-4'],
+        pinnedRepoIds: [],
       ),
       const P2PNode(
         id: '12D3KooWDeviceCLinuxServer',
@@ -526,10 +785,10 @@ class CodeHubState extends ChangeNotifier {
         type: NodeType.seedNode,
         pingMs: 88,
         storageAllocatedGb: 500.0,
-        storageUsedGb: 310.5,
+        storageUsedGb: 0.0,
         uploadSpeedMbps: 500.0,
         downloadSpeedMbps: 1000.0,
-        pinnedRepoIds: ['repo-1', 'repo-2', 'repo-3', 'repo-4'],
+        pinnedRepoIds: [],
       ),
       const P2PNode(
         id: '12D3KooW1BjxRJcydv6rtKJhuutvEp8LEvUgCHv5ARgQ',
@@ -545,175 +804,18 @@ class CodeHubState extends ChangeNotifier {
       ),
     ];
 
-    // Build sample Git Content-Addressed DAG Objects
-    final mainDartBlob = GitObject(
-      hash: 'blob_8f9a2b1c4e7d3f6a9b8c7d6e5f4a3b2c1d0e9f8a',
-      type: GitObjectType.blob,
-      name: 'main.dart',
-      sizeBytes: 1420,
-      replicaNodeIds: [
-        '12D3KooWLocalDevNode7890x12',
-        '12D3KooWDeviceALaptop456',
-        '12D3KooWDeviceCLinuxServer'
-      ],
-      contentPayload: '''
-import 'package:flutter/material.dart';
+    // 2. Repositories (clean production state: synchronized dynamically via backend & P2P swarm)
+    _repositories = [];
+    _selectedRepoId = null;
+    _selectedGitObject = null;
 
-void main() {
-  // CodeHub Decentralized P2P Git Client Entry Point
-  runApp(const CodeHubApp());
-}
-''',
+    // 3. User Profile
+    final username = _apiService.currentUsername ?? 'soham';
+    _userProfile = UserProfile.defaultFor(
+      username,
+      email: _apiService.currentEmail ?? '$username@gmail.com',
+      role: _apiService.currentRole ?? 'developer',
+      peerId: _apiService.currentPeerId ?? '12D3KooW_${username}_NodeKey',
     );
-
-    final libp2pEngineBlob = GitObject(
-      hash: 'blob_3a1b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b',
-      type: GitObjectType.blob,
-      name: 'swarm.rs',
-      sizeBytes: 8420,
-      replicaNodeIds: [
-        '12D3KooWDeviceALaptop456',
-        '12D3KooWDeviceBDesktop890',
-        '12D3KooWDeviceCLinuxServer'
-      ],
-      contentPayload: '''
-// Rust P2P Storage & libp2p Network Swarm Engine
-use libp2p::{gossipsub, kad, identity, Swarm};
-use tokio::fs;
-
-pub struct CodeHubNode {
-    swarm: Swarm<CodeHubBehaviour>,
-    block_store: PathBuf,
-}
-''',
-    );
-
-    final libTree = GitObject(
-      hash: 'tree_9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b',
-      type: GitObjectType.tree,
-      name: 'lib',
-      sizeBytes: 9840,
-      replicaNodeIds: [
-        '12D3KooWLocalDevNode7890x12',
-        '12D3KooWDeviceALaptop456',
-        '12D3KooWDeviceCLinuxServer'
-      ],
-      children: [mainDartBlob, libp2pEngineBlob],
-    );
-
-    final rootCommitObj = GitObject(
-      hash: 'commit_e4b0c2a1f8e9d7c6b5a4f3e2d1c0b9a8f7e6d5c4',
-      type: GitObjectType.commit,
-      name: 'feat: implement libp2p object shard replication & local pinning',
-      sizeBytes: 24500,
-      author: 'Soham Mondal <soham@codehub.p2p>',
-      timestamp: DateTime.now().subtract(const Duration(hours: 3)),
-      replicaNodeIds: [
-        '12D3KooWLocalDevNode7890x12',
-        '12D3KooWDeviceALaptop456',
-        '12D3KooWDeviceBDesktop890',
-        '12D3KooWDeviceCLinuxServer'
-      ],
-      children: [libTree],
-    );
-
-    // 2. Repositories
-    _repositories = [
-      CodeRepository(
-        id: 'repo-1',
-        name: 'codehub-core-p2p',
-        owner: 'GranthikSom',
-        description: 'Decentralized Git engine with Rust libp2p blockstore & Flutter UI layer.',
-        defaultBranch: 'main',
-        rootCommitHash: 'commit_e4b0c2a1f8e9d7c6b5a4f3e2d1c0b9a8f7e6d5c4',
-        totalSizeMb: 148.5,
-        totalObjects: 1420,
-        replicaCount: 4,
-        isPinnedLocally: true,
-        localReplicationProgress: 1.0,
-        seedNodeIds: [
-          '12D3KooWLocalDevNode7890x12',
-          '12D3KooWDeviceALaptop456',
-          '12D3KooWDeviceBDesktop890',
-          '12D3KooWDeviceCLinuxServer'
-        ],
-        rootCommit: rootCommitObj,
-        lastUpdated: DateTime.now().subtract(const Duration(minutes: 42)),
-        stars: 342,
-        forks: 58,
-        tags: ['rust', 'libp2p', 'git', 'p2p', 'decentralized'],
-      ),
-      CodeRepository(
-        id: 'repo-2',
-        name: 'flutter-dag-visualizer',
-        owner: 'GranthikSom',
-        description: 'Interactive Flutter widget for rendering content-addressed Git object DAG trees.',
-        defaultBranch: 'main',
-        rootCommitHash: 'commit_8f2a1b9c4d3e5f6a7b8c9d0e1f2a3b4c5d6e7f8a',
-        totalSizeMb: 42.1,
-        totalObjects: 380,
-        replicaCount: 3,
-        isPinnedLocally: true,
-        localReplicationProgress: 1.0,
-        seedNodeIds: [
-          '12D3KooWLocalDevNode7890x12',
-          '12D3KooWDeviceALaptop456',
-          '12D3KooWDeviceCLinuxServer'
-        ],
-        rootCommit: rootCommitObj,
-        lastUpdated: DateTime.now().subtract(const Duration(hours: 5)),
-        stars: 128,
-        forks: 19,
-        tags: ['flutter', 'dart', 'ui', 'dag'],
-      ),
-      CodeRepository(
-        id: 'repo-3',
-        name: 'kademlia-dht-relay',
-        owner: 'libp2p-community',
-        description: 'Distributed Hash Table & NAT Traversal STUN/TURN coordination protocol for P2P code hosting.',
-        defaultBranch: 'master',
-        rootCommitHash: 'commit_3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d',
-        totalSizeMb: 210.8,
-        totalObjects: 3100,
-        replicaCount: 3,
-        isPinnedLocally: false,
-        localReplicationProgress: 0.0,
-        seedNodeIds: [
-          '12D3KooWDeviceALaptop456',
-          '12D3KooWDeviceBDesktop890',
-          '12D3KooWDeviceCLinuxServer'
-        ],
-        rootCommit: rootCommitObj,
-        lastUpdated: DateTime.now().subtract(const Duration(days: 1)),
-        stars: 890,
-        forks: 140,
-        tags: ['networking', 'dht', 'kademlia', 'nat-traversal'],
-      ),
-      CodeRepository(
-        id: 'repo-4',
-        name: 'git-chunk-blockstore',
-        owner: 'git-p2p-labs',
-        description: 'Content-addressable packfile chunker with deduplication across peer devices.',
-        defaultBranch: 'main',
-        rootCommitHash: 'commit_7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b',
-        totalSizeMb: 88.0,
-        totalObjects: 890,
-        replicaCount: 2,
-        isPinnedLocally: false,
-        localReplicationProgress: 0.0,
-        seedNodeIds: [
-          '12D3KooWDeviceBDesktop890',
-          '12D3KooWDeviceCLinuxServer'
-        ],
-        rootCommit: rootCommitObj,
-        lastUpdated: DateTime.now().subtract(const Duration(days: 3)),
-        stars: 215,
-        forks: 31,
-        tags: ['storage', 'git', 'deduplication', 'merkle'],
-      ),
-    ];
-
-    _selectedRepoId = 'repo-1';
-    _selectedGitObject = rootCommitObj;
   }
 }

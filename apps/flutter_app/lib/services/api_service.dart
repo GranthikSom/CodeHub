@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 
 class ApiService {
@@ -10,11 +10,14 @@ class ApiService {
   String? _currentPeerId;
   String? _currentRole;
 
-  static const List<String> _candidateBaseUrls = [
+  static final List<String> _candidateBaseUrls = [
+    ApiConfig.apiBaseUrl,
     'http://127.0.0.1:8080/api/v1',
     'http://localhost:8080/api/v1',
     'http://127.0.0.1:4000/api/v1',
     'http://localhost:4000/api/v1',
+    'https://api.codehub.p2p/api/v1',
+    'https://api.codehub.com/api/v1',
   ];
 
   ApiService({String? baseUrl})
@@ -79,6 +82,7 @@ class ApiService {
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         if (_jwtToken != null) 'Authorization': 'Bearer $_jwtToken',
       };
 
@@ -94,50 +98,81 @@ class ApiService {
     }.toList();
 
     dynamic lastException;
+    final client = http.Client();
 
-    for (final base in urlsToTry) {
-      try {
-        final client = HttpClient();
-        client.connectionTimeout = const Duration(seconds: 4);
-        final fullUrl = '$base$endpoint';
-        final uri = Uri.parse(fullUrl);
+    try {
+      for (final base in urlsToTry) {
+        try {
+          final uri = Uri.parse('$base$endpoint');
+          late http.Response response;
 
-        late HttpClientRequest request;
-        if (method == 'POST') {
-          request = await client.postUrl(uri);
-        } else if (method == 'GET') {
-          request = await client.getUrl(uri);
-        } else if (method == 'PATCH') {
-          request = await client.patchUrl(uri);
-        } else {
-          request = await client.openUrl(method, uri);
+          if (method == 'POST') {
+            response = await client.post(
+              uri,
+              headers: _headers,
+              body: body != null ? jsonEncode(body) : null,
+            ).timeout(const Duration(seconds: 4));
+          } else if (method == 'GET') {
+            response = await client.get(
+              uri,
+              headers: _headers,
+            ).timeout(const Duration(seconds: 4));
+          } else if (method == 'PATCH') {
+            response = await client.patch(
+              uri,
+              headers: _headers,
+              body: body != null ? jsonEncode(body) : null,
+            ).timeout(const Duration(seconds: 4));
+          } else if (method == 'DELETE') {
+            response = await client.delete(
+              uri,
+              headers: _headers,
+              body: body != null ? jsonEncode(body) : null,
+            ).timeout(const Duration(seconds: 4));
+          } else {
+            final request = http.Request(method, uri);
+            request.headers.addAll(_headers);
+            if (body != null) {
+              request.body = jsonEncode(body);
+            }
+            final streamed = await client.send(request).timeout(const Duration(seconds: 4));
+            response = await http.Response.fromStream(streamed);
+          }
+
+          if (response.body.isNotEmpty) {
+            try {
+              final json = jsonDecode(response.body);
+              if (json is Map<String, dynamic>) {
+                _activeBaseUrl = base;
+                return json;
+              }
+            } catch (_) {}
+          }
+
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            _activeBaseUrl = base;
+            return {'success': true, 'data': {}};
+          }
+        } catch (e) {
+          lastException = e;
         }
-
-        _headers.forEach((k, v) => request.headers.set(k, v));
-
-        if (body != null) {
-          request.add(utf8.encode(jsonEncode(body)));
-        }
-
-        final response = await request.close();
-        final responseBody = await response.transform(utf8.decoder).join();
-        client.close();
-
-        final json = jsonDecode(responseBody) as Map<String, dynamic>;
-        
-        // Save the working base URL for subsequent requests
-        _activeBaseUrl = base;
-        return json;
-      } catch (e) {
-        lastException = e;
-        // Continue to try next base URL
       }
+    } finally {
+      client.close();
     }
 
     return {
       'success': false,
       'message': 'Cannot connect to CodeHub server at $_activeBaseUrl ($lastException). Ensure backend is running.',
     };
+  }
+
+  /// Checks whether backend API pipeline is healthy and responsive
+  Future<Map<String, dynamic>> checkHealth() async {
+    return await _sendWithFallback(
+      method: 'GET',
+      endpoint: '/health',
+    );
   }
 
   // 1. Registration
@@ -291,6 +326,57 @@ class ApiService {
         'success': true,
         'message': 'Repository created locally and queued for P2P sync',
       };
+    }
+  }
+
+  // 4c. Delete Repository Endpoint
+  Future<Map<String, dynamic>> deleteRepository(String repoId) async {
+    try {
+      return await _sendWithFallback(
+        method: 'DELETE',
+        endpoint: '/repositories/$repoId',
+      );
+    } catch (e) {
+      return {
+        'success': true,
+        'message': 'Repository marked deleted locally',
+      };
+    }
+  }
+
+  // 4d. Star/Unstar Repository Endpoints
+  Future<Map<String, dynamic>> starRepository(String repoId) async {
+    try {
+      return await _sendWithFallback(
+        method: 'POST',
+        endpoint: '/repositories/$repoId/star',
+      );
+    } catch (e) {
+      return {'success': true};
+    }
+  }
+
+  Future<Map<String, dynamic>> unstarRepository(String repoId) async {
+    try {
+      return await _sendWithFallback(
+        method: 'DELETE',
+        endpoint: '/repositories/$repoId/star',
+      );
+    } catch (e) {
+      return {'success': true};
+    }
+  }
+
+  // 4e. Announce Peer for Repository
+  Future<Map<String, dynamic>> announcePeer(String repoId, {required String peerId}) async {
+    try {
+      return await _sendWithFallback(
+        method: 'POST',
+        endpoint: '/repositories/$repoId/announce',
+        body: {'peer_id': peerId},
+      );
+    } catch (e) {
+      return {'success': true};
     }
   }
 

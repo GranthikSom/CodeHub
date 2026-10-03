@@ -93,9 +93,11 @@ impl PieceAvailabilitySystem {
 
             // Sort candidate peers by lowest latency & highest upload speed
             candidates.sort_by(|a, b| {
-                a.latency_ms
-                    .cmp(&b.latency_ms)
-                    .then_with(|| b.upload_speed_kbps.partial_cmp(&a.upload_speed_kbps).unwrap())
+                a.latency_ms.cmp(&b.latency_ms).then_with(|| {
+                    b.upload_speed_kbps
+                        .partial_cmp(&a.upload_speed_kbps)
+                        .unwrap()
+                })
             });
 
             let chosen_peer = candidates[0];
@@ -114,11 +116,7 @@ impl PieceAvailabilitySystem {
                 .push(chunk_idx);
         }
 
-        let rarest_indices: Vec<usize> = sorted_missing
-            .iter()
-            .take(5)
-            .cloned()
-            .collect();
+        let rarest_indices: Vec<usize> = sorted_missing.iter().take(5).cloned().collect();
 
         SwarmScheduleSummary {
             total_chunks,

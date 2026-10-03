@@ -41,9 +41,11 @@ pub fn get_bootstrap_server_config() -> BootstrapServerConfig {
     BootstrapServerConfig {
         server_peer_id: "12D3KooWBootstrapServerMasterNode789".to_string(),
         multiaddrs: vec![
-            "/dns4/bootstrap.codehub.p2p/tcp/4001/p2p/12D3KooWBootstrapServerMasterNode789".to_string(),
+            "/dns4/bootstrap.codehub.p2p/tcp/4001/p2p/12D3KooWBootstrapServerMasterNode789"
+                .to_string(),
             "/ip4/142.93.120.45/tcp/4001/p2p/12D3KooWBootstrapServerMasterNode789".to_string(),
-            "/ip6/2604:a880:400:d0::1/tcp/4001/p2p/12D3KooWBootstrapServerMasterNode789".to_string(),
+            "/ip6/2604:a880:400:d0::1/tcp/4001/p2p/12D3KooWBootstrapServerMasterNode789"
+                .to_string(),
         ],
         supported_protocols: vec![
             "/ipfs/id/1.0.0".to_string(),

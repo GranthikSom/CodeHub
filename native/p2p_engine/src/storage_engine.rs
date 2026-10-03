@@ -3,11 +3,11 @@
 //! Manages node directory layout, identity persistence, local Git repositories,
 //! SHA-256 content-addressed blockstores, payload chunking, peer telemetry, and logs.
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeIdentity {
@@ -52,7 +52,10 @@ impl LocalEngine {
             Some(path) => path,
             None => {
                 let home = dirs::home_dir().ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::NotFound, "Could not locate user home directory")
+                    io::Error::new(
+                        io::ErrorKind::NotFound,
+                        "Could not locate user home directory",
+                    )
                 })?;
                 home.join(".codehub")
             }
@@ -92,7 +95,11 @@ impl LocalEngine {
         let engine_log = logs_dir.join("engine.log");
         if !engine_log.exists() {
             let mut file = File::create(&engine_log)?;
-            writeln!(file, "[INFO] Local Repository Storage Engine initialized at {:?}", root)?;
+            writeln!(
+                file,
+                "[INFO] Local Repository Storage Engine initialized at {:?}",
+                root
+            )?;
         }
 
         Ok(Self {
@@ -159,14 +166,19 @@ impl LocalEngine {
     }
 
     /// Writes a working copy file into a repository and automatically hashes & stores it as a Git object
-    pub fn write_file(&self, repo_name: &str, relative_path: &str, content: &[u8]) -> io::Result<String> {
+    pub fn write_file(
+        &self,
+        repo_name: &str,
+        relative_path: &str,
+        content: &[u8],
+    ) -> io::Result<String> {
         let repo_dir = self.open_repository(repo_name)?;
         let target_file = repo_dir.join(relative_path);
-        
+
         if let Some(parent) = target_file.parent() {
             fs::create_dir_all(parent)?;
         }
-        
+
         fs::write(&target_file, content)?;
 
         // Automatically store content-addressed object in local object store
@@ -209,7 +221,10 @@ impl LocalEngine {
     /// Retrieves an object by its SHA-256 hash digest from the local blockstore
     pub fn retrieve_object(&self, hash: &str) -> io::Result<Vec<u8>> {
         if hash.len() < 4 {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid hash digest length"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid hash digest length",
+            ));
         }
         let prefix = &hash[0..2];
         let suffix = &hash[2..];
@@ -316,7 +331,9 @@ mod tests {
 
         // 3. Write File & Auto Hash Object
         let sample_payload = b"println!(\"Hello CodeHub P2P Engine\");";
-        let object_hash = engine.write_file("test-repo", "src/main.rs", sample_payload).unwrap();
+        let object_hash = engine
+            .write_file("test-repo", "src/main.rs", sample_payload)
+            .unwrap();
         assert_eq!(object_hash.len(), 64);
 
         // 4. Read File

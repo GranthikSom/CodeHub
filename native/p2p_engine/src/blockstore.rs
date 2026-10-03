@@ -2,10 +2,10 @@
 //!
 //! Stores Git commit, tree, and blob objects identified by SHA-256 digests.
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GitObjectType {
@@ -41,7 +41,11 @@ impl Blockstore {
     }
 
     /// Stores a Git object block on disk in the content-addressed blockstore
-    pub fn store_block(&self, object_type: GitObjectType, payload: Vec<u8>) -> std::io::Result<GitObjectBlock> {
+    pub fn store_block(
+        &self,
+        object_type: GitObjectType,
+        payload: Vec<u8>,
+    ) -> std::io::Result<GitObjectBlock> {
         let hash = Self::compute_hash(&payload);
         let block = GitObjectBlock {
             hash: hash.clone(),
@@ -81,7 +85,11 @@ impl Blockstore {
     }
 
     /// Evaluates repository health score and detects single-replica critical risk
-    pub fn evaluate_repository_health(&self, repo_id: &str, replica_count: usize) -> RepositoryHealthReport {
+    pub fn evaluate_repository_health(
+        &self,
+        repo_id: &str,
+        replica_count: usize,
+    ) -> RepositoryHealthReport {
         if replica_count <= 1 {
             RepositoryHealthReport {
                 repo_id: repo_id.to_string(),
@@ -91,7 +99,10 @@ impl Blockstore {
                 network_score: 2,
                 health_percent: 18,
                 status: "CRITICAL".to_string(),
-                critical_warning: Some("⚠ CRITICAL\nOnly one copy of this repository currently exists on the network.".to_string()),
+                critical_warning: Some(
+                    "⚠ CRITICAL\nOnly one copy of this repository currently exists on the network."
+                        .to_string(),
+                ),
             }
         } else if replica_count == 2 {
             RepositoryHealthReport {
@@ -119,7 +130,10 @@ impl Blockstore {
     }
 
     /// Scans blockstore for unreferenced Git object chunks and enforces 30-day grace period
-    pub fn run_garbage_collection(&self, _active_referenced_hashes: &[String]) -> GarbageCollectionSummary {
+    pub fn run_garbage_collection(
+        &self,
+        _active_referenced_hashes: &[String],
+    ) -> GarbageCollectionSummary {
         let candidate_count = 342;
         let reclaimable_bytes = 1_850_000_000; // 1.85 GB
         let grace_period_days = 30;
@@ -140,7 +154,11 @@ impl Blockstore {
     }
 
     /// Calculates missing object delta between Base Commit (v1) and Target Commit (v2)
-    pub fn calculate_commit_delta_sync(&self, base_commit: &str, target_commit: &str) -> DeltaSyncReport {
+    pub fn calculate_commit_delta_sync(
+        &self,
+        base_commit: &str,
+        target_commit: &str,
+    ) -> DeltaSyncReport {
         let base_size_mb = 500.0;
         let target_size_mb = 505.0;
         let delta_size_mb = 5.0;
@@ -155,7 +173,9 @@ impl Blockstore {
             new_objects_count: 142,
             deduplicated_objects_count: 14678,
             bandwidth_saved_percent,
-            status_message: "Immutable object deduplication active. Only 5 MB of new objects fetched.".to_string(),
+            status_message:
+                "Immutable object deduplication active. Only 5 MB of new objects fetched."
+                    .to_string(),
         }
     }
 }

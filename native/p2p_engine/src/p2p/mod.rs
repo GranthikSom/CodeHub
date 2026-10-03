@@ -1,9 +1,9 @@
-pub mod network;
 pub mod discovery;
-pub mod protocol;
+pub mod network;
 pub mod peers;
+pub mod protocol;
 
-pub use network::*;
 pub use discovery::*;
-pub use protocol::*;
+pub use network::*;
 pub use peers::*;
+pub use protocol::*;

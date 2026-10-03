@@ -2,7 +2,13 @@
 
 use serde_json::json;
 
-pub fn build_repository_created_event(repo_id: &str, name: &str, owner: &str, description: Option<&str>, commit_hash: &str) -> String {
+pub fn build_repository_created_event(
+    repo_id: &str,
+    name: &str,
+    owner: &str,
+    description: Option<&str>,
+    commit_hash: &str,
+) -> String {
     json!({
         "event": "repository_created",
         "type": "repository.created",
